@@ -3,7 +3,7 @@ from scipy.integrate import solve_ivp
 import numpy as np
 import time
 
-w = 0.98        #
+w = [0.98, 1., 0.94, 1.07, 1.02]        #
 a = 0.22        # Параметры
 b = 0.1         # системы
 c = 8.5         #
@@ -12,7 +12,7 @@ k_elements = 5  # Число агентов
 k = 3           # Число уравнений для одного агента (всегда 3)
 
 radius = 3      # Радиус связи
-T = 0.5         # Сила связи
+T = 0.3         # Сила связи
 
 
 # Функции синхронизации
@@ -30,6 +30,14 @@ def func_connect_y(index, r):
     return summ
 
 
+def func_connect_y_3dim(index, r):
+    summ = 0
+    for i in range(k_elements):
+        summ += d_3dim(T, radius, r[i*k], r[index*k], r[i*k+1], r[index*k+1], r[i*k+2], r[index*k+2]) \
+                * (r[i*k + 1] - r[index*k + 1])
+    return summ
+
+
 # Функция связи по x. Параллельное движение цепочки агентов
 def func_connect_x(index, r):
     summ1, summ2 = 0, 0
@@ -41,6 +49,17 @@ def func_connect_x(index, r):
     return summ1 + summ2
 
 
+def func_connect_x_3dim(index, r):
+    summ1, summ2 = 0, 0
+    for j in range(k_elements):
+        if j != index:
+            summ1 += d_3dim(T, radius, r[j * k], r[index * k], r[j * k + 1], r[index * k + 1], r[j*k + 2], r[index*k+2]) \
+                     * (r[j * k] - r[index * k])
+            summ2 += d_3dim(T, radius, r[j * k], r[index * k], r[j * k + 1], r[index * k + 1], r[j*k + 2], r[index*k+2]) \
+                     / (r[index * k] - r[j * k])
+
+    return summ1 + summ2
+
 # Функция включения связи между двумя агентами
 def d(_T, _radius, x_i, x_j, y_i, y_j):
     if (x_i - x_j)**2 + (y_i - y_j)**2 < _radius**2:
@@ -49,15 +68,22 @@ def d(_T, _radius, x_i, x_j, y_i, y_j):
         return 0
 
 
+def d_3dim(_T, _radius, x_i, x_j, y_i, y_j, z_i, z_j):
+    if (x_i - x_j)**2 + (y_i - y_j)**2 + (z_i - z_j)**2 < _radius**2:
+        return _T
+    else:
+        return 0
+
+
 # Функции правой части
 # По x
 def func_dx(index, r, connect_f=default_f):
-    return - w * r[index*k + 1] - r[index*k + 2] + connect_f(index, r)
+    return - w[index] * r[index*k + 1] - r[index*k + 2] + connect_f(index, r)
 
 
 # По y.
 def func_dy(index, r, connect_f=default_f):
-    return w * r[index*k] + a * r[index*k + 1] + connect_f(index, r)
+    return w[index] * r[index*k] + a * r[index*k + 1] + connect_f(index, r)
 
 
 # По z
@@ -65,7 +91,7 @@ def func_dz(index, r, connect_f=default_f):
     return b + r[index*k + 2] * (r[index*k] - c) + connect_f(index, r)
 
 
-def func_rossler_2_dim(t, r):
+def func_rossler(t, r):
     res_arr = []
 
     for i in range(k_elements):
@@ -73,8 +99,8 @@ def func_rossler_2_dim(t, r):
         # y_i = r[i*k + 1]
         # z_i = r[i*k + 2]
 
-        dx = func_dx(i, r) + func_connect_x(i, r)
-        dy = func_dy(i, r)
+        dx = func_dx(i, r)
+        dy = func_dy(i, r, func_connect_y_3dim)
         dz = func_dz(i, r)
 
         res_arr.append(dx)
@@ -92,7 +118,7 @@ initial_conditions = [
     -.3, -.3, -.3,
 ]
 
-sol = solve_ivp(func_rossler_2_dim, [0, 200], initial_conditions, rtol=1e-11, atol=1e-11)
+sol = solve_ivp(func_rossler, [0, 200], initial_conditions, rtol=1e-11, atol=1e-11)
 
 xs, ys, zs = [], [], []
 for i in range(k_elements):
@@ -169,6 +195,8 @@ for i in range(k_elements):
     plt.title('Y(x)')
     plt.scatter(xs[i][-1], ys[i][-1], marker='o')
     plt.legend()
+plt.xlim(xs[0][-1] - 4, xs[0][-1] + 4)
+plt.ylim(ys[0][-1] - 4, ys[0][-1] + 4)
 plt.show()
 
 # ax2 = plt.figure().add_subplot(projection='3d')
@@ -182,3 +210,4 @@ plt.show()
 #     ax2.scatter(xs_last_100[i][-1], ys_last_100[i][-1], zs_last_100[i][-1], marker='o')
 #     plt.legend()
 # plt.show()
+
