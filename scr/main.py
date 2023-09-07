@@ -12,7 +12,7 @@ k_elements = 5  # Число агентов
 k = 3           # Число уравнений для одного агента (всегда 3)
 
 radius = 3      # Радиус связи
-T = 0.3         # Сила связи
+T = 0.2         # Сила связи
 
 
 # Функции синхронизации
@@ -59,6 +59,7 @@ def func_connect_x_3dim(index, r):
                      / (r[index * k] - r[j * k])
 
     return summ1 + summ2
+
 
 # Функция включения связи между двумя агентами
 def d(_T, _radius, x_i, x_j, y_i, y_j):
@@ -118,7 +119,7 @@ initial_conditions = [
     -.3, -.3, -.3,
 ]
 
-sol = solve_ivp(func_rossler, [0, 200], initial_conditions, rtol=1e-11, atol=1e-11)
+sol = solve_ivp(func_rossler, [0, 400], initial_conditions, rtol=1e-11, atol=1e-11)
 
 xs, ys, zs = [], [], []
 for i in range(k_elements):
@@ -165,6 +166,16 @@ for i in range(k_elements):
     plt.grid()
     plt.title('Y(x)')
     plt.scatter(xs[i][-1], ys[i][-1], marker='o')
+    plt.legend()
+plt.show()
+
+for i in range(k_elements):
+    plt.plot(xs[i], zs[i], alpha=0.5, label=('eq' + str(i + 1)))
+    plt.xlabel('x')
+    plt.ylabel('z')
+    plt.grid()
+    plt.title('z(x)')
+    plt.scatter(xs[i][-1], zs[i][-1], marker='o')
     plt.legend()
 plt.show()
 
