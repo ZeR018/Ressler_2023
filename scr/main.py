@@ -163,90 +163,7 @@ def main():
         zs.append(sol.y[i*k+2])
     ts = sol.t
 
-    # plt.figure(1, figsize=(10, 5))
-    # for i in range(k_elements):
-    #     plt.plot(ts, xs[i], alpha=0.5, label=('eq' + str(i + 1)))
-    #     plt.xlabel('t')
-    #     plt.ylabel('x')
-    #     plt.grid()
-    #     plt.title('X(t)')
-    #     plt.legend()
-    # plt.show()
 
-    # for i in range(k_elements):
-    #     plt.figure(2, figsize=(10, 5))
-    #     plt.plot(ts, ys[i], alpha=0.5, label=('eq' + str(i + 1)))
-    #     plt.xlabel('t')
-    #     plt.ylabel('y')
-    #     plt.grid()
-    #     plt.title('Y(t)')
-    #     plt.legend()
-    # plt.show()
-
-    # for i in range(k_elements):
-    #     plt.figure(3, figsize=(10, 5))
-    #     plt.plot(ts, zs[i], alpha=0.5, label=('eq' + str(i + 1)))
-    #     plt.xlabel('t')
-    #     plt.ylabel('z')
-    #     plt.grid()
-    #     plt.title('Z(t)')
-    #     plt.legend()
-    # plt.show()
-
-    # for i in range(k_elements):
-    #     plt.plot(xs[i], ys[i], alpha=0.5, label=('eq' + str(i + 1)))
-    #     plt.xlabel('x')
-    #     plt.ylabel('y')
-    #     plt.grid()
-    #     plt.title('Y(x)')
-    #     plt.scatter(xs[i][-1], ys[i][-1], marker='o')
-    #     plt.legend()
-    # plt.show()
-
-    # ax = plt.figure().add_subplot(projection='3d')
-    # for i in range(k_elements):
-    #     ax.plot3D(xs[i], ys[i], zs[i], alpha=0.5, label=('eq' + str(i + 1)))
-    #     plt.grid()
-    #     ax.set_xlabel('X')
-    #     ax.set_ylabel('Y')
-    #     ax.set_zlabel('Z')
-    #     plt.title('f(x,y,z)')
-    #     ax.scatter(xs[i][-1], ys[i][-1], zs[i][-1], marker='o')
-    #     plt.legend()
-    # plt.show()
-
-    # xs_last_100, ys_last_100, zs_last_100 = [], [], []
-    # for i in range(k_elements):
-    #     xs_last_100.append(xs[i][-100:])
-    #     ys_last_100.append(ys[i][-100:])
-    #     zs_last_100.append(zs[i][-100:])
-
-
-    # for i in range(k_elements):
-    #     plt.plot(xs_last_100[i], ys_last_100[i], alpha=0.5, label=('eq' + str(i + 1)))
-    #     plt.xlabel('x')
-    #     plt.ylabel('y')
-    #     plt.grid()
-    #     plt.title('Y(x)')
-    #     plt.scatter(xs[i][-1], ys[i][-1], marker='o')
-    #     plt.legend()
-    # plt.show()
-
-    # ax2 = plt.figure().add_subplot(projection='3d')
-    # for i in range(k_elements):
-    #     ax2.plot3D(xs_last_100[i], ys_last_100[i], zs_last_100[i], alpha=0.5, label=('eq' + str(i + 1)))
-    #     plt.grid()
-    #     ax2.set_xlabel('X')
-    #     ax2.set_ylabel('Y')
-    #     ax2.set_zlabel('Z')
-    #     plt.title('f(x,y,z)')
-    #     ax2.scatter(xs_last_100[i][-1], ys_last_100[i][-1], zs_last_100[i][-1], marker='o')
-    #     plt.legend()
-    # plt.show()
-
-
-
-    from matplotlib.animation import FuncAnimation
     from matplotlib.animation import ArtistAnimation
 
     def make_frames(xs_arr, ys_arr, zs_arr, ts_arr, axd, ax_3D):
@@ -417,7 +334,7 @@ def main():
                 blit=blit,
                 repeat=repeat)
 
-    animation_name = './data/gif/parallel_agents'
+    animation_name = './data/gif/parallel_agents2'
     animation.save(animation_name + '.gif', writer='pillow')
     animation_3d = ArtistAnimation(
                 fig_3d,
