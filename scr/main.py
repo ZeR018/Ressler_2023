@@ -2,39 +2,24 @@ from matplotlib import pyplot as plt
 from scipy.integrate import solve_ivp
 import numpy as np
 import time
-from settings.config import settings as s
+from config import settings as s
 from random import uniform
 from datetime import datetime
+from matplotlib.animation import ArtistAnimation
 
-w = [0.98, 1.0, 0.94, 1.07, 1.02]
-a = 0.22        # Параметры
-b = 0.1         # системы
-c = 8.5         #
 
-k_elements = 5  # Число агентов
-k = 3           # Число уравнений для одного агента (всегда 3)
+w = s.w                     #
+a = s.a                     # Параметры
+b = s.b                     # системы
+c = s.c                     #
 
-radius = 3      # Радиус связи
-T = 0.2         # Сила связи
+k_elements = s.k_elements   # Число агентов
+k = 3                       # Число уравнений для одного агента (всегда 3)
 
-plot_colors = [
-    "blue",
-    "orange",
-    "green",
-    "red",
-    "indigo",
-    "m",
-    "purple",
-    "gray",
-    "olive",
-    "pink",
-    "black",
-    "salmon",
-    "tomato",
-    "navy",
-    "lime",
-    "orchid",
-]
+radius = s.radius           # Радиус связи
+T = s.T                     # Сила связи
+
+
 # Функции синхронизации
 
 # Стандартная (если связи по какой-то переменной нет)
@@ -154,7 +139,129 @@ def generate_random_IC_ressler(x_max, y_max, z_max, k_elems=k_elements, x_min=''
     return res_IC_arr
 
 
+def make_frames(xs_arr, ys_arr, zs_arr, ts_arr, axd, ax_3D):
+    # Кол-во кадров
+    num_frames = len(xs_arr[0])
+
+    plot_colors = s.plot_colors
+    
+    frames = []
+    frames_3d = []
+    # Совершаем проход и вырисовываем каждую пятую точку как новый кадр
+    for i in range(0, num_frames, 10):
+        frame = []
+        frame_3d = []
+
+        # Цикл по каждому агенту (элементу)
+        for agent in range(k_elements):
+
+            
+            # Очень старая линия почти не видима, чтобы не мешалась (только на графиках xt, xyz)
+            if i > 2000:
+                # xy
+                xy_line_very_transperent, = axd['yx'].plot(xs_arr[agent][:i-2000], ys_arr[agent][:i-2000], color=plot_colors[agent], alpha=0.15)
+                xy_line_transperent, = axd['yx'].plot(xs_arr[agent][i-2001:i-500], ys_arr[agent][i-2001:i-500], color=plot_colors[agent], alpha=0.4)
+                xy_line, = axd['yx'].plot(xs_arr[agent][i-501:i], ys_arr[agent][i-501:i], color=plot_colors[agent])
+                frame.append(xy_line_very_transperent)
+                frame.append(xy_line_transperent)
+                frame.append(xy_line)
+
+                # xz
+                xz_line_very_transperent, = axd['xz'].plot(zs_arr[agent][:i-2000], xs_arr[agent][:i-2000], color=plot_colors[agent], alpha=0.15)
+                xz_line_transperent, = axd['xz'].plot(zs_arr[agent][i-2001:i-500], xs_arr[agent][i-2001:i-500], color=plot_colors[agent], alpha=0.4)
+                xz_line, = axd['xz'].plot(zs_arr[agent][i-501:i], xs_arr[agent][i-501:i], color=plot_colors[agent])
+                frame.append(xz_line_very_transperent)
+                frame.append(xz_line_transperent)
+                frame.append(xz_line)
+
+                # yz
+                yz_line_very_transperent, = axd['yz'].plot(zs_arr[agent][:i-2000], ys_arr[agent][:i-2000], color=plot_colors[agent], alpha=0.15)
+                yz_line_transperent, = axd['yz'].plot(zs_arr[agent][i-2001:i-500], ys_arr[agent][i-2001:i-500], color=plot_colors[agent], alpha=0.4)
+                yz_line, = axd['yz'].plot(zs_arr[agent][i-501:i], ys_arr[agent][i-501:i], color=plot_colors[agent])
+                frame.append(yz_line_very_transperent)
+                frame.append(yz_line_transperent)
+                frame.append(yz_line)
+
+                xyz_line_very_transperent, = ax_3D.plot3D(xs_arr[agent][:i-2000], ys_arr[agent][:i-2000], zs_arr[agent][:i-2000], color=plot_colors[agent], alpha=0.15)
+                xyz_line_transperent, = ax_3D.plot3D(xs_arr[agent][i-2001:i-500], ys_arr[agent][i-2001:i-500], zs_arr[agent][i-2001:i-500], color=plot_colors[agent], alpha=0.4)
+                xyz_line, = ax_3D.plot3D(xs_arr[agent][i-501:i], ys_arr[agent][i-501:i], zs_arr[agent][i-501:i], color=plot_colors[agent])
+                frame_3d.append(xyz_line_very_transperent)
+                frame_3d.append(xyz_line_transperent)
+                frame_3d.append(xyz_line)
+
+            elif i > 500:
+                #xy
+                xy_line_transperent, = axd['yx'].plot(xs_arr[agent][:i-500], ys_arr[agent][:i-500], color=plot_colors[agent], alpha=0.4)
+                xy_line, = axd['yx'].plot(xs_arr[agent][i-501:i], ys_arr[agent][i-501:i], color=plot_colors[agent])
+                frame.append(xy_line_transperent)
+                frame.append(xy_line)
+                
+                #xz
+                xz_line_transperent, = axd['xz'].plot(zs_arr[agent][:i-500], xs_arr[agent][:i-500], color=plot_colors[agent], alpha=0.4)
+                xz_line, = axd['xz'].plot(zs_arr[agent][i-501:i], xs_arr[agent][i-501:i], color=plot_colors[agent])
+                frame.append(xz_line_transperent)
+                frame.append(xz_line)
+                
+                #yz
+                yz_line_transperent, = axd['yz'].plot(zs_arr[agent][:i-500], ys_arr[agent][:i-500], color=plot_colors[agent], alpha=0.4)
+                yz_line, = axd['yz'].plot(zs_arr[agent][i-501:i], ys_arr[agent][i-501:i], color=plot_colors[agent])
+                frame.append(yz_line_transperent)
+                frame.append(yz_line)
+
+                #xyz
+                xyz_line_transperent, = ax_3D.plot3D(xs_arr[agent][:i-500], ys_arr[agent][:i-500], zs_arr[agent][:i-500], color=plot_colors[agent], alpha=0.4)
+                xyz_line, = ax_3D.plot3D(xs_arr[agent][i-501:i], ys_arr[agent][i-501:i], zs_arr[agent][i-501:i], color=plot_colors[agent])
+                frame_3d.append(xyz_line_transperent)
+                frame_3d.append(xyz_line)
+
+            else: 
+                #xy
+                xy_line, = axd['yx'].plot(xs_arr[agent][:i], ys_arr[agent][:i], color=plot_colors[agent])
+                frame.append(xy_line)
+                #xz
+                xy_line, = axd['xz'].plot(zs_arr[agent][:i], xs_arr[agent][:i], color=plot_colors[agent])
+                frame.append(xy_line)
+                #yz
+                xy_line, = axd['yz'].plot(zs_arr[agent][:i], ys_arr[agent][:i], color=plot_colors[agent])
+                frame.append(xy_line)
+                #xyz
+                xyz_line, = ax_3D.plot3D(xs_arr[agent][:i], ys_arr[agent][:i], zs_arr[agent][:i], color=plot_colors[agent])
+                frame_3d.append(xyz_line)
+
+            # Последние точки xy, xz, yz
+            xy_point = axd['yx'].scatter(xs_arr[agent][i], ys_arr[agent][i], color=plot_colors[agent])
+            xz_point = axd['xz'].scatter(zs_arr[agent][i], xs_arr[agent][i], color=plot_colors[agent])
+            yz_point = axd['yz'].scatter(zs_arr[agent][i], ys_arr[agent][i], color=plot_colors[agent])
+            frame.append(xy_point)
+            frame.append(xz_point)
+            frame.append(yz_point)
+            #xyz
+            xyz_point = ax_3D.scatter(xs_arr[agent][i], ys_arr[agent][i], zs_arr[agent][i], color=plot_colors[agent])
+            frame_3d.append(xyz_point)
+
+            # Рисуем графики x(t), y(t), z(t)
+            xt_line, = axd['xt'].plot(ts_arr[:i], xs_arr[agent][:i], color=plot_colors[agent])
+            yt_line, = axd['yt'].plot(ts_arr[:i], ys_arr[agent][:i], color=plot_colors[agent])
+            zt_line, = axd['zt'].plot(ts_arr[:i], zs_arr[agent][:i], color=plot_colors[agent])
+            frame.append(xt_line)
+            frame.append(yt_line)
+            frame.append(zt_line)
+
+            # Рисуем последние точки x(t), y(t), z(t)
+            xt_point = axd['xt'].scatter(ts_arr[i], xs_arr[agent][i], color=plot_colors[agent])
+            yt_point = axd['yt'].scatter(ts_arr[i], ys_arr[agent][i], color=plot_colors[agent])
+            zt_point = axd['zt'].scatter(ts_arr[i], zs_arr[agent][i], color=plot_colors[agent])
+            frame.append(xt_point)
+            frame.append(yt_point)
+            frame.append(zt_point)
+            
+        frames.append(frame)
+        frames_3d.append(frame_3d)
+
+    return frames, frames_3d
+
 def main():
+    print('w:', s.w)
     start_time = time.time()
 
     rand_IC = generate_random_IC_ressler(3, 3, 3)
@@ -167,127 +274,6 @@ def main():
         zs.append(sol.y[i*k+2])
     ts = sol.t
 
-
-    from matplotlib.animation import ArtistAnimation
-
-    def make_frames(xs_arr, ys_arr, zs_arr, ts_arr, axd, ax_3D):
-        # Кол-во кадров
-        num_frames = len(xs_arr[0])
-        
-        frames = []
-        frames_3d = []
-        # Совершаем проход и вырисовываем каждую пятую точку как новый кадр
-        for i in range(0, num_frames, 10):
-            frame = []
-            frame_3d = []
-
-            # Цикл по каждому агенту (элементу)
-            for agent in range(k_elements):
-
-                
-                # Очень старая линия почти не видима, чтобы не мешалась (только на графиках xt, xyz)
-                if i > 2000:
-                    # xy
-                    xy_line_very_transperent, = axd['yx'].plot(xs_arr[agent][:i-2000], ys_arr[agent][:i-2000], color=plot_colors[agent], alpha=0.15)
-                    xy_line_transperent, = axd['yx'].plot(xs_arr[agent][i-2001:i-500], ys_arr[agent][i-2001:i-500], color=plot_colors[agent], alpha=0.4)
-                    xy_line, = axd['yx'].plot(xs_arr[agent][i-501:i], ys_arr[agent][i-501:i], color=plot_colors[agent])
-                    frame.append(xy_line_very_transperent)
-                    frame.append(xy_line_transperent)
-                    frame.append(xy_line)
-
-                    # xz
-                    xz_line_very_transperent, = axd['xz'].plot(zs_arr[agent][:i-2000], xs_arr[agent][:i-2000], color=plot_colors[agent], alpha=0.15)
-                    xz_line_transperent, = axd['xz'].plot(zs_arr[agent][i-2001:i-500], xs_arr[agent][i-2001:i-500], color=plot_colors[agent], alpha=0.4)
-                    xz_line, = axd['xz'].plot(zs_arr[agent][i-501:i], xs_arr[agent][i-501:i], color=plot_colors[agent])
-                    frame.append(xz_line_very_transperent)
-                    frame.append(xz_line_transperent)
-                    frame.append(xz_line)
-
-                    # yz
-                    yz_line_very_transperent, = axd['yz'].plot(zs_arr[agent][:i-2000], ys_arr[agent][:i-2000], color=plot_colors[agent], alpha=0.15)
-                    yz_line_transperent, = axd['yz'].plot(zs_arr[agent][i-2001:i-500], ys_arr[agent][i-2001:i-500], color=plot_colors[agent], alpha=0.4)
-                    yz_line, = axd['yz'].plot(zs_arr[agent][i-501:i], ys_arr[agent][i-501:i], color=plot_colors[agent])
-                    frame.append(yz_line_very_transperent)
-                    frame.append(yz_line_transperent)
-                    frame.append(yz_line)
-
-                    xyz_line_very_transperent, = ax_3D.plot3D(xs_arr[agent][:i-2000], ys_arr[agent][:i-2000], zs_arr[agent][:i-2000], color=plot_colors[agent], alpha=0.15)
-                    xyz_line_transperent, = ax_3D.plot3D(xs_arr[agent][i-2001:i-500], ys_arr[agent][i-2001:i-500], zs_arr[agent][i-2001:i-500], color=plot_colors[agent], alpha=0.4)
-                    xyz_line, = ax_3D.plot3D(xs_arr[agent][i-501:i], ys_arr[agent][i-501:i], zs_arr[agent][i-501:i], color=plot_colors[agent])
-                    frame_3d.append(xyz_line_very_transperent)
-                    frame_3d.append(xyz_line_transperent)
-                    frame_3d.append(xyz_line)
-
-                elif i > 500:
-                    #xy
-                    xy_line_transperent, = axd['yx'].plot(xs_arr[agent][:i-500], ys_arr[agent][:i-500], color=plot_colors[agent], alpha=0.4)
-                    xy_line, = axd['yx'].plot(xs_arr[agent][i-501:i], ys_arr[agent][i-501:i], color=plot_colors[agent])
-                    frame.append(xy_line_transperent)
-                    frame.append(xy_line)
-                    
-                    #xz
-                    xz_line_transperent, = axd['xz'].plot(zs_arr[agent][:i-500], xs_arr[agent][:i-500], color=plot_colors[agent], alpha=0.4)
-                    xz_line, = axd['xz'].plot(zs_arr[agent][i-501:i], xs_arr[agent][i-501:i], color=plot_colors[agent])
-                    frame.append(xz_line_transperent)
-                    frame.append(xz_line)
-                    
-                    #yz
-                    yz_line_transperent, = axd['yz'].plot(zs_arr[agent][:i-500], ys_arr[agent][:i-500], color=plot_colors[agent], alpha=0.4)
-                    yz_line, = axd['yz'].plot(zs_arr[agent][i-501:i], ys_arr[agent][i-501:i], color=plot_colors[agent])
-                    frame.append(yz_line_transperent)
-                    frame.append(yz_line)
-
-                    #xyz
-                    xyz_line_transperent, = ax_3D.plot3D(xs_arr[agent][:i-500], ys_arr[agent][:i-500], zs_arr[agent][:i-500], color=plot_colors[agent], alpha=0.4)
-                    xyz_line, = ax_3D.plot3D(xs_arr[agent][i-501:i], ys_arr[agent][i-501:i], zs_arr[agent][i-501:i], color=plot_colors[agent])
-                    frame_3d.append(xyz_line_transperent)
-                    frame_3d.append(xyz_line)
-
-                else: 
-                    #xy
-                    xy_line, = axd['yx'].plot(xs_arr[agent][:i], ys_arr[agent][:i], color=plot_colors[agent])
-                    frame.append(xy_line)
-                    #xz
-                    xy_line, = axd['xz'].plot(zs_arr[agent][:i], xs_arr[agent][:i], color=plot_colors[agent])
-                    frame.append(xy_line)
-                    #yz
-                    xy_line, = axd['yz'].plot(zs_arr[agent][:i], ys_arr[agent][:i], color=plot_colors[agent])
-                    frame.append(xy_line)
-                    #xyz
-                    xyz_line, = ax_3D.plot3D(xs_arr[agent][:i], ys_arr[agent][:i], zs_arr[agent][:i], color=plot_colors[agent])
-                    frame_3d.append(xyz_line)
-
-                # Последние точки xy, xz, yz
-                xy_point = axd['yx'].scatter(xs_arr[agent][i], ys_arr[agent][i], color=plot_colors[agent])
-                xz_point = axd['xz'].scatter(zs_arr[agent][i], xs_arr[agent][i], color=plot_colors[agent])
-                yz_point = axd['yz'].scatter(zs_arr[agent][i], ys_arr[agent][i], color=plot_colors[agent])
-                frame.append(xy_point)
-                frame.append(xz_point)
-                frame.append(yz_point)
-                #xyz
-                xyz_point = ax_3D.scatter(xs_arr[agent][i], ys_arr[agent][i], zs_arr[agent][i], color=plot_colors[agent])
-                frame_3d.append(xyz_point)
-
-                # Рисуем графики x(t), y(t), z(t)
-                xt_line, = axd['xt'].plot(ts_arr[:i], xs_arr[agent][:i], color=plot_colors[agent])
-                yt_line, = axd['yt'].plot(ts_arr[:i], ys_arr[agent][:i], color=plot_colors[agent])
-                zt_line, = axd['zt'].plot(ts_arr[:i], zs_arr[agent][:i], color=plot_colors[agent])
-                frame.append(xt_line)
-                frame.append(yt_line)
-                frame.append(zt_line)
-
-                # Рисуем последние точки x(t), y(t), z(t)
-                xt_point = axd['xt'].scatter(ts_arr[i], xs_arr[agent][i], color=plot_colors[agent])
-                yt_point = axd['yt'].scatter(ts_arr[i], ys_arr[agent][i], color=plot_colors[agent])
-                zt_point = axd['zt'].scatter(ts_arr[i], zs_arr[agent][i], color=plot_colors[agent])
-                frame.append(xt_point)
-                frame.append(yt_point)
-                frame.append(zt_point)
-                
-            frames.append(frame)
-            frames_3d.append(frame_3d)
-
-        return frames, frames_3d
     
     time_after_integrate = time.time()
     print('Integrate time:', time.time() - start_time, 'time:', datetime.now().time())
