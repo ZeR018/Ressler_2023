@@ -103,7 +103,7 @@ def func_dz(index, r, connect_f=default_f):
     return b + r[index*k + 2] * (r[index*k] - c) + connect_f(index, r)
 
 
-def func_rossler_2_dim(t, r):
+def func_rossler_3_dim(t, r):
     res_arr = []
 
     for i in range(k_elements):
@@ -261,11 +261,10 @@ def make_frames(xs_arr, ys_arr, zs_arr, ts_arr, axd, ax_3D):
     return frames, frames_3d
 
 def main():
-    print('w:', s.w)
     start_time = time.time()
 
     rand_IC = generate_random_IC_ressler(3, 3, 3)
-    sol = solve_ivp(func_rossler_2_dim, [0, 100], rand_IC, rtol=1e-11, atol=1e-11)
+    sol = solve_ivp(func_rossler_3_dim, [0, 100], rand_IC, rtol=1e-11, atol=1e-11)
 
     xs, ys, zs = [], [], []
     for i in range(k_elements):
@@ -279,12 +278,9 @@ def main():
     print('Integrate time:', time.time() - start_time, 'time:', datetime.now().time())
 
     # Пытаемся расположить графики
-    gs_kw = dict(width_ratios=[1.5, 1], height_ratios=[1,1,1,1,1,1])
+    gs_kw = dict(width_ratios=[1.5, 1], height_ratios=[1,1,1])
     fig, axd = plt.subplot_mosaic([['xt', 'yx',],
-                                   ['xt', 'yx',],
                                    ['yt', 'xz',],
-                                   ['yt', 'xz',],
-                                   ['zt', 'yz',],
                                    ['zt', 'yz',]],
                                 gridspec_kw=gs_kw, figsize=(12, 8),
                                 layout="constrained")

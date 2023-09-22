@@ -9,3 +9,34 @@ k = 3           # Число уравнений для одного агента
 radius = 3      # Радиус связи
 T = 0.2         # Сила связи
 
+
+plot_colors = [
+    "blue",
+    "orange",
+    "green",
+    "red",
+    "indigo",
+    "m",
+    "purple",
+    "gray",
+    "olive",
+    "pink",
+    "black",
+    "salmon",
+    "tomato",
+    "navy",
+    "lime",
+    "orchid",
+    'crimson',
+    'plum',
+    'peru',
+    'lightskyblue',
+    'forestgreen',
+    'tan',
+    'coral',
+    'goldenrod',
+    'silver'
+]
+
+# Data paths
+grid_experiments_path = './data/grid_experiments/'
