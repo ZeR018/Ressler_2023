@@ -15,22 +15,16 @@ b = s.b                     # системы
 c = s.c                     #
 t_max = 100
 
-k_str = 4                   # Число агентов в одной строке
-k_col = 5                   # Число агентов в одном столбце
+k_str = 10                   # Число агентов в одной строке
+k_col = 10                   # Число агентов в одном столбце
 k_elements = k_str * k_col  # Число агентов 
 k = 3                       # Число уравнений для одного агента (всегда 3)
-T = 0.3
+T = 0.2
 
 radius = s.radius           # Радиус связи
 T_attractive = [0.1, 0.1, 0.1, 0.1, 0.1, 0.5, 0.5, 0.5, 0.5, 0.5, 0.1, 0.1, 0.1, 0.1, 0.1]           # Сила притягивающей связи
-# T_attractive = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-# T_attractive = [0.2, 0.5, 0.2, 0.5, 0.2, 0.5, 0.2, 0.5, 0.2, 0.5, 0.2, 0.5, 0.2, 0.5, 0.2]
-# T_attractive = [0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2]
 
 T_repulsive = [0.3, 0.1, 0.3, 0.1, 0.3, 0.1, 0.3, 0.1, 0.3, 0.1, 0.3, 0.1, 0.3, 0.1, 0.3]            # Сила отталкивающей связи
-# T_repulsive = [0.5, 0.2, 0.5, 0.2, 0.5, 0.2, 0.5, 0.2, 0.5, 0.2, 0.5, 0.2, 0.5, 0.2, 0.5]
-# T_repulsive = [0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2]
-# T_repulsive = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
 
 # Функции синхронизации
@@ -298,12 +292,48 @@ def save_data(integration_data, IC, w, figs_arr, fig_names_arr):
 
     return new_dir
 
+def make_frames_grid_agents(xs_arr, ys_arr, _k_elements = k_elements, frames_step = 25):
+
+    fig = plt.figure(figsize=[12,12])
+    ax = fig.add_subplot()
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
+    ax.grid()
+    fig.suptitle('Сетка мобильных агентов')
+
+    # Кол-во кадров
+    num_frames = len(xs_arr[0])
+    frames = []
+
+    plot_colors = s.plot_colors
+
+    for i in range(0, num_frames, frames_step):
+        frame = []
+
+        for agent in range(_k_elements):
+            
+            line = 0
+            if i < 500:
+                line, = ax.plot(xs_arr[agent][:i], ys_arr[agent][:i], color=plot_colors[agent])
+            else:
+                line, = ax.plot(xs_arr[agent][i-500:i], ys_arr[agent][i-500:i], color=plot_colors[agent])
+            line.set_xlim(x_central_elem - max_dist - eps, x_central_elem + max_dist + eps)
+            line.set_ylim(y_central_elem - max_dist - eps, y_central_elem + max_dist + eps)
+
+            frame.append(line)
+
+            point = ax.scatter(xs_arr[agent][i], ys_arr[agent][i], color=plot_colors[agent])
+            frame.append(point)
+
+        frames.append(frame)
+    return frames, fig
+
 
 def main():
     print('Start time:', hms_now())
 
     global w
-    w = generate_w_arr(k_elements)
+    w = generate_w_arr(k_elements, _range=[0.9, 1.1])
 
     start_time = time.time()
 
@@ -353,31 +383,46 @@ def main():
 
     path_save = save_data([xs, ys, zs, ts], rand_IC, w, [fig, fig_last], ['fig_graphs', 'fig_last_state'])
 
-    frames, frames_3d, fig, fig_3d = m.make_frames(xs, ys, zs, ts, 'Grid 4x5 agents', _k_elements = k_elements)
-    # Задержка между кадрами в мс
-    interval = 50
-    # Использовать ли буферизацию для устранения мерцания
+    frames, fig_gif = make_frames_grid_agents(xs, ys, frames_step=20)
+    interval = 75
     blit = True
-    # Будет ли анимация циклической
     repeat = False
-
     animation = ArtistAnimation(
-                fig,
+                fig_gif,
                 frames,
                 interval=interval,
                 blit=blit,
                 repeat=repeat)
-
     animation_name = path_save + '/grid_agents'
     animation.save(animation_name + '.gif', writer='pillow')
-    animation_3d = ArtistAnimation(
-                fig_3d,
-                frames_3d,
-                interval=interval,
-                blit=blit,
-                repeat=repeat)
+
+
+    # # Анимация большая
+    # frames, frames_3d, fig, fig_3d = m.make_frames(xs, ys, zs, ts, 'Grid 4x5 agents', _k_elements = k_elements)
+    # # Задержка между кадрами в мс
+    # interval = 50
+    # # Использовать ли буферизацию для устранения мерцания
+    # blit = True
+    # # Будет ли анимация циклической
+    # repeat = False
+
+    # animation = ArtistAnimation(
+    #             fig,
+    #             frames,
+    #             interval=interval,
+    #             blit=blit,
+    #             repeat=repeat)
+
+    # animation_name = path_save + '/grid_agents'
+    # animation.save(animation_name + '.gif', writer='pillow')
+    # animation_3d = ArtistAnimation(
+    #             fig_3d,
+    #             frames_3d,
+    #             interval=interval,
+    #             blit=blit,
+    #             repeat=repeat)
     
-    animation_3d.save(animation_name + '_3d.gif', writer='pillow')
+    # animation_3d.save(animation_name + '_3d.gif', writer='pillow')
     
     print('Other time', time.time() - time_after_integrate, 'time:', hms_now())
 

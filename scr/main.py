@@ -172,7 +172,7 @@ def make_frames(xs_arr, ys_arr, zs_arr, ts_arr, graph_title, graph_3d_title = ''
     
     frames = []
     frames_3d = []
-    # Совершаем проход и вырисовываем каждую пятую точку как новый кадр
+    # Создаем каждый кадр для gif
     for i in range(0, num_frames, 25):
         frame = []
         frame_3d = []
