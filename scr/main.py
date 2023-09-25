@@ -139,7 +139,32 @@ def generate_random_IC_ressler(x_max, y_max, z_max, k_elems=k_elements, x_min=''
     return res_IC_arr
 
 
-def make_frames(xs_arr, ys_arr, zs_arr, ts_arr, axd, ax_3D):
+def make_frames(xs_arr, ys_arr, zs_arr, ts_arr, graph_title, graph_3d_title = '', _k_elements = k_elements):
+    if graph_3d_title == '':
+        graph_3d_title = graph_title
+
+    # Пытаемся расположить графики
+    gs_kw = dict(width_ratios=[1.5, 1], height_ratios=[1,1,1])
+    fig, axd = plt.subplot_mosaic([['xt', 'yx',],
+                                   ['yt', 'xz',],
+                                   ['zt', 'yz',]],
+                                gridspec_kw=gs_kw, figsize=(12, 8),
+                                layout="constrained")
+    for ax_n in axd:
+        axd[ax_n].grid()
+        axd[ax_n].set_xlabel(ax_n[1])
+        axd[ax_n].set_ylabel(ax_n[0])
+    fig.suptitle(graph_title)
+
+    
+    fig_3d = plt.figure(figsize=[8,8])
+    ax_3d = fig_3d.add_subplot(projection='3d')
+    ax_3d.set_xlabel('x')
+    ax_3d.set_ylabel('y')
+    ax_3d.set_zlabel('z')
+    ax_3d.grid()
+    fig_3d.suptitle(graph_3d_title)
+
     # Кол-во кадров
     num_frames = len(xs_arr[0])
 
@@ -148,12 +173,12 @@ def make_frames(xs_arr, ys_arr, zs_arr, ts_arr, axd, ax_3D):
     frames = []
     frames_3d = []
     # Совершаем проход и вырисовываем каждую пятую точку как новый кадр
-    for i in range(0, num_frames, 10):
+    for i in range(0, num_frames, 25):
         frame = []
         frame_3d = []
 
         # Цикл по каждому агенту (элементу)
-        for agent in range(k_elements):
+        for agent in range(_k_elements):
 
             
             # Очень старая линия почти не видима, чтобы не мешалась (только на графиках xt, xyz)
@@ -182,9 +207,9 @@ def make_frames(xs_arr, ys_arr, zs_arr, ts_arr, axd, ax_3D):
                 frame.append(yz_line_transperent)
                 frame.append(yz_line)
 
-                xyz_line_very_transperent, = ax_3D.plot3D(xs_arr[agent][:i-2000], ys_arr[agent][:i-2000], zs_arr[agent][:i-2000], color=plot_colors[agent], alpha=0.15)
-                xyz_line_transperent, = ax_3D.plot3D(xs_arr[agent][i-2001:i-500], ys_arr[agent][i-2001:i-500], zs_arr[agent][i-2001:i-500], color=plot_colors[agent], alpha=0.4)
-                xyz_line, = ax_3D.plot3D(xs_arr[agent][i-501:i], ys_arr[agent][i-501:i], zs_arr[agent][i-501:i], color=plot_colors[agent])
+                xyz_line_very_transperent, = ax_3d.plot3D(xs_arr[agent][:i-2000], ys_arr[agent][:i-2000], zs_arr[agent][:i-2000], color=plot_colors[agent], alpha=0.15)
+                xyz_line_transperent, = ax_3d.plot3D(xs_arr[agent][i-2001:i-500], ys_arr[agent][i-2001:i-500], zs_arr[agent][i-2001:i-500], color=plot_colors[agent], alpha=0.4)
+                xyz_line, = ax_3d.plot3D(xs_arr[agent][i-501:i], ys_arr[agent][i-501:i], zs_arr[agent][i-501:i], color=plot_colors[agent])
                 frame_3d.append(xyz_line_very_transperent)
                 frame_3d.append(xyz_line_transperent)
                 frame_3d.append(xyz_line)
@@ -209,8 +234,8 @@ def make_frames(xs_arr, ys_arr, zs_arr, ts_arr, axd, ax_3D):
                 frame.append(yz_line)
 
                 #xyz
-                xyz_line_transperent, = ax_3D.plot3D(xs_arr[agent][:i-500], ys_arr[agent][:i-500], zs_arr[agent][:i-500], color=plot_colors[agent], alpha=0.4)
-                xyz_line, = ax_3D.plot3D(xs_arr[agent][i-501:i], ys_arr[agent][i-501:i], zs_arr[agent][i-501:i], color=plot_colors[agent])
+                xyz_line_transperent, = ax_3d.plot3D(xs_arr[agent][:i-500], ys_arr[agent][:i-500], zs_arr[agent][:i-500], color=plot_colors[agent], alpha=0.4)
+                xyz_line, = ax_3d.plot3D(xs_arr[agent][i-501:i], ys_arr[agent][i-501:i], zs_arr[agent][i-501:i], color=plot_colors[agent])
                 frame_3d.append(xyz_line_transperent)
                 frame_3d.append(xyz_line)
 
@@ -225,7 +250,7 @@ def make_frames(xs_arr, ys_arr, zs_arr, ts_arr, axd, ax_3D):
                 xy_line, = axd['yz'].plot(zs_arr[agent][:i], ys_arr[agent][:i], color=plot_colors[agent])
                 frame.append(xy_line)
                 #xyz
-                xyz_line, = ax_3D.plot3D(xs_arr[agent][:i], ys_arr[agent][:i], zs_arr[agent][:i], color=plot_colors[agent])
+                xyz_line, = ax_3d.plot3D(xs_arr[agent][:i], ys_arr[agent][:i], zs_arr[agent][:i], color=plot_colors[agent])
                 frame_3d.append(xyz_line)
 
             # Последние точки xy, xz, yz
@@ -236,7 +261,7 @@ def make_frames(xs_arr, ys_arr, zs_arr, ts_arr, axd, ax_3D):
             frame.append(xz_point)
             frame.append(yz_point)
             #xyz
-            xyz_point = ax_3D.scatter(xs_arr[agent][i], ys_arr[agent][i], zs_arr[agent][i], color=plot_colors[agent])
+            xyz_point = ax_3d.scatter(xs_arr[agent][i], ys_arr[agent][i], zs_arr[agent][i], color=plot_colors[agent])
             frame_3d.append(xyz_point)
 
             # Рисуем графики x(t), y(t), z(t)
@@ -258,7 +283,7 @@ def make_frames(xs_arr, ys_arr, zs_arr, ts_arr, axd, ax_3D):
         frames.append(frame)
         frames_3d.append(frame_3d)
 
-    return frames, frames_3d
+    return frames, frames_3d, fig, fig_3d
 
 def main():
     start_time = time.time()
@@ -277,39 +302,16 @@ def main():
     time_after_integrate = time.time()
     print('Integrate time:', time.time() - start_time, 'time:', datetime.now().time())
 
-    # Пытаемся расположить графики
-    gs_kw = dict(width_ratios=[1.5, 1], height_ratios=[1,1,1])
-    fig, axd = plt.subplot_mosaic([['xt', 'yx',],
-                                   ['yt', 'xz',],
-                                   ['zt', 'yz',]],
-                                gridspec_kw=gs_kw, figsize=(12, 8),
-                                layout="constrained")
-    for ax_n in axd:
-        axd[ax_n].grid()
-        axd[ax_n].set_xlabel(ax_n[1])
-        axd[ax_n].set_ylabel(ax_n[0])
-    fig.suptitle('Параллельное движение агентов')
 
-    
-    fig_3d = plt.figure()
-    ax_3d = fig_3d.add_subplot(projection='3d')
-    ax_3d.set_xlabel('x')
-    ax_3d.set_ylabel('y')
-    ax_3d.set_zlabel('z')
-    ax_3d.grid()
-
-
-    frames, frames_3d = make_frames(xs, ys, zs, ts, axd, ax_3d)
+    frames, frames_3d, fig, fig_3d = make_frames(xs, ys, zs, ts)
 
     time_after_make_frames = time.time()
     print('Make frames time:', time.time() - time_after_integrate, 'time:', datetime.now().time())
 
     # Задержка между кадрами в мс
-    interval = 40
-
+    interval = 50
     # Использовать ли буферизацию для устранения мерцания
     blit = True
-
     # Будет ли анимация циклической
     repeat = False
 

@@ -7,6 +7,7 @@ from random import uniform
 from datetime import datetime
 import main as m
 import os
+from matplotlib.animation import ArtistAnimation
 
 w = []                      #
 a = s.a                     # Параметры
@@ -295,6 +296,8 @@ def save_data(integration_data, IC, w, figs_arr, fig_names_arr):
     for i in range(len(figs_arr)):
         figs_arr[i].savefig(new_dir + '/' + fig_names_arr[i] + '.png')
 
+    return new_dir
+
 
 def main():
     print('Start time:', hms_now())
@@ -339,17 +342,43 @@ def main():
         axd['xz'].plot(xs[agent], zs[agent], alpha=0.3, color=s.plot_colors[agent])
         axd['yz'].plot(zs[agent], ys[agent], alpha=0.3, color=s.plot_colors[agent])
 
-    plt.show()
+    # plt.show()
 
     fig_last, ax_last = plt.subplots(figsize=[10, 6])
     for agent in range(k_elements):
         ax_last.plot(xs[agent][-50:], ys[agent][-50:], color=s.plot_colors[agent])
         ax_last.scatter(xs[agent][-1], ys[agent][-1], color=s.plot_colors[agent])
     ax_last.grid()
-    plt.show()
+    # plt.show()
 
-    save_data([xs, ys, zs, ts], rand_IC, w, [fig, fig_last], ['fig_graphs', 'fig_last_state'])
+    path_save = save_data([xs, ys, zs, ts], rand_IC, w, [fig, fig_last], ['fig_graphs', 'fig_last_state'])
 
+    frames, frames_3d, fig, fig_3d = m.make_frames(xs, ys, zs, ts, 'Grid 4x5 agents', _k_elements = k_elements)
+    # Задержка между кадрами в мс
+    interval = 50
+    # Использовать ли буферизацию для устранения мерцания
+    blit = True
+    # Будет ли анимация циклической
+    repeat = False
+
+    animation = ArtistAnimation(
+                fig,
+                frames,
+                interval=interval,
+                blit=blit,
+                repeat=repeat)
+
+    animation_name = path_save + '/grid_agents'
+    animation.save(animation_name + '.gif', writer='pillow')
+    animation_3d = ArtistAnimation(
+                fig_3d,
+                frames_3d,
+                interval=interval,
+                blit=blit,
+                repeat=repeat)
+    
+    animation_3d.save(animation_name + '_3d.gif', writer='pillow')
+    
     print('Other time', time.time() - time_after_integrate, 'time:', hms_now())
 
 if __name__ == '__main__':
