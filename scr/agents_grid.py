@@ -13,13 +13,13 @@ w = []                      #
 a = s.a                     # Параметры
 b = s.b                     # системы
 c = s.c                     #
-t_max = 100
+t_max = 150
 
-k_str = 10                   # Число агентов в одной строке
-k_col = 10                   # Число агентов в одном столбце
+k_str = 5                   # Число агентов в одной строке
+k_col = 5                   # Число агентов в одном столбце
 k_elements = k_str * k_col  # Число агентов 
 k = 3                       # Число уравнений для одного агента (всегда 3)
-T = 0.2
+T = 0.15
 
 radius = s.radius           # Радиус связи
 T_attractive = [0.1, 0.1, 0.1, 0.1, 0.1, 0.5, 0.5, 0.5, 0.5, 0.5, 0.1, 0.1, 0.1, 0.1, 0.1]           # Сила притягивающей связи
@@ -290,9 +290,13 @@ def save_data(integration_data, IC, w, figs_arr, fig_names_arr):
     for i in range(len(figs_arr)):
         figs_arr[i].savefig(new_dir + '/' + fig_names_arr[i] + '.png')
 
-    return new_dir
+    # Для картинок
+    data_dir = new_dir + '/data'
+    os.mkdir(data_dir)
 
-def make_frames_grid_agents(xs_arr, ys_arr, _k_elements = k_elements, frames_step = 25):
+    return new_dir, data_dir
+
+def make_frames_grid_agents(xs_arr, ys_arr, plot_colors, _k_elements = k_elements, frames_step = 25):
 
     fig = plt.figure(figsize=[12,12])
     ax = fig.add_subplot()
@@ -305,8 +309,6 @@ def make_frames_grid_agents(xs_arr, ys_arr, _k_elements = k_elements, frames_ste
     num_frames = len(xs_arr[0])
     frames = []
 
-    plot_colors = s.plot_colors
-
     for i in range(0, num_frames, frames_step):
         frame = []
 
@@ -317,9 +319,6 @@ def make_frames_grid_agents(xs_arr, ys_arr, _k_elements = k_elements, frames_ste
                 line, = ax.plot(xs_arr[agent][:i], ys_arr[agent][:i], color=plot_colors[agent])
             else:
                 line, = ax.plot(xs_arr[agent][i-500:i], ys_arr[agent][i-500:i], color=plot_colors[agent])
-            line.set_xlim(x_central_elem - max_dist - eps, x_central_elem + max_dist + eps)
-            line.set_ylim(y_central_elem - max_dist - eps, y_central_elem + max_dist + eps)
-
             frame.append(line)
 
             point = ax.scatter(xs_arr[agent][i], ys_arr[agent][i], color=plot_colors[agent])
@@ -329,6 +328,41 @@ def make_frames_grid_agents(xs_arr, ys_arr, _k_elements = k_elements, frames_ste
     return frames, fig
 
 
+def make_colors(_k_elements):
+    res_col_arr = []
+    color_index = 1
+
+    color_step = 1 / _k_elements
+    for i in range(_k_elements):
+        res_col_arr.append((round(1 - color_index, 5), round(color_index, 5), round(1 - color_index, 5)))
+        color_index -= color_step
+
+    return res_col_arr
+
+def draw_and_save_graphics_many_agents(xs_arr, ys_arr, ts_arr, path_save_graphs, plot_colors, _k_elements, step_graphs=50):
+
+    num_frames = len(xs_arr[0])
+
+    for i in range(0+step_graphs, num_frames, step_graphs):
+        plt.figure(figsize=[8,8])
+
+        for agent in range(_k_elements):
+            if(i < 50):
+                plt.plot(xs_arr[agent][:i], ys_arr[agent][:i], color=plot_colors[agent])
+                plt.scatter(xs_arr[agent][i], ys_arr[agent][i], color=plot_colors[agent])
+            else:
+                plt.plot(xs_arr[agent][i-100:i], ys_arr[agent][i-100:i], color=plot_colors[agent])
+                plt.scatter(xs_arr[agent][i], ys_arr[agent][i], color=plot_colors[agent])
+        plt.xlabel('x')
+        plt.ylabel('y')
+        plt.grid()
+        plt.suptitle(str(i) + 'time: ' + str(round(ts_arr[i], 5)))
+
+        plt.savefig(path_save_graphs + '/t_' + str(i) + '.png')
+        plt.close()
+
+    return 0
+
 def main():
     print('Start time:', hms_now())
 
@@ -337,7 +371,7 @@ def main():
 
     start_time = time.time()
 
-    rand_IC = m.generate_random_IC_ressler(1.5, 1.5, 1.5, k_elements)
+    rand_IC = m.generate_random_IC_ressler(2., 2., 1.5, k_elements)
     sol = solve_ivp(func_rossler_3_dim, [0, t_max], rand_IC, rtol=1e-11, atol=1e-11)
 
     xs, ys, zs = [], [], []
@@ -350,6 +384,8 @@ def main():
     
     time_after_integrate = time.time()
     print('Integrate time:', time.time() - start_time, 'time:', hms_now())
+
+    plot_colors = make_colors(k_elements)
     
     gs_kw = dict(width_ratios=[1.5, 1], height_ratios=[1,1,1])
     fig, axd = plt.subplot_mosaic([['xt', 'yx',],
@@ -364,27 +400,29 @@ def main():
     fig.suptitle('Сетка мобильных агентов')
 
     for agent in range(k_elements):
-        axd['xt'].plot(ts, xs[agent], alpha=0.3, color=s.plot_colors[agent])
-        axd['yt'].plot(ts, ys[agent], alpha=0.3, color=s.plot_colors[agent])
-        axd['zt'].plot(ts, zs[agent], alpha=0.3, color=s.plot_colors[agent])
+        axd['xt'].plot(ts, xs[agent], alpha=0.3, color=plot_colors[agent])
+        axd['yt'].plot(ts, ys[agent], alpha=0.3, color=plot_colors[agent])
+        axd['zt'].plot(ts, zs[agent], alpha=0.3, color=plot_colors[agent])
         
-        axd['yx'].plot(xs[agent], ys[agent], alpha=0.3, color=s.plot_colors[agent])
-        axd['xz'].plot(xs[agent], zs[agent], alpha=0.3, color=s.plot_colors[agent])
-        axd['yz'].plot(zs[agent], ys[agent], alpha=0.3, color=s.plot_colors[agent])
+        axd['yx'].plot(xs[agent], ys[agent], alpha=0.3, color=plot_colors[agent])
+        axd['xz'].plot(xs[agent], zs[agent], alpha=0.3, color=plot_colors[agent])
+        axd['yz'].plot(zs[agent], ys[agent], alpha=0.3, color=plot_colors[agent])
 
     # plt.show()
 
     fig_last, ax_last = plt.subplots(figsize=[10, 6])
     for agent in range(k_elements):
-        ax_last.plot(xs[agent][-50:], ys[agent][-50:], color=s.plot_colors[agent])
-        ax_last.scatter(xs[agent][-1], ys[agent][-1], color=s.plot_colors[agent])
+        ax_last.plot(xs[agent][-50:], ys[agent][-50:], color=plot_colors[agent])
+        ax_last.scatter(xs[agent][-1], ys[agent][-1], color=plot_colors[agent])
     ax_last.grid()
     # plt.show()
 
-    path_save = save_data([xs, ys, zs, ts], rand_IC, w, [fig, fig_last], ['fig_graphs', 'fig_last_state'])
+    path_save, path_save_graphs = save_data([xs, ys, zs, ts], rand_IC, w, [fig, fig_last], ['fig_graphs', 'fig_last_state'])
 
-    frames, fig_gif = make_frames_grid_agents(xs, ys, frames_step=20)
-    interval = 75
+    # draw_and_save_graphics_many_agents(xs, ys, ts, path_save_graphs, plot_colors, k_elements, 100)
+    # Анимация y(x)
+    frames, fig_gif = make_frames_grid_agents(xs, ys, plot_colors, frames_step=20)
+    interval = 40
     blit = True
     repeat = False
     animation = ArtistAnimation(
