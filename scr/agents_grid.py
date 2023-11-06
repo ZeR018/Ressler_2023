@@ -13,18 +13,25 @@ w = []                      #
 a = s.a                     # Параметры
 b = s.b                     # системы
 c = s.c                     #
-t_max = 100
+t_max = 150
 
-k_str = 5                   # Число агентов в одной строке
-k_col = 5                   # Число агентов в одном столбце
+k_str = 10                   # Число агентов в одной строке
+k_col = 10                   # Число агентов в одном столбце
 k_elements = k_str * k_col  # Число агентов 
 k = 3                       # Число уравнений для одного агента (всегда 3)
-T = 0.2
+T = 0.3
 
 radius = s.radius           # Радиус связи
 T_attractive = [0.1, 0.1, 0.1, 0.1, 0.1, 0.5, 0.5, 0.5, 0.5, 0.5, 0.1, 0.1, 0.1, 0.1, 0.1]           # Сила притягивающей связи
 
 T_repulsive = [0.3, 0.1, 0.3, 0.1, 0.3, 0.1, 0.3, 0.1, 0.3, 0.1, 0.3, 0.1, 0.3, 0.1, 0.3]            # Сила отталкивающей связи
+
+for_find_grid_IC = {'10x10': '2023-11-04 06.49.04',
+                    '10x10t': '37.41633',
+                    '7x7': '2023-11-02 19.44.45',
+                    '7x7t': '81.99422',
+                    '5x5': '2023-10-28 15.24.36',
+                    '5x5t': '122.92734'}
 
 
 # Функции синхронизации
@@ -303,11 +310,11 @@ def save_data(integration_data, IC, w, figs_arr, fig_names_arr, deleted_elems = 
     os.mkdir(data_dir)
 
     if deleted_elems != []:
-        save_grid_mask(deleted_elems, new_dir + 'deleted elems mask' + '.txt')
+        save_grid_mask(deleted_elems, new_dir + '/deleted elems mask' + '.txt')
 
     return new_dir, data_dir
 
-def make_frames_grid_agents(xs_arr, ys_arr, plot_colors, _k_elements = k_elements, frames_step = 25):
+def make_frames_grid_agents(xs_arr, ys_arr, plot_colors, _k_elements = k_elements, frames_step = 25, deleted_elems = []):
 
     fig = plt.figure(figsize=[12,12])
     ax = fig.add_subplot()
@@ -324,6 +331,8 @@ def make_frames_grid_agents(xs_arr, ys_arr, plot_colors, _k_elements = k_element
         frame = []
 
         for agent in range(_k_elements):
+            if deleted_elems.count(agent) > 0:
+                continue
             
             line = 0
             if i < 500:
@@ -350,22 +359,23 @@ def make_colors(_k_elements):
 
     return res_col_arr
 
-def draw_and_save_graphics_many_agents(xs_arr, ys_arr, ts_arr, path_save_graphs, plot_colors, _k_elements, step_graphs=50):
+def draw_and_save_graphics_many_agents(xs_arr, ys_arr, ts_arr, path_save_graphs, plot_colors, _k_elements, step_graphs=50, undeleted_elems = []):
+    if undeleted_elems == []:
+        undeleted_elems = range(_k_elements)
 
     num_frames = len(xs_arr[0])
 
     for i in range(0+step_graphs, num_frames, step_graphs):
         plt.figure(figsize=[8,8])
 
-        for agent in range(_k_elements):
+        for agent in undeleted_elems:
+
             if(i < 50):
                 plt.plot(xs_arr[agent][:i], ys_arr[agent][:i], color=plot_colors[agent])
                 plt.scatter(xs_arr[agent][i], ys_arr[agent][i], color=plot_colors[agent])
             else:
                 plt.plot(xs_arr[agent][i-100:i], ys_arr[agent][i-100:i], color=plot_colors[agent])
                 plt.scatter(xs_arr[agent][i], ys_arr[agent][i], color=plot_colors[agent])
-        plt.xlim(-17, 17)
-        plt.ylim(-17, 17)
         plt.xlabel('x')
         plt.ylabel('y')
         plt.grid()
@@ -393,7 +403,7 @@ def binary_search_time(a, elem, occuracy):
     else:
         return mid
 
-def find_grid_IC_from_integration_data(datapath="./data/grid_experiments/2023-10-28 15.24.36", time=122.92734):
+def find_grid_IC_from_integration_data(datapath, time):
 
     # Берем необходимую информацию о начальных условиях
     IC_data = read_IC(datapath + '/IC.txt')
@@ -409,7 +419,7 @@ def find_grid_IC_from_integration_data(datapath="./data/grid_experiments/2023-10
     # Binary search
 
     IC = []
-    index_grid_IC = binary_search_time(integration_data[3], time, 5)
+    index_grid_IC = binary_search_time(integration_data[3], float(time), 5)
     for agent in range(k_elements):
         for j in range(k):
             IC.append(integration_data[j][agent][index_grid_IC])
@@ -436,6 +446,7 @@ def show_grid_mask(deleted_elems: list[int], k_col = k_col, k_str = k_str):
 def save_grid_mask(deleted_elems, path_save):
     if path_save != '0':
         with open(path_save, 'w') as f:
+            print('Deleted elems mask:', file=f)
             for i in range(k_col):
                 print('\t', end='', file=f)
                 for j in range(k_str):
@@ -443,9 +454,10 @@ def save_grid_mask(deleted_elems, path_save):
                         print(0, end=' ', file=f)
                     else:
                         print(1, end=' ', file=f)
+                print('\t', end='\n', file=f)
 
 
-def pick_elements_for_delete(k_deleted_elements, k_col = k_col, k_str = k_str):
+def pick_elements_for_delete(k_deleted_elements, k_col = k_col, k_str = k_str, type=1):
     
     if k_col * k_str == 25:
         match(k_deleted_elements):
@@ -459,11 +471,83 @@ def pick_elements_for_delete(k_deleted_elements, k_col = k_col, k_str = k_str):
                 return [7, 11, 12, 13, 17]
             case 9:
                 return [6, 7, 8, 11, 12, 13, 16, 17, 18]
-    else:
-        print('functionality not implemented, k_elems = ' + str(k_elements) + ', k_deleted_elems = ' + str(k_deleted_elements)
-        )        
+    elif k_col * k_str == 36:
+        match(k_deleted_elements):
+            case 2:
+                return [14, 15]
+            case 4:
+                return [14, 15, 20, 21]
+            case 8:
+                if type == 1:
+                    return [8, 14, 15, 16, 19, 20, 21, 27]
+                elif type == 2:
+                    return [13, 14, 15, 16 , 19, 20, 21, 22]
+                elif type == 3:
+                    return [8, 9, 14, 15, 20, 21, 26, 27]
+            case 12:
+                return [8, 9, 13, 14, 15, 16, 19, 20, 21, 22, 26, 27]
+            case 16:
+                return [7, 8, 9, 10, 13, 14, 15, 16, 19, 20, 21, 22, 25, 26, 27, 28]
+            
+    elif k_col * k_str == 49:
+        match(k_deleted_elements):
+            case 1:
+                return [24]
+            case 3:
+                if type == 1:
+                    return [23, 24, 25]
+                elif type == 2:
+                    return [17, 24, 31]
+            case 5:
+                if type == 1:
+                    return [17, 23, 24, 25, 31]
+                elif type == 2:
+                    return [10, 17, 24, 31, 38]
+                elif type == 3:
+                    return [22, 23, 24, 25, 26]
+            case 7:
+                return [22, 23, 24, 25, 26, 17, 31]
+            case 9:
+                return [16, 17, 18, 23, 24, 25, 30, 31, 32]
+            case 13:
+                return [16, 17, 18, 23, 24, 25, 30, 31, 32, 10, 22, 26, 38]
+            case 21:
+                return [9, 10, 11, 16, 17, 18, 23, 24, 25, 30, 31, 32, 15, 22, 29, 19, 26, 33, 37, 38, 39]
+            case 24:
+                return [8, 12, 36, 40, 9, 10, 11, 16, 17, 18, 23, 24, 25, 30, 31, 32, 15, 22, 29, 19, 26, 33, 37, 38, 39]
+            
+    elif k_col * k_str == 100:
+        match(k_deleted_elements):
+            case 4:
+                return [44, 45, 54, 55]
+            case 8:
+                return [44, 45, 54, 55, 34, 46, 53, 65]
+            case 12:
+                return [34, 35, 43, 44, 45, 46, 53, 54, 55, 56, 64, 65]
+            case 16:
+                return [33, 34, 35, 36, 43, 44, 45, 46, 53, 54, 55, 56, 63, 64, 65, 66]
+            case 24:
+                return [33, 34, 35, 36, 43, 44, 45, 46, 53, 54, 55, 56, 63, 64, 65, 66, 24, 25, 74, 75, 42, 52, 47, 57]
+            case 32:
+                return [23, 24, 25, 26, 33, 34, 35, 36, 43, 44, 45, 46, 53, 54, 55, 56, 63, 64, 65, 66, 73, 74, 75, 76, 32, 42, 52, 62, 37, 47, 57, 67]
+            case 36:
+                return [22, 23, 24, 25, 26, 27, 32, 33, 34, 35, 36, 37, 42, 43, 44, 45, 46, 47, 52, 53, 54, 55, 56, 57, 62, 63, 64, 65, 66, 67, 72, 73, 74, 75, 76, 77]
+            case 44:
+                return [14, 15, 22, 23, 24, 25, 26, 27, 32, 33, 34, 35, 36, 37, 41, 42, 43, 44, 45, 46, 47, 48, 51, 52, 53, 54, 55, 56, 57, 58, 62, 63, 64, 65, 66, 67, 72, 73, 74, 75, 76, 77, 84, 85]
+            case 52:
+                return [13, 14, 15, 16, 22, 23, 24, 25, 26, 27, 31, 32, 33, 34, 35, 36, 37, 38, 41, 42, 43, 44, 45, 46, 47, 48, 
+                        51, 52, 53, 54, 55, 56, 57, 58, 61, 62, 63, 64, 65, 66, 67, 68, 72, 73, 74, 75, 76, 77, 83, 84, 85, 86]
+            case 60:
+                return [12, 13, 14, 15, 16, 17, 21, 22, 23, 24, 25, 26, 27, 28, 31, 32, 33, 34, 35, 36, 37, 38, 41, 42, 43, 44, 45, 46, 47, 48, 
+                        51, 52, 53, 54, 55, 56, 57, 58, 61, 62, 63, 64, 65, 66, 67, 68, 71, 72, 73, 74, 75, 76, 77, 78, 82, 83, 84, 85, 86, 87]
+            case 64:
+                return [11, 12, 13, 14, 15, 16, 17, 18, 21, 22, 23, 24, 25, 26, 27, 28, 31, 32, 33, 34, 35, 36, 37, 38, 41, 42, 43, 44, 45, 46, 47, 48, 
+                        51, 52, 53, 54, 55, 56, 57, 58, 61, 62, 63, 64, 65, 66, 67, 68, 71, 72, 73, 74, 75, 76, 77, 78, 81, 82, 83, 84, 85, 86, 87, 88]
+            
 
-def make_experiment_delete_from_grid(k_deleted_elements):
+    print('functionality not implemented, k_elems = ' + str(k_elements) + ', k_deleted_elems = ' + str(k_deleted_elements))        
+
+def make_experiment_delete_from_grid(k_deleted_elements, type = 1):
     print('Start time:', hms_now())
     start_time = time.time()
 
@@ -474,11 +558,11 @@ def make_experiment_delete_from_grid(k_deleted_elements):
         return -1
     
     # Создаем "массив удаленных элементов"
-    deleted_elems = pick_elements_for_delete(k_deleted_elements)
+    deleted_elems = pick_elements_for_delete(k_deleted_elements, type=type)
     show_grid_mask(deleted_elems)
 
     # Берем НУ как состояние из другого эксперимента с сеткой
-    IC, w = find_grid_IC_from_integration_data()
+    IC, w = find_grid_IC_from_integration_data("./data/grid_experiments/" + for_find_grid_IC['10x10'], for_find_grid_IC['10x10t'])
 
     # Задаем далекие НУ для убранных элементов - убираем элементы чтобы не мешались
     undeleted_elems = []
@@ -542,9 +626,9 @@ def make_experiment_delete_from_grid(k_deleted_elements):
     ax_last.grid()
     # plt.show()
 
-    path_save, path_save_graphs = save_data([xs, ys, zs, ts], IC, w, [fig, fig_last], ['fig_graphs', 'fig_last_state'])
+    path_save, path_save_graphs = save_data([xs, ys, zs, ts], IC, w, [fig, fig_last], ['fig_graphs', 'fig_last_state'], deleted_elems=deleted_elems)
 
-    draw_and_save_graphics_many_agents(xs, ys, ts, path_save_graphs, plot_colors, k_elements, 100)
+    draw_and_save_graphics_many_agents(xs, ys, ts, path_save_graphs, plot_colors, k_elements, 100, undeleted_elems)
 
     # Просто посмотреть первые 100 точек - как это работает
     os.mkdir(path_save + '/first_100')
@@ -554,7 +638,7 @@ def make_experiment_delete_from_grid(k_deleted_elements):
         for agent in range(k_elements):
             if deleted_elems.count(agent) > 0:
                 continue
-            plt.plot(xs[agent][:i], ys[agent][:i], color=plot_colors[agent])
+            plt.plot(xs[agent][:i+1], ys[agent][:i+1], color=plot_colors[agent])
             plt.scatter(xs[agent][i], ys[agent][i], color=plot_colors[agent])
 
         plt.xlabel('x')
@@ -669,4 +753,16 @@ def make_grid_experiment():
     print('Other time', time.time() - time_after_integrate, 'time:', hms_now())
 
 if __name__ == '__main__':
-    make_experiment_delete_from_grid(5)
+
+    make_experiment_delete_from_grid(4)
+    make_experiment_delete_from_grid(8)
+    make_experiment_delete_from_grid(12)
+    make_experiment_delete_from_grid(16)
+    make_experiment_delete_from_grid(24)
+    make_experiment_delete_from_grid(32)
+    make_experiment_delete_from_grid(36)
+    make_experiment_delete_from_grid(44)
+    make_experiment_delete_from_grid(52)
+    make_experiment_delete_from_grid(60)
+    make_experiment_delete_from_grid(64)
+
