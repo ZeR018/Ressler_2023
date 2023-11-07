@@ -3,7 +3,7 @@ from scipy.integrate import solve_ivp
 import numpy as np
 import time
 from config import settings as s
-from random import uniform
+from random import uniform, sample
 from datetime import datetime
 import main as m
 import os
@@ -457,7 +457,10 @@ def save_grid_mask(deleted_elems, path_save):
                 print('\t', end='\n', file=f)
 
 
-def pick_elements_for_delete(k_deleted_elements, k_col = k_col, k_str = k_str, type=1):
+def pick_elements_for_delete(k_deleted_elements, k_col = k_col, k_str = k_str, type=1, pick_type = 'rand'):
+
+    if pick_type == 'rand':
+        return sample(range(k_col * k_str), k_deleted_elements)
     
     if k_col * k_str == 25:
         match(k_deleted_elements):
@@ -553,12 +556,12 @@ def make_experiment_delete_from_grid(k_deleted_elements, type = 1):
 
 
     # Работаем только если элементов остается хотя бы на рамку для сетки
-    if k_deleted_elements > 2 * k_col + 2 * k_str - 4:
+    if k_deleted_elements > k_col * k_str - (2 * k_col + 2 * k_str - 4):
         print('too mach elems to delete')
         return -1
     
     # Создаем "массив удаленных элементов"
-    deleted_elems = pick_elements_for_delete(k_deleted_elements, type=type)
+    deleted_elems = pick_elements_for_delete(k_deleted_elements, type=type, pick_type='rand')
     show_grid_mask(deleted_elems)
 
     # Берем НУ как состояние из другого эксперимента с сеткой
@@ -754,15 +757,10 @@ def make_grid_experiment():
 
 if __name__ == '__main__':
 
-    make_experiment_delete_from_grid(4)
-    make_experiment_delete_from_grid(8)
-    make_experiment_delete_from_grid(12)
-    make_experiment_delete_from_grid(16)
-    make_experiment_delete_from_grid(24)
-    make_experiment_delete_from_grid(32)
-    make_experiment_delete_from_grid(36)
-    make_experiment_delete_from_grid(44)
-    make_experiment_delete_from_grid(52)
+    make_experiment_delete_from_grid(10)
+    make_experiment_delete_from_grid(20)
+    make_experiment_delete_from_grid(30)
+    make_experiment_delete_from_grid(40)
+    make_experiment_delete_from_grid(50)
     make_experiment_delete_from_grid(60)
-    make_experiment_delete_from_grid(64)
 
