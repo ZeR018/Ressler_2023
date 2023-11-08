@@ -15,8 +15,8 @@ b = s.b                     # системы
 c = s.c                     #
 t_max = 150
 
-k_str = 10                   # Число агентов в одной строке
-k_col = 10                   # Число агентов в одном столбце
+k_str = 5                   # Число агентов в одной строке
+k_col = 5                   # Число агентов в одном столбце
 k_elements = k_str * k_col  # Число агентов 
 k = 3                       # Число уравнений для одного агента (всегда 3)
 T = 0.3
@@ -562,10 +562,15 @@ def make_experiment_delete_from_grid(k_deleted_elements, type = 1):
     
     # Создаем "массив удаленных элементов"
     deleted_elems = pick_elements_for_delete(k_deleted_elements, type=type, pick_type='rand')
+    print()
     show_grid_mask(deleted_elems)
 
     # Берем НУ как состояние из другого эксперимента с сеткой
-    IC, w = find_grid_IC_from_integration_data("./data/grid_experiments/" + for_find_grid_IC['10x10'], for_find_grid_IC['10x10t'])
+    IC, w = [], []
+    if k_col == 5 and k_str == 5:
+        IC, w = find_grid_IC_from_integration_data("./data/grid_experiments/" + for_find_grid_IC['5x5'], for_find_grid_IC['5x5t'])
+    elif k_col == 10 and k_str == 10:
+        IC, w = find_grid_IC_from_integration_data("./data/grid_experiments/" + for_find_grid_IC['10x10'], for_find_grid_IC['10x10t'])
 
     # Задаем далекие НУ для убранных элементов - убираем элементы чтобы не мешались
     undeleted_elems = []
@@ -576,6 +581,8 @@ def make_experiment_delete_from_grid(k_deleted_elements, type = 1):
             IC[i*k + 2] = 10000
         else:
             undeleted_elems.append(i)
+
+    print(len(IC))
 
     start_solve_time = time.time()
     print('Start solve:', start_solve_time - start_time, 'time:', hms_now())
@@ -653,6 +660,14 @@ def make_experiment_delete_from_grid(k_deleted_elements, type = 1):
         plt.close()
 
     print('Other time', time.time() - time_after_integrate, 'time:', hms_now())
+
+def rebuild_broken_system(stop_T, num_exps, broken_system_path):
+    # Залезть в нужный эксперимент, достать оттуда начальные W, T и конечное состояние 
+    # Выписать список удаленных элементов
+
+    # Запустить num_exps экспериментов с разными Т в диапазоне [T_IC, stop_T]
+
+    return 0
 
 def make_grid_experiment():
     print('Start time:', hms_now())
@@ -757,10 +772,12 @@ def make_grid_experiment():
 
 if __name__ == '__main__':
 
-    make_experiment_delete_from_grid(10)
-    make_experiment_delete_from_grid(20)
-    make_experiment_delete_from_grid(30)
-    make_experiment_delete_from_grid(40)
-    make_experiment_delete_from_grid(50)
-    make_experiment_delete_from_grid(60)
+    make_experiment_delete_from_grid(2)
+    make_experiment_delete_from_grid(3)
+    make_experiment_delete_from_grid(4)
+    make_experiment_delete_from_grid(5)
+    make_experiment_delete_from_grid(6)
+    make_experiment_delete_from_grid(7)
+    make_experiment_delete_from_grid(8)
+    make_experiment_delete_from_grid(9)
 
