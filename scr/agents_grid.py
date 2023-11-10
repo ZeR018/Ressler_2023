@@ -23,8 +23,6 @@ T = 0.3
 
 radius = s.radius           # Радиус связи
 
-do_need_use_VanDerPol = True
-
 for_find_grid_IC = {'10x10': '2023-11-04 06.49.04',
                     '10x10t': '37.41633',
                     '7x7': '2023-11-02 19.44.45',
@@ -55,13 +53,17 @@ def func_connect_y_3dim(index, r, _T):
     return summ
 
 def func_connect_y_VDP(index, r, _T):
+
     summ = 0
     for j in range(k_elements):
-        summ += d_3dim(_T, radius, r[j*k], r[index*k], r[j*k+1], r[index*k+1], r[j*k+2], r[index*k+2]) \
-                * (r[j*k + 1] - r[index*k + 1])
+        # summ += d_3dim(_T, radius, r[j*k], r[index*k], r[j*k+1], r[index*k+1], r[j*k+2], r[index*k+2]) \
+        #         * (r[j*k + 1] - r[index*k + 1])
         summ += d_3dim(_T, radius, r[j*k], r[-3], r[j*k+1], r[-2], r[j*k+2], r[-1]) \
                 * (r[-2] - r[index*k + 1])
-    return summ
+        
+    # Связь сетка 
+    summ_grid = func_connect_y_grid(index, r, _T)
+    return summ + summ_grid
 
 def func_connect_y_grid(index, r, _T):
     summ = 0
@@ -212,7 +214,7 @@ def function_rossler_and_VanDerPol(t, r, k_elements, w_arr, mu, W):
         # y_i = r[i*k + 1]
         # z_i = r[i*k + 2]
 
-        dx = func_dx(i, r, default_f, T, w_arr)
+        dx = func_dx(i, r, func_connect_x_grid, T, w_arr)
         dy = func_dy(i, r, func_connect_y_VDP, T, w_arr)
         dz = func_dz(i, r, T)
 
@@ -701,6 +703,46 @@ def rebuild_broken_system(stop_T, num_exps, broken_system_path):
 
     return 0
 
+def make_experiment_use_vanderpol():
+    print('Start time:', hms_now())
+
+    global w
+    w = generate_w_arr(k_elements, _range=[0.9, 1.1])
+
+    start_time = time.time()
+
+    # Берем НУ как состояние из другого эксперимента с сеткой
+    IC, w = [], []
+    if k_col == 5 and k_str == 5:
+        IC, w = find_grid_IC_from_integration_data("./data/grid_experiments/" + for_find_grid_IC['5x5'], for_find_grid_IC['5x5t'])
+    elif k_col == 10 and k_str == 10:
+        IC, w = find_grid_IC_from_integration_data("./data/grid_experiments/" + for_find_grid_IC['10x10'], for_find_grid_IC['10x10t'])
+
+    # Добавляем НУ Ван-дер-Поля в НУ
+    IC.append(1)
+    IC.append(1)
+    IC.append(0)
+    sol = solve_ivp(function_rossler_and_VanDerPol, [0, t_max], IC, args=(k_elements, w, -1, 1), rtol=1e-11, atol=1e-11)
+
+    xs, ys, zs = [], [], []
+    for i in range(k_elements):
+        xs.append(sol.y[i*k])
+        ys.append(sol.y[i*k+1])
+        zs.append(sol.y[i*k+2])
+    ts = sol.t
+
+    time_after_integrate = time.time()
+    print('Integrate time:', time.time() - start_time, 'time:', hms_now())
+
+    plot_colors = make_colors(k_elements)
+
+    path_save, path_save_graphs = save_data([xs, ys, zs, ts], IC, w)
+    draw_and_save_graphics_many_agents(xs, ys, ts, path_save_graphs, plot_colors, k_elements, 50)
+
+    
+    print('Other time', time.time() - time_after_integrate, 'time:', hms_now())
+
+
 def make_grid_experiment():
     print('Start time:', hms_now())
 
@@ -709,15 +751,9 @@ def make_grid_experiment():
 
     start_time = time.time()
 
-    if do_need_use_VanDerPol:
-        rand_IC = m.generate_random_IC_ressler(2., 2., 1.5, k_elements)
-        rand_IC.append(1)
-        rand_IC.append(1)
-        rand_IC.append(0)
-        sol = solve_ivp(function_rossler_and_VanDerPol, [0, t_max], rand_IC, args=(k_elements, w, -1, 1), rtol=1e-11, atol=1e-11)
-    else:
-        rand_IC = m.generate_random_IC_ressler(5., 5., 0.5, k_elements)
-        sol = solve_ivp(func_rossler_3_dim, [0, t_max], rand_IC, rtol=1e-11, atol=1e-11)
+
+    rand_IC = m.generate_random_IC_ressler(5., 5., 0.5, k_elements)
+    sol = solve_ivp(func_rossler_3_dim, [0, t_max], rand_IC, rtol=1e-11, atol=1e-11)
 
     xs, ys, zs = [], [], []
     for i in range(k_elements):
@@ -752,31 +788,6 @@ def make_grid_experiment():
         axd['yx'].plot(xs[agent], ys[agent], alpha=0.3, color=plot_colors[agent])
         axd['xz'].plot(xs[agent], zs[agent], alpha=0.3, color=plot_colors[agent])
         axd['yz'].plot(zs[agent], ys[agent], alpha=0.3, color=plot_colors[agent])
-
-    # Осциллятор Ван Дер Поля
-    axd['xt'].plot(ts, xs[-3], alpha=0.7, color='red', label='Van der Pol')
-    axd['yt'].plot(ts, ys[-2], alpha=0.7, color='red', label='Van der Pol')
-    axd['zt'].plot(ts, zs[-1], alpha=0.7, color='red', label='Van der Pol')
-    
-    axd['yx'].plot(xs[-3], ys[-2], color='red', label='Van der Pol')
-    axd['xz'].plot(xs[-3], zs[-1], color='red', label='Van der Pol')
-    axd['yz'].plot(zs[-1], ys[-2], color='red', label='Van der Pol')
-
-    axd['xt'].scatter(ts[-1], xs[-3][-1], color='red', s=10)
-    axd['yt'].scatter(ts[-1], ys[-2][-1], color='red', s=10)
-    axd['zt'].scatter(ts[-1], zs[-1][-1], color='red', s=10)
-    
-    axd['yx'].scatter(xs[-3][-1], ys[-2][-1], color='red', s=10)
-    axd['xz'].scatter(xs[-3][-1], zs[-1][-1], color='red', s=10)
-    axd['yz'].scatter(zs[-1][-1], ys[-2][-1], color='red', s=10)
-
-    axd['xt'].legend()
-    axd['yt'].legend()
-    axd['zt'].legend()
-    
-    axd['yx'].legend()
-    axd['xz'].legend()
-    axd['yz'].legend()
 
     # plt.show()
 
@@ -845,12 +856,12 @@ if __name__ == '__main__':
     # make_experiment_delete_from_grid(8)
     # make_experiment_delete_from_grid(9)
 
-    make_grid_experiment()
-    make_grid_experiment()
-    make_grid_experiment()
+    make_experiment_use_vanderpol()
+    make_experiment_use_vanderpol()
+    make_experiment_use_vanderpol()
 
-# Сделать последовательное и параллельное движение - примеры по 20 элементов. Картинка с объединенными кластерами, затем картинка с полной синхронизацией
-# (сделать для послед. и паралл. движ. разные кластеры)
+# Сделать последовательное и параллельное движение - примеры по 20 элементов. Картинка с объединенными кластерами, 
+# затем картинка с полной синхронизацией (сделать для послед. и паралл. движ. разные кластеры) - готово
 # Сделать для сетки два примера - кластерная синхронизация и полная синхронизация - готово
 
 # Для разрушения сетки ?
