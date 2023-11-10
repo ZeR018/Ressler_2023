@@ -13,7 +13,7 @@ w = []                      #
 a = s.a                     # Параметры
 b = s.b                     # системы
 c = s.c                     #
-t_max = 150
+t_max = 100
 
 k_str = 5                   # Число агентов в одной строке
 k_col = 5                   # Число агентов в одном столбце
@@ -36,7 +36,7 @@ for_find_grid_IC = {'10x10': '2023-11-04 06.49.04',
 # Функции синхронизации
 
 # Стандартная (если связи по какой-то переменной нет)
-def default_f(index, r):
+def default_f(index, r, T_):
     return 0
 
 
@@ -47,12 +47,20 @@ def func_connect_y(index, r, _T):
         summ += d(_T, radius, r[i*k], r[index*k], r[i*k+1], r[index*k+1]) * (r[i*k + 1] - r[index*k + 1])
     return summ
 
-
 def func_connect_y_3dim(index, r, _T):
     summ = 0
     for i in range(k_elements):
         summ += d_3dim(_T, radius, r[i*k], r[index*k], r[i*k+1], r[index*k+1], r[i*k+2], r[index*k+2]) \
                 * (r[i*k + 1] - r[index*k + 1])
+    return summ
+
+def func_connect_y_VDP(index, r, _T):
+    summ = 0
+    for j in range(k_elements):
+        summ += d_3dim(_T, radius, r[j*k], r[index*k], r[j*k+1], r[index*k+1], r[j*k+2], r[index*k+2]) \
+                * (r[j*k + 1] - r[index*k + 1])
+        summ += d_3dim(_T, radius, r[j*k], r[-3], r[j*k+1], r[-2], r[j*k+2], r[-1]) \
+                * (r[-2] - r[index*k + 1])
     return summ
 
 def func_connect_y_grid(index, r, _T):
@@ -133,13 +141,6 @@ def d_3dim(_T, _radius, x_i, x_j, y_i, y_j, z_i, z_j):
         return 0
 
 
-def d_3dim(_T, _radius, x_i, x_j, y_i, y_j, z_i, z_j):
-    if (x_i - x_j)**2 + (y_i - y_j)**2 + (z_i - z_j)**2 < _radius**2:
-        return _T
-    else:
-        return 0
-
-
 # Функции правой части
 # По x
 def func_dx(index, r, connect_f=default_f, _T=s.T, w_arr = w):
@@ -152,8 +153,8 @@ def func_dy(index, r, connect_f=default_f, _T=s.T, w_arr = w):
 
 
 # По z
-def func_dz(index, r, connect_f=default_f):
-    return b + r[index*k + 2] * (r[index*k] - c) + connect_f(index, r)
+def func_dz(index, r, _T, connect_f=default_f):
+    return b + r[index*k + 2] * (r[index*k] - c) + connect_f(index, r, _T)
 
 def func_rossler_3_dim(t, r):
     global k_elements
@@ -166,7 +167,7 @@ def func_rossler_3_dim(t, r):
 
         dx = func_dx(i, r, func_connect_x_grid, T, w)
         dy = func_dy(i, r, func_connect_y_grid, T, w)
-        dz = func_dz(i, r)
+        dz = func_dz(i, r, T)
 
         res_arr.append(dx)
         res_arr.append(dy)
@@ -188,12 +189,38 @@ def func_rossler_del_elems(t, r, k_elements, undeleted_elems, w_arr):
 
         dx = func_dx(i, r, func_connect_x_grid, T, w_arr=w_arr)
         dy = func_dy(i, r, func_connect_y_grid, T, w_arr=w_arr)
-        dz = func_dz(i, r)
+        dz = func_dz(i, r, T)
 
         res_arr.append(dx)
         res_arr.append(dy)
         res_arr.append(dz)
         counter += 1
+
+    return res_arr
+
+def function_rossler_and_VanDerPol(t, r, k_elements, w_arr, mu, W):
+    res_arr = []
+
+    for i in range(k_elements):
+        # x_i = r[i*k]
+        # y_i = r[i*k + 1]
+        # z_i = r[i*k + 2]
+
+        dx = func_dx(i, r, default_f, T, w_arr)
+        dy = func_dy(i, r, func_connect_y_VDP, T, w_arr)
+        dz = func_dz(i, r, T)
+
+        res_arr.append(dx)
+        res_arr.append(dy)
+        res_arr.append(dz)
+
+    # Van der Pol
+    # X = r[-3]
+    # Y = r[-2]
+    # Z = r[-1]
+    res_arr.append(- r[-2])
+    res_arr.append(W * r[-3] + mu * (1 - r[-3]**2) * r[-2])
+    res_arr.append(0)
 
     return res_arr
 
@@ -677,7 +704,10 @@ def make_grid_experiment():
     start_time = time.time()
 
     rand_IC = m.generate_random_IC_ressler(2., 2., 1.5, k_elements)
-    sol = solve_ivp(func_rossler_3_dim, [0, t_max], rand_IC, rtol=1e-11, atol=1e-11)
+    rand_IC.append(1)
+    rand_IC.append(1)
+    rand_IC.append(0)
+    sol = solve_ivp(function_rossler_and_VanDerPol, [0, t_max], rand_IC, args=(k_elements, w, -1, 1), rtol=1e-11, atol=1e-11)
 
     xs, ys, zs = [], [], []
     for i in range(k_elements):
@@ -712,6 +742,31 @@ def make_grid_experiment():
         axd['yx'].plot(xs[agent], ys[agent], alpha=0.3, color=plot_colors[agent])
         axd['xz'].plot(xs[agent], zs[agent], alpha=0.3, color=plot_colors[agent])
         axd['yz'].plot(zs[agent], ys[agent], alpha=0.3, color=plot_colors[agent])
+
+# Осциллятор Ван Дер Поля
+    axd['xt'].plot(ts, xs[-3], alpha=0.7, color='red', label='Van der Pol')
+    axd['yt'].plot(ts, ys[-2], alpha=0.7, color='red', label='Van der Pol')
+    axd['zt'].plot(ts, zs[-1], alpha=0.7, color='red', label='Van der Pol')
+    
+    axd['yx'].plot(xs[-3], ys[-2], color='red', label='Van der Pol')
+    axd['xz'].plot(xs[-3], zs[-1], color='red', label='Van der Pol')
+    axd['yz'].plot(zs[-1], ys[-2], color='red', label='Van der Pol')
+
+    axd['xt'].scatter(ts[-1], xs[-3][-1], color='red', s=10)
+    axd['yt'].scatter(ts[-1], ys[-2][-1], color='red', s=10)
+    axd['zt'].scatter(ts[-1], zs[-1][-1], color='red', s=10)
+    
+    axd['yx'].scatter(xs[-3][-1], ys[-2][-1], color='red', s=10)
+    axd['xz'].scatter(xs[-3][-1], zs[-1][-1], color='red', s=10)
+    axd['yz'].scatter(zs[-1][-1], ys[-2][-1], color='red', s=10)
+
+    axd['xt'].legend()
+    axd['yt'].legend()
+    axd['zt'].legend()
+    
+    axd['yx'].legend()
+    axd['xz'].legend()
+    axd['yz'].legend()
 
     # plt.show()
 
@@ -771,12 +826,14 @@ def make_grid_experiment():
 
 if __name__ == '__main__':
 
-    make_experiment_delete_from_grid(2)
-    make_experiment_delete_from_grid(3)
-    make_experiment_delete_from_grid(4)
-    make_experiment_delete_from_grid(5)
-    make_experiment_delete_from_grid(6)
-    make_experiment_delete_from_grid(7)
-    make_experiment_delete_from_grid(8)
-    make_experiment_delete_from_grid(9)
+    # make_experiment_delete_from_grid(2)
+    # make_experiment_delete_from_grid(3)
+    # make_experiment_delete_from_grid(4)
+    # make_experiment_delete_from_grid(5)
+    # make_experiment_delete_from_grid(6)
+    # make_experiment_delete_from_grid(7)
+    # make_experiment_delete_from_grid(8)
+    # make_experiment_delete_from_grid(9)
+
+    make_grid_experiment()
 
