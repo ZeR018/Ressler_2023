@@ -196,13 +196,11 @@ def func_rossler_del_elems(t, r, k_elements, undeleted_elems, w_arr):
         res_arr.append(dz)
         counter += 1
 
-    if counter < k_elements:
-        while True:
-            res_arr.append(0)
-            res_arr.append(0)
-            res_arr.append(0)
-            if counter == k_elements:
-                break
+    while counter < k_elements:
+        res_arr.append(0)
+        res_arr.append(0)
+        res_arr.append(0)
+        counter += 1
 
     return res_arr
 
