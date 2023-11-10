@@ -196,6 +196,14 @@ def func_rossler_del_elems(t, r, k_elements, undeleted_elems, w_arr):
         res_arr.append(dz)
         counter += 1
 
+    if counter < k_elements:
+        while True:
+            res_arr.append(0)
+            res_arr.append(0)
+            res_arr.append(0)
+            if counter == k_elements:
+                break
+
     return res_arr
 
 def function_rossler_and_VanDerPol(t, r, k_elements, w_arr, mu, W):
