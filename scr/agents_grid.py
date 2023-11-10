@@ -19,11 +19,11 @@ k_str = 5                   # Число агентов в одной строк
 k_col = 5                   # Число агентов в одном столбце
 k_elements = k_str * k_col  # Число агентов 
 k = 3                       # Число уравнений для одного агента (всегда 3)
-T = 0.2
-radius = s.radius           # Радиус связи
-T_attractive = [0.1, 0.1, 0.1, 0.1, 0.1, 0.5, 0.5, 0.5, 0.5, 0.5, 0.1, 0.1, 0.1, 0.1, 0.1]           # Сила притягивающей связи
+T = 0.3
 
-T_repulsive = [0.3, 0.1, 0.3, 0.1, 0.3, 0.1, 0.3, 0.1, 0.3, 0.1, 0.3, 0.1, 0.3, 0.1, 0.3]            # Сила отталкивающей связи
+radius = s.radius           # Радиус связи
+
+do_need_use_VanDerPol = True
 
 for_find_grid_IC = {'10x10': '2023-11-04 06.49.04',
                     '10x10t': '37.41633',
@@ -318,18 +318,19 @@ def read_integration_data(path):
 
 
 # Сохраняет данные интегрирования, НУ, w, и все необходимые графики
-def save_data(integration_data, IC, w, figs_arr, fig_names_arr, deleted_elems = []):
+def save_data(integration_data, IC, w, figs_arr = [], fig_names_arr = [], deleted_elems = [], k_elements = k_elements):
     date = str(datetime.now().date())
     time = hms_now().replace(':', '.')
 
     new_dir = s.grid_experiments_path + date + ' ' + time
     os.mkdir(new_dir)
 
-    save_IC_and_w(IC, w,new_dir + '/IC.txt')
-    save_integration_data(integration_data, new_dir + '/integration_data.txt')
+    save_IC_and_w(IC, w,new_dir + '/IC.txt', _k_elements = k_elements)
+    save_integration_data(integration_data, new_dir + '/integration_data.txt', _k_elements = k_elements)
     
-    for i in range(len(figs_arr)):
-        figs_arr[i].savefig(new_dir + '/' + fig_names_arr[i] + '.png')
+    if figs_arr != []:
+        for i in range(len(figs_arr)):
+            figs_arr[i].savefig(new_dir + '/' + fig_names_arr[i] + '.png')
 
     # Для картинок
     data_dir = new_dir + '/data'
@@ -407,7 +408,7 @@ def draw_and_save_graphics_many_agents(xs_arr, ys_arr, ts_arr, path_save_graphs,
         plt.grid()
         plt.suptitle(str(i) + ' time: ' + str(round(ts_arr[i], 5)))
 
-        plt.savefig(path_save_graphs + '/t_' + str(i) + '.png')
+        plt.savefig(path_save_graphs + '/' + '{:05}'.format(i) + '.png')
         plt.close()
 
     return 0
@@ -588,7 +589,6 @@ def make_experiment_delete_from_grid(k_deleted_elements, type = 1):
     
     # Создаем "массив удаленных элементов"
     deleted_elems = pick_elements_for_delete(k_deleted_elements, type=type, pick_type='rand')
-    print()
     show_grid_mask(deleted_elems)
 
     # Берем НУ как состояние из другого эксперимента с сеткой
@@ -600,6 +600,7 @@ def make_experiment_delete_from_grid(k_deleted_elements, type = 1):
 
     # Задаем далекие НУ для убранных элементов - убираем элементы чтобы не мешались
     undeleted_elems = []
+    print(len(IC))
     for i in range(k_elements):
         if deleted_elems.count(i) > 0:
             IC[i*k] = 10000
@@ -607,7 +608,6 @@ def make_experiment_delete_from_grid(k_deleted_elements, type = 1):
             IC[i*k + 2] = 10000
         else:
             undeleted_elems.append(i)
-
     print(len(IC))
 
     start_solve_time = time.time()
@@ -703,11 +703,15 @@ def make_grid_experiment():
 
     start_time = time.time()
 
-    rand_IC = m.generate_random_IC_ressler(2., 2., 1.5, k_elements)
-    rand_IC.append(1)
-    rand_IC.append(1)
-    rand_IC.append(0)
-    sol = solve_ivp(function_rossler_and_VanDerPol, [0, t_max], rand_IC, args=(k_elements, w, -1, 1), rtol=1e-11, atol=1e-11)
+    if do_need_use_VanDerPol:
+        rand_IC = m.generate_random_IC_ressler(2., 2., 1.5, k_elements)
+        rand_IC.append(1)
+        rand_IC.append(1)
+        rand_IC.append(0)
+        sol = solve_ivp(function_rossler_and_VanDerPol, [0, t_max], rand_IC, args=(k_elements, w, -1, 1), rtol=1e-11, atol=1e-11)
+    else:
+        rand_IC = m.generate_random_IC_ressler(5., 5., 0.5, k_elements)
+        sol = solve_ivp(func_rossler_3_dim, [0, t_max], rand_IC, rtol=1e-11, atol=1e-11)
 
     xs, ys, zs = [], [], []
     for i in range(k_elements):
@@ -743,7 +747,7 @@ def make_grid_experiment():
         axd['xz'].plot(xs[agent], zs[agent], alpha=0.3, color=plot_colors[agent])
         axd['yz'].plot(zs[agent], ys[agent], alpha=0.3, color=plot_colors[agent])
 
-# Осциллятор Ван Дер Поля
+    # Осциллятор Ван Дер Поля
     axd['xt'].plot(ts, xs[-3], alpha=0.7, color='red', label='Van der Pol')
     axd['yt'].plot(ts, ys[-2], alpha=0.7, color='red', label='Van der Pol')
     axd['zt'].plot(ts, zs[-1], alpha=0.7, color='red', label='Van der Pol')
@@ -836,4 +840,14 @@ if __name__ == '__main__':
     # make_experiment_delete_from_grid(9)
 
     make_grid_experiment()
+    make_grid_experiment()
+    make_grid_experiment()
 
+# Сделать последовательное и параллельное движение - примеры по 20 элементов. Картинка с объединенными кластерами, затем картинка с полной синхронизацией
+# (сделать для послед. и паралл. движ. разные кластеры)
+# Сделать для сетки два примера - кластерная синхронизация и полная синхронизация - готово
+
+# Для разрушения сетки ?
+# Сделать аналогичную таблицу для разрушения сетки со случайными элементами
+
+# Для остановки элементов Ван дер Полем нужно взять НУ уже сеткой

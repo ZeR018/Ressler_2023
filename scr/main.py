@@ -6,6 +6,7 @@ from config import settings as s
 from random import uniform
 from datetime import datetime
 from matplotlib.animation import ArtistAnimation
+import agents_grid as ag
 
 
 w = s.w                     #
@@ -287,9 +288,13 @@ def make_frames(xs_arr, ys_arr, zs_arr, ts_arr, graph_title, graph_3d_title = ''
 
 def main():
     start_time = time.time()
+    print('Start time:', datetime.now().time())
 
-    rand_IC = generate_random_IC_ressler(3, 3, 3)
-    sol = solve_ivp(func_rossler_3_dim, [0, 100], rand_IC, rtol=1e-11, atol=1e-11)
+    global w
+    w = ag.generate_w_arr(k_elements, _range=[0.93, 1.07])
+
+    rand_IC = generate_random_IC_ressler(5, 5, 0)
+    sol = solve_ivp(func_rossler_3_dim, [0, 150], rand_IC, rtol=1e-11, atol=1e-11)
 
     xs, ys, zs = [], [], []
     for i in range(k_elements):
@@ -303,38 +308,48 @@ def main():
     print('Integrate time:', time.time() - start_time, 'time:', datetime.now().time())
 
 
-    frames, frames_3d, fig, fig_3d = make_frames(xs, ys, zs, ts)
+    # frames, frames_3d, fig, fig_3d = make_frames(xs, ys, zs, ts)
 
-    time_after_make_frames = time.time()
-    print('Make frames time:', time.time() - time_after_integrate, 'time:', datetime.now().time())
+    # time_after_make_frames = time.time()
+    # print('Make frames time:', time.time() - time_after_integrate, 'time:', datetime.now().time())
 
-    # Задержка между кадрами в мс
-    interval = 50
-    # Использовать ли буферизацию для устранения мерцания
-    blit = True
-    # Будет ли анимация циклической
-    repeat = False
+    # # Задержка между кадрами в мс
+    # interval = 50
+    # # Использовать ли буферизацию для устранения мерцания
+    # blit = True
+    # # Будет ли анимация циклической
+    # repeat = False
 
-    animation = ArtistAnimation(
-                fig,
-                frames,
-                interval=interval,
-                blit=blit,
-                repeat=repeat)
+    # animation = ArtistAnimation(
+    #             fig,
+    #             frames,
+    #             interval=interval,
+    #             blit=blit,
+    #             repeat=repeat)
 
-    animation_name = './data/gif/parallel_agents2'
-    animation.save(animation_name + '.gif', writer='pillow')
-    animation_3d = ArtistAnimation(
-                fig_3d,
-                frames_3d,
-                interval=interval,
-                blit=blit,
-                repeat=repeat)
+    # animation_name = './data/gif/parallel_agents2'
+    # animation.save(animation_name + '.gif', writer='pillow')
+    # animation_3d = ArtistAnimation(
+    #             fig_3d,
+    #             frames_3d,
+    #             interval=interval,
+    #             blit=blit,
+    #             repeat=repeat)
     
-    animation_3d.save(animation_name + '_3d.gif', writer='pillow')
+    # animation_3d.save(animation_name + '_3d.gif', writer='pillow')
 
     #plt.show()
-    print('anim generate time:', time.time() - time_after_make_frames, 'time:', datetime.now().time())
+    # print('anim generate time:', time.time() - time_after_make_frames, 'time:', datetime.now().time())
+
+    plot_colors = ag.make_colors(k_elements)
+    path_save, path_save_graphs = ag.save_data([xs, ys, zs, ts], rand_IC, w, k_elements=k_elements)
+
+    ag.draw_and_save_graphics_many_agents(xs, ys, ts, path_save_graphs, plot_colors, k_elements, 100)
+
+    print('save time:', time.time() - time_after_integrate, 'time:', datetime.now().time())
 
 if __name__ == '__main__':
+    main()
+    main()
+    main()
     main()
