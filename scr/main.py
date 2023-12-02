@@ -140,7 +140,7 @@ def generate_random_IC_ressler(x_max, y_max, z_max, k_elems=k_elements, x_min=''
     return res_IC_arr
 
 
-def make_frames(xs_arr, ys_arr, zs_arr, ts_arr, graph_title, graph_3d_title = '', _k_elements = k_elements):
+def make_frames(xs_arr, ys_arr, zs_arr, ts_arr, graph_title, graph_3d_title = '', _k_elements = k_elements, frames_interval = 25):
     if graph_3d_title == '':
         graph_3d_title = graph_title
 
@@ -174,7 +174,7 @@ def make_frames(xs_arr, ys_arr, zs_arr, ts_arr, graph_title, graph_3d_title = ''
     frames = []
     frames_3d = []
     # Создаем каждый кадр для gif
-    for i in range(0, num_frames, 25):
+    for i in range(0, num_frames, frames_interval):
         frame = []
         frame_3d = []
 
