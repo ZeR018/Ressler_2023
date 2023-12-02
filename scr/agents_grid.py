@@ -13,31 +13,31 @@ w = []                      #
 a = s.a                     # Параметры
 b = s.b                     # системы
 c = s.c                     #
-t_max = 250
+t_max = 100
 
-k_str = 10                   # Число агентов в одной строке
-k_col = 10                   # Число агентов в одном столбце
+k_str = 1                   # Число агентов в одной строке
+k_col = 1                   # Число агентов в одном столбце
 k_elements = k_str * k_col  # Число агентов 
 k = 3                       # Число уравнений для одного агента (всегда 3)
 T = 0.3
 
+small_animation = False
+full_animation = True
+
 radius = s.radius           # Радиус связи
-T_attractive = [0.1, 0.1, 0.1, 0.1, 0.1, 0.5, 0.5, 0.5, 0.5, 0.5, 0.1, 0.1, 0.1, 0.1, 0.1]           # Сила притягивающей связи
 
-T_repulsive = [0.3, 0.1, 0.3, 0.1, 0.3, 0.1, 0.3, 0.1, 0.3, 0.1, 0.3, 0.1, 0.3, 0.1, 0.3]            # Сила отталкивающей связи
-
-for_find_grid_IC = {'10x10': '2023-11-04 06.49.04',
-                    '10x10t': '37.41633',
-                    '7x7': '2023-11-02 19.44.45',
-                    '7x7t': '81.99422',
-                    '5x5': '2023-10-28 15.24.36',
-                    '5x5t': '122.92734'}
+for_find_grid_IC = {'10x10': '2023-11-04 06.49.04', '10x10t': '37.41633',
+                    '7x7': '2023-11-02 19.44.45', '7x7t': '81.99422',
+                    '5x5': '2023-10-28 15.24.36', '5x5t': '122.92734',
+                    '5x5_2': '2023-11-13 12.13.04', '5x5t_2': '80.90308',
+                    '5x5_3': '2023-11-13 12.18.32', '5x5t_3': '90.9484',
+                    '5x5_4': '2023-11-13 12.18.32', '5x5t_4': '59.69824'}
 
 
 # Функции синхронизации
 
 # Стандартная (если связи по какой-то переменной нет)
-def default_f(index, r):
+def default_f(index, r, T_):
     return 0
 
 
@@ -48,13 +48,25 @@ def func_connect_y(index, r, _T):
         summ += d(_T, radius, r[i*k], r[index*k], r[i*k+1], r[index*k+1]) * (r[i*k + 1] - r[index*k + 1])
     return summ
 
-
 def func_connect_y_3dim(index, r, _T):
     summ = 0
     for i in range(k_elements):
         summ += d_3dim(_T, radius, r[i*k], r[index*k], r[i*k+1], r[index*k+1], r[i*k+2], r[index*k+2]) \
                 * (r[i*k + 1] - r[index*k + 1])
     return summ
+
+def func_connect_y_VDP(index, r, _T):
+
+    summ = 0
+    for j in range(k_elements):
+        # summ += d_3dim(_T, radius, r[j*k], r[index*k], r[j*k+1], r[index*k+1], r[j*k+2], r[index*k+2]) \
+        #         * (r[j*k + 1] - r[index*k + 1])
+        summ += d_3dim(_T, radius, r[j*k], r[-3], r[j*k+1], r[-2], r[j*k+2], r[-1]) \
+                * (r[-2] - r[index*k + 1])
+        
+    # Связь сетка 
+    summ_grid = func_connect_y_grid(index, r, _T)
+    return summ + summ_grid
 
 def func_connect_y_grid(index, r, _T):
     summ = 0
@@ -134,13 +146,6 @@ def d_3dim(_T, _radius, x_i, x_j, y_i, y_j, z_i, z_j):
         return 0
 
 
-def d_3dim(_T, _radius, x_i, x_j, y_i, y_j, z_i, z_j):
-    if (x_i - x_j)**2 + (y_i - y_j)**2 + (z_i - z_j)**2 < _radius**2:
-        return _T
-    else:
-        return 0
-
-
 # Функции правой части
 # По x
 def func_dx(index, r, connect_f=default_f, _T=s.T, w_arr = w):
@@ -153,8 +158,8 @@ def func_dy(index, r, connect_f=default_f, _T=s.T, w_arr = w):
 
 
 # По z
-def func_dz(index, r, connect_f=default_f):
-    return b + r[index*k + 2] * (r[index*k] - c) + connect_f(index, r)
+def func_dz(index, r, _T, connect_f=default_f):
+    return b + r[index*k + 2] * (r[index*k] - c) + connect_f(index, r, _T)
 
 def func_rossler_3_dim(t, r):
     global k_elements
@@ -167,7 +172,7 @@ def func_rossler_3_dim(t, r):
 
         dx = func_dx(i, r, func_connect_x_grid, T, w)
         dy = func_dy(i, r, func_connect_y_grid, T, w)
-        dz = func_dz(i, r)
+        dz = func_dz(i, r, T)
 
         res_arr.append(dx)
         res_arr.append(dy)
@@ -189,12 +194,44 @@ def func_rossler_del_elems(t, r, k_elements, undeleted_elems, w_arr):
 
         dx = func_dx(i, r, func_connect_x_grid, T, w_arr=w_arr)
         dy = func_dy(i, r, func_connect_y_grid, T, w_arr=w_arr)
-        dz = func_dz(i, r)
+        dz = func_dz(i, r, T)
 
         res_arr.append(dx)
         res_arr.append(dy)
         res_arr.append(dz)
         counter += 1
+
+    while counter < k_elements:
+        res_arr.append(0)
+        res_arr.append(0)
+        res_arr.append(0)
+        counter += 1
+
+    return res_arr
+
+def function_rossler_and_VanDerPol(t, r, k_elements, w_arr, mu, W):
+    res_arr = []
+
+    for i in range(k_elements):
+        # x_i = r[i*k]
+        # y_i = r[i*k + 1]
+        # z_i = r[i*k + 2]
+
+        dx = func_dx(i, r, func_connect_x_grid, T, w_arr)
+        dy = func_dy(i, r, func_connect_y_VDP, T, w_arr)
+        dz = func_dz(i, r, T)
+
+        res_arr.append(dx)
+        res_arr.append(dy)
+        res_arr.append(dz)
+
+    # Van der Pol
+    # X = r[-3]
+    # Y = r[-2]
+    # Z = r[-1]
+    res_arr.append(- r[-2])
+    res_arr.append(W * r[-3] + mu * (1 - r[-3]**2) * r[-2])
+    res_arr.append(0)
 
     return res_arr
 
@@ -366,7 +403,16 @@ def make_colors(_k_elements):
 
     return res_col_arr
 
-def draw_and_save_graphics_many_agents(xs_arr, ys_arr, ts_arr, path_save_graphs, plot_colors, _k_elements, step_graphs=50, undeleted_elems = []):
+def draw_and_save_graphics_many_agents(xs_arr, ys_arr, ts_arr, path_save_graphs, plot_colors, _k_elements, 
+                                       step_graphs=50, undeleted_elems = [], infotm_about_managing_agent = (), mashtab = [], grid=True):
+    # infotm_about_managing_agent
+    if infotm_about_managing_agent != ():
+        xs_managing_agent_arr = xs_arr[-1]
+        ys_managing_agent_arr = ys_arr[-1]
+        managing_agent_name = infotm_about_managing_agent[0]
+        managing_agent_color = infotm_about_managing_agent[1]
+
+    
     if undeleted_elems == []:
         undeleted_elems = range(_k_elements)
 
@@ -383,10 +429,22 @@ def draw_and_save_graphics_many_agents(xs_arr, ys_arr, ts_arr, path_save_graphs,
             else:
                 plt.plot(xs_arr[agent][i-100:i], ys_arr[agent][i-100:i], color=plot_colors[agent])
                 plt.scatter(xs_arr[agent][i], ys_arr[agent][i], color=plot_colors[agent])
+
+        if mashtab != []:
+            plt.xlim(mashtab[0], mashtab[1])
+            plt.ylim(mashtab[2], mashtab[3])
         plt.xlabel('x')
         plt.ylabel('y')
-        plt.grid()
+        if grid: plt.grid()
         plt.suptitle(str(i) + ' time: ' + str(round(ts_arr[i], 5)))
+
+        if infotm_about_managing_agent != ():
+            if(i < 50):
+                plt.plot(xs_managing_agent_arr[:i], ys_managing_agent_arr[:i], label=managing_agent_name, color=managing_agent_color)
+            else:
+                plt.plot(xs_managing_agent_arr[i-100:i], ys_managing_agent_arr[i-100:i], label=managing_agent_name, color=managing_agent_color)
+            plt.scatter(xs_managing_agent_arr[i], ys_managing_agent_arr[i], color=managing_agent_color)
+            plt.legend()
 
         plt.savefig(path_save_graphs + '/' + '{:05}'.format(i) + '.png')
         plt.close()
@@ -557,6 +615,21 @@ def pick_elements_for_delete(k_deleted_elements, k_col = k_col, k_str = k_str, t
 
     print('functionality not implemented, k_elems = ' + str(k_elements) + ', k_deleted_elems = ' + str(k_deleted_elements))        
 
+def plot_some_graph_without_grid(dir_path):
+    [xs, ys, zs, ts] = read_integration_data(dir_path + '/integration_data.txt')
+
+    new_dir = dir_path + '/graphs_without_grid'
+    os.mkdir(new_dir)
+
+    plot_colors = make_colors(len(xs))
+    draw_and_save_graphics_many_agents(xs, ys, ts, new_dir,
+                                       plot_colors, len(xs), grid=False)
+
+    return 0
+
+
+
+
 def make_experiment_delete_from_grid(k_deleted_elements, type = 1):
     print('Start time:', hms_now())
     start_time = time.time()
@@ -678,6 +751,47 @@ def rebuild_broken_system(stop_T, num_exps, broken_system_path):
 
     return 0
 
+def make_experiment_use_vanderpol():
+    print('Start time:', hms_now())
+
+    global w
+    w = generate_w_arr(k_elements, _range=[0.9, 1.1])
+
+    start_time = time.time()
+
+    # Берем НУ как состояние из другого эксперимента с сеткой
+    IC, w = [], []
+    if k_col == 5 and k_str == 5:
+        IC, w = find_grid_IC_from_integration_data("./data/grid_experiments/" + for_find_grid_IC['5x5_4'], for_find_grid_IC['5x5t_4'])
+    elif k_col == 10 and k_str == 10:
+        IC, w = find_grid_IC_from_integration_data("./data/grid_experiments/" + for_find_grid_IC['10x10'], for_find_grid_IC['10x10t'])
+
+    # Добавляем НУ Ван-дер-Поля в НУ
+    IC.append(-1)
+    IC.append(-1)
+    IC.append(0)
+    sol = solve_ivp(function_rossler_and_VanDerPol, [0, t_max], IC, args=(k_elements, w, -0.2, 1), rtol=1e-11, atol=1e-11)
+
+    xs, ys, zs = [], [], []
+    for i in range(k_elements + 1):
+        xs.append(sol.y[i*k])
+        ys.append(sol.y[i*k+1])
+        zs.append(sol.y[i*k+2])
+    ts = sol.t
+
+    time_after_integrate = time.time()
+    print('Integrate time:', time.time() - start_time, 'time:', hms_now())
+
+    plot_colors = make_colors(k_elements)
+
+    path_save, path_save_graphs = save_data([xs, ys, zs, ts], IC, w)
+    draw_and_save_graphics_many_agents(xs, ys, ts, path_save_graphs, plot_colors, k_elements, 50, 
+                                       infotm_about_managing_agent=('Van der Pol', 'red'), mashtab=[-3, 3, -3, 3], grid=False)
+
+    
+    print('Other time', time.time() - time_after_integrate, 'time:', hms_now())
+
+
 def make_grid_experiment():
     print('Start time:', hms_now())
 
@@ -686,7 +800,8 @@ def make_grid_experiment():
 
     start_time = time.time()
 
-    rand_IC = m.generate_random_IC_ressler(5., 5., 0.5, k_elements)
+
+    rand_IC = m.generate_random_IC_ressler(2., 2., 0.5, k_elements)
     sol = solve_ivp(func_rossler_3_dim, [0, t_max], rand_IC, rtol=1e-11, atol=1e-11)
 
     xs, ys, zs = [], [], []
@@ -736,67 +851,51 @@ def make_grid_experiment():
 
     draw_and_save_graphics_many_agents(xs, ys, ts, path_save_graphs, plot_colors, k_elements, 100)
     # Анимация y(x)
-    # frames, fig_gif = make_frames_grid_agents(xs, ys, plot_colors, frames_step=20)
-    # interval = 40
-    # blit = True
-    # repeat = False
-    # animation = ArtistAnimation(
-    #             fig_gif,
-    #             frames,
-    #             interval=interval,
-    #             blit=blit,
-    #             repeat=repeat)
-    # animation_name = path_save + '/grid_agents'
-    # animation.save(animation_name + '.gif', writer='pillow')
+    if small_animation:
+        frames, fig_gif = make_frames_grid_agents(xs, ys, plot_colors, frames_step=20)
+        interval = 40
+        blit = True
+        repeat = False
+        animation = ArtistAnimation(
+                    fig_gif,
+                    frames,
+                    interval=interval,
+                    blit=blit,
+                    repeat=repeat)
+        animation_name = path_save + '/grid_agents'
+        animation.save(animation_name + '.gif', writer='pillow')
 
 
     # # Анимация большая
-    # frames, frames_3d, fig, fig_3d = m.make_frames(xs, ys, zs, ts, 'Grid 4x5 agents', _k_elements = k_elements)
-    # # Задержка между кадрами в мс
-    # interval = 50
-    # # Использовать ли буферизацию для устранения мерцания
-    # blit = True
-    # # Будет ли анимация циклической
-    # repeat = False
+    if full_animation:
+        frames, frames_3d, fig, fig_3d = m.make_frames(xs, ys, zs, ts, 'Grid 4x5 agents', _k_elements = k_elements, frames_interval=10)
+        # Задержка между кадрами в мс
+        interval = 50
+        # Использовать ли буферизацию для устранения мерцания
+        blit = True
+        # Будет ли анимация циклической
+        repeat = False
 
-    # animation = ArtistAnimation(
-    #             fig,
-    #             frames,
-    #             interval=interval,
-    #             blit=blit,
-    #             repeat=repeat)
+        animation = ArtistAnimation(
+                    fig,
+                    frames,
+                    interval=interval,
+                    blit=blit,
+                    repeat=repeat)
 
-    # animation_name = path_save + '/grid_agents'
-    # animation.save(animation_name + '.gif', writer='pillow')
-    # animation_3d = ArtistAnimation(
-    #             fig_3d,
-    #             frames_3d,
-    #             interval=interval,
-    #             blit=blit,
-    #             repeat=repeat)
-    
-    # animation_3d.save(animation_name + '_3d.gif', writer='pillow')
+        animation_name = path_save + '/grid_agents'
+        animation.save(animation_name + '.gif', writer='pillow')
+        animation_3d = ArtistAnimation(
+                    fig_3d,
+                    frames_3d,
+                    interval=interval,
+                    blit=blit,
+                    repeat=repeat)
+        
+        animation_3d.save(animation_name + '_3d.gif', writer='pillow')
     
     print('Other time', time.time() - time_after_integrate, 'time:', hms_now())
 
 if __name__ == '__main__':
 
-    make_experiment_delete_from_grid(10)
-    make_experiment_delete_from_grid(20)
-    make_experiment_delete_from_grid(30)
-    make_experiment_delete_from_grid(40)
-    make_experiment_delete_from_grid(50)
-    make_experiment_delete_from_grid(60)
-
-    # make_grid_experiment()
-    # make_grid_experiment()
-    # make_grid_experiment()
-
-# Сделать последовательное и параллельное движение - примеры по 20 элементов. Картинка с объединенными кластерами, затем картинка с полной синхронизацией
-# (сделать для послед. и паралл. движ. разные кластеры) - готово
-# Сделать для сетки два примера - кластерная синхронизация и полная синхронизация - готово
-
-# Для разрушения сетки ?
-# Сделать аналогичную таблицу для разрушения сетки со случайными элементами
-
-# Для остановки элементов Ван дер Полем нужно взять НУ уже сеткой
+    make_grid_experiment()
