@@ -249,7 +249,7 @@ def hms_now():
 
 
 # Сохраняет начальные условия и массив частот(w) в указанный файл
-def save_IC_and_w(IC, w, path, _k_elements = k_elements):
+def save_IC_and_w(IC, w, path, _k_elements = k_elements, _radius = radius):
     with open(path, 'w') as f:
         print(_k_elements, file=f)
         for i in range(_k_elements):
@@ -258,6 +258,7 @@ def save_IC_and_w(IC, w, path, _k_elements = k_elements):
         print(w, file=f)
         print('T:', T, file=f)
         print('k_col:', k_col, 'k_str:', k_str, file=f)
+        print('r:', _radius)
 
 
 # Считывает сохраненные НУ и w из указанного файла
@@ -274,17 +275,22 @@ def read_IC(path):
         IC.append(float(line[1]))
         IC.append(float(line[2]))
 
-    w_str = f_data[-3][1:-2].split()
+    w_str = f_data[size + 1][1:-2].split()
     w = [float(i[:-1]) for i in w_str]
     w[-1] = float(w_str[-1])
 
-    T_IC = float(f_data[-2][3:])
+    T_IC = float(f_data[size + 2][3:])
 
-    k_str_col_split = f_data[-1].split(' ')
+    k_str_col_split = f_data[size + 3].split(' ')
     k_col_ = int(k_str_col_split[1])
     k_str_ = int(k_str_col_split[3])
 
-    return IC, w, T_IC, [k_col_, k_str_]
+    if len(f_data) > size + 3:
+        radius_IC = float(f_data[size + 4][3:])
+    else:
+        radius_IC = radius
+
+    return IC, w, T_IC, [k_col_, k_str_], radius_IC
 
 
 # Сохраняет данные, полученные интегрированием в указанный файл
@@ -466,7 +472,7 @@ def find_grid_IC_from_integration_data(datapath, time):
 
     # Берем необходимую информацию о начальных условиях
     IC_data = read_IC(datapath + '/IC.txt')
-    _ , w, T_IC, [k_col_IC, k_str_IC] = IC_data
+    _ , w, T_IC, [k_col_IC, k_str_IC], _ = IC_data
 
     global T, k_col, k_str, k_elements
     T = T_IC
@@ -647,8 +653,13 @@ def make_experiment_delete_from_grid(k_deleted_elements, pick_type = 'rand', typ
 
     # Задаем далекие НУ для убранных элементов - убираем элементы чтобы не мешались
     undeleted_elems = []
+    print('delete: ', k_deleted_elements, deleted_elems)
     for i in range(k_elements):
         if deleted_elems.count(i) > 0:
+            if deleted_elems.count(i) > 1:
+                print('wtf, deleted elems has broken: del_elems = ' + str(k_deleted_elements) + ', but count = ' + str(len(deleted_elems)))
+                print('deleted elems:', deleted_elems)
+
             IC[i*k] = 10000
             IC[i*k + 1] = 10000
             IC[i*k + 2] = 10000
