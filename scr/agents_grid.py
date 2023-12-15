@@ -15,14 +15,15 @@ b = s.b                     # системы
 c = s.c                     #
 t_max = 100
 
-k_str = 1                   # Число агентов в одной строке
-k_col = 1                   # Число агентов в одном столбце
+k_str = 5                   # Число агентов в одной строке
+k_col = 5                   # Число агентов в одном столбце
 k_elements = k_str * k_col  # Число агентов 
 k = 3                       # Число уравнений для одного агента (всегда 3)
 T = 0.3
 
 small_animation = False
 full_animation = True
+need_save_last_state = False
 
 radius = s.radius           # Радиус связи
 
@@ -258,7 +259,7 @@ def save_IC_and_w(IC, w, path, _k_elements = k_elements, _radius = radius):
         print(w, file=f)
         print('T:', T, file=f)
         print('k_col:', k_col, 'k_str:', k_str, file=f)
-        print('r:', _radius)
+        print('r:', _radius, file=f)
 
 
 # Считывает сохраненные НУ и w из указанного файла
@@ -627,9 +628,6 @@ def plot_some_graph_without_grid(dir_path):
 
     return 0
 
-
-
-
 def make_experiment_delete_from_grid(k_deleted_elements, type = 1):
     print('Start time:', hms_now())
     start_time = time.time()
@@ -801,7 +799,7 @@ def make_grid_experiment():
     start_time = time.time()
 
 
-    rand_IC = m.generate_random_IC_ressler(2., 2., 0.5, k_elements)
+    rand_IC = m.generate_random_IC_ressler(3., 3., 0.5, k_elements)
     sol = solve_ivp(func_rossler_3_dim, [0, t_max], rand_IC, rtol=1e-11, atol=1e-11)
 
     xs, ys, zs = [], [], []
@@ -816,40 +814,47 @@ def make_grid_experiment():
     print('Integrate time:', time.time() - start_time, 'time:', hms_now())
 
     plot_colors = make_colors(k_elements)
-    
-    gs_kw = dict(width_ratios=[1.5, 1], height_ratios=[1,1,1])
-    fig, axd = plt.subplot_mosaic([['xt', 'yx',],
-                                   ['yt', 'xz',],
-                                   ['zt', 'yz',]],
-                                gridspec_kw=gs_kw, figsize=(12, 8),
-                                layout="constrained")
-    for ax_n in axd:
-        axd[ax_n].grid()
-        axd[ax_n].set_xlabel(ax_n[1])
-        axd[ax_n].set_ylabel(ax_n[0])
-    fig.suptitle('Сетка мобильных агентов')
 
-    for agent in range(k_elements):
-        axd['xt'].plot(ts, xs[agent], alpha=0.3, color=plot_colors[agent])
-        axd['yt'].plot(ts, ys[agent], alpha=0.3, color=plot_colors[agent])
-        axd['zt'].plot(ts, zs[agent], alpha=0.3, color=plot_colors[agent])
+    path_save, path_save_graphs = 0, 0
+    if need_save_last_state:
         
-        axd['yx'].plot(xs[agent], ys[agent], alpha=0.3, color=plot_colors[agent])
-        axd['xz'].plot(xs[agent], zs[agent], alpha=0.3, color=plot_colors[agent])
-        axd['yz'].plot(zs[agent], ys[agent], alpha=0.3, color=plot_colors[agent])
+        gs_kw = dict(width_ratios=[1.5, 1], height_ratios=[1,1,1])
+        fig, axd = plt.subplot_mosaic([['xt', 'yx',],
+                                    ['yt', 'xz',],
+                                    ['zt', 'yz',]],
+                                    gridspec_kw=gs_kw, figsize=(12, 8),
+                                    layout="constrained")
+        for ax_n in axd:
+            axd[ax_n].grid()
+            axd[ax_n].set_xlabel(ax_n[1])
+            axd[ax_n].set_ylabel(ax_n[0])
+        fig.suptitle('Сетка мобильных агентов')
 
-    # plt.show()
+        for agent in range(k_elements):
+            axd['xt'].plot(ts, xs[agent], alpha=0.3, color=plot_colors[agent])
+            axd['yt'].plot(ts, ys[agent], alpha=0.3, color=plot_colors[agent])
+            axd['zt'].plot(ts, zs[agent], alpha=0.3, color=plot_colors[agent])
+            
+            axd['yx'].plot(xs[agent], ys[agent], alpha=0.3, color=plot_colors[agent])
+            axd['xz'].plot(xs[agent], zs[agent], alpha=0.3, color=plot_colors[agent])
+            axd['yz'].plot(zs[agent], ys[agent], alpha=0.3, color=plot_colors[agent])
 
-    fig_last, ax_last = plt.subplots(figsize=[10, 6])
-    for agent in range(k_elements):
-        ax_last.plot(xs[agent][-50:], ys[agent][-50:], color=plot_colors[agent])
-        ax_last.scatter(xs[agent][-1], ys[agent][-1], color=plot_colors[agent])
-    ax_last.grid()
-    # plt.show()
+        # plt.show()
 
-    path_save, path_save_graphs = save_data([xs, ys, zs, ts], rand_IC, w, [fig, fig_last], ['fig_graphs', 'fig_last_state'])
+        fig_last, ax_last = plt.subplots(figsize=[10, 6])
+        for agent in range(k_elements):
+            ax_last.plot(xs[agent][-50:], ys[agent][-50:], color=plot_colors[agent])
+            ax_last.scatter(xs[agent][-1], ys[agent][-1], color=plot_colors[agent])
+        ax_last.grid()
+        # plt.show()
 
-    draw_and_save_graphics_many_agents(xs, ys, ts, path_save_graphs, plot_colors, k_elements, 100)
+        path_save, path_save_graphs = save_data([xs, ys, zs, ts], rand_IC, w, [fig, fig_last], ['fig_graphs', 'fig_last_state'])
+
+    else:
+        path_save, path_save_graphs = save_data([xs, ys, zs, ts], rand_IC, w)
+
+    # draw_and_save_graphics_many_agents(xs, ys, ts, path_save_graphs, plot_colors, k_elements, 100)
+
     # Анимация y(x)
     if small_animation:
         frames, fig_gif = make_frames_grid_agents(xs, ys, plot_colors, frames_step=20)
@@ -868,7 +873,7 @@ def make_grid_experiment():
 
     # # Анимация большая
     if full_animation:
-        frames, frames_3d, fig, fig_3d = m.make_frames(xs, ys, zs, ts, 'Grid 4x5 agents', _k_elements = k_elements, frames_interval=10)
+        frames, frames_3d, fig, fig_3d = m.make_frames(xs, ys, zs, ts, 'Grid 4x5 agents', _k_elements = k_elements, frames_interval=100, plot_colors=plot_colors)
         # Задержка между кадрами в мс
         interval = 50
         # Использовать ли буферизацию для устранения мерцания
@@ -898,4 +903,6 @@ def make_grid_experiment():
 
 if __name__ == '__main__':
 
+    make_grid_experiment()
+    make_grid_experiment()
     make_grid_experiment()
