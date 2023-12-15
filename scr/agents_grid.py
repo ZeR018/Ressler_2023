@@ -15,8 +15,8 @@ b = s.b                     # системы
 c = s.c                     #
 t_max = 100
 
-k_str = 5                   # Число агентов в одной строке
-k_col = 5                   # Число агентов в одном столбце
+k_str = 10                   # Число агентов в одной строке
+k_col = 10                   # Число агентов в одном столбце
 k_elements = k_str * k_col  # Число агентов 
 k = 3                       # Число уравнений для одного агента (всегда 3)
 T = 0.3
@@ -628,7 +628,10 @@ def plot_some_graph_without_grid(dir_path):
 
     return 0
 
-def make_experiment_delete_from_grid(k_deleted_elements, type = 1):
+
+
+
+def make_experiment_delete_from_grid(k_deleted_elements, pick_type = 'rand', type = 1):
     print('Start time:', hms_now())
     start_time = time.time()
 
@@ -639,7 +642,7 @@ def make_experiment_delete_from_grid(k_deleted_elements, type = 1):
         return -1
     
     # Создаем "массив удаленных элементов"
-    deleted_elems = pick_elements_for_delete(k_deleted_elements, type=type, pick_type='rand')
+    deleted_elems = pick_elements_for_delete(k_deleted_elements, type=type, pick_type=pick_type)
     show_grid_mask(deleted_elems)
 
     # Берем НУ как состояние из другого эксперимента с сеткой
@@ -903,6 +906,8 @@ def make_grid_experiment():
 
 if __name__ == '__main__':
 
-    make_grid_experiment()
-    make_grid_experiment()
-    make_grid_experiment()
+    make_experiment_delete_from_grid(4, pick_type='center')
+    make_experiment_delete_from_grid(8, pick_type='center')
+    make_experiment_delete_from_grid(12, pick_type='center')
+    make_experiment_delete_from_grid(16, pick_type='center')
+    make_experiment_delete_from_grid(24, pick_type='center')
