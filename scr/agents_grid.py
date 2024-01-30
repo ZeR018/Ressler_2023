@@ -15,8 +15,8 @@ b = s.b                     # системы
 c = s.c                     #
 t_max = 100
 
-k_str = 10                   # Число агентов в одной строке
-k_col = 10                   # Число агентов в одном столбце
+k_str = 5                   # Число агентов в одной строке
+k_col = 5                   # Число агентов в одном столбце
 k_elements = k_str * k_col  # Число агентов 
 k = 3                       # Число уравнений для одного агента (всегда 3)
 T = 0.3
@@ -26,6 +26,8 @@ full_animation = True
 need_save_last_state = False
 
 radius = s.radius           # Радиус связи
+min_radius = 0.01           # Минимальный радиус, меньше которого появляются дополнительные эффекты
+undeleted_elems = []
 
 for_find_grid_IC = {'10x10': '2023-11-04 06.49.04', '10x10t': '37.41633',
                     '7x7': '2023-11-02 19.44.45', '7x7t': '81.99422',
@@ -132,6 +134,23 @@ def func_connect_x_grid(index, r, _T):
 
     return summ1 + summ2
 
+# Функция для проверки, какие соседи находятся ближе минимального радиуса
+def connect_min_radius(index, r, min_radius, undeleted_elems):
+
+    tmp = 0
+    for j in undeleted_elems:
+        if index == j:
+            continue
+
+        # Если два элемента ближе минимального радиуса
+        if d_3dim(1, min_radius, r[j * k], r[index * k], r[j * k + 1], r[index * k + 1], r[j*k + 2], r[index*k+2]) != 0:
+            # Нужно удалить эти элементы
+            r, undeleted_elems = delete_agent(j, r, undeleted_elems)
+            tmp = 1
+    
+    if tmp == 1:
+        r, undeleted_elems = delete_agent(index, r, undeleted_elems)
+    return r, undeleted_elems, tmp
 
 # Функция включения связи между двумя агентами
 def d(_T, _radius, x_i, x_j, y_i, y_j):
@@ -181,7 +200,8 @@ def func_rossler_3_dim(t, r):
 
     return res_arr
 
-def func_rossler_del_elems(t, r, k_elements, undeleted_elems, w_arr):
+def func_rossler_del_elems(t, r, k_elements, w_arr):
+    global undeleted_elems
     res_arr = []
 
     counter = 0
@@ -193,13 +213,24 @@ def func_rossler_del_elems(t, r, k_elements, undeleted_elems, w_arr):
                 res_arr.append(0)
             counter = i
 
-        dx = func_dx(i, r, func_connect_x_grid, T, w_arr=w_arr)
-        dy = func_dy(i, r, func_connect_y_grid, T, w_arr=w_arr)
-        dz = func_dz(i, r, T)
+        # Добавляем проверку ближнего радиуса
+        checker = 0
+        if min_radius > 0:
+            r, undeleted_elems, checker = connect_min_radius(i, r, min_radius, undeleted_elems)
+            
+        if checker == 0:
+            dx = func_dx(i, r, func_connect_x_grid, T, w_arr=w_arr)
+            dy = func_dy(i, r, func_connect_y_grid, T, w_arr=w_arr)
+            dz = func_dz(i, r, T)
 
-        res_arr.append(dx)
-        res_arr.append(dy)
-        res_arr.append(dz)
+            res_arr.append(dx)
+            res_arr.append(dy)
+            res_arr.append(dz)
+        else:
+            res_arr.append(10000)
+            res_arr.append(10000)
+            res_arr.append(10000)
+
         counter += 1
 
     while counter < k_elements:
@@ -243,6 +274,15 @@ def generate_w_arr(k_elements, _range=[0.93, 1.07]):
         w_arr.append(round(uniform(_range[0], _range[1]), 3))
     return w_arr
 
+# Удаляет агента (изменяет его НУ) и удаляет соответствующий индекс из массива неудаленных элементов
+def delete_agent(item, arr, undeleted_elems, value=10000):
+    undeleted_elems.remove(item)
+
+    arr[item * k] = value
+    arr[item * k + 1] = value
+    arr[item * k + 2] = value
+
+    return arr, undeleted_elems
 
 # Возвращает время с точностью до секунды
 def hms_now():
@@ -422,7 +462,7 @@ def draw_and_save_graphics_many_agents(xs_arr, ys_arr, ts_arr, path_save_graphs,
     for i in range(0+step_graphs, num_frames, step_graphs):
         plt.figure(figsize=[8,8])
 
-        for agent in undeleted_elems:
+        for agent in range(k_elements):
 
             if(i < 50):
                 plt.plot(xs_arr[agent][:i], ys_arr[agent][:i], color=plot_colors[agent])
@@ -497,7 +537,7 @@ def find_grid_IC_from_integration_data(datapath, time):
 
     return IC, w
 
-def show_grid_mask(deleted_elems: list[int], k_col = k_col, k_str = k_str):
+def show_grid_mask(deleted_elems, k_col = k_col, k_str = k_str):
     print('Deleted elems mask:')
     for i in range(k_col):
         print('\t', end='')
@@ -628,6 +668,12 @@ def plot_some_graph_without_grid(dir_path):
 
     return 0
 
+def mean_with_filter(array, min = 1000, max = 1000):
+    sum = 0
+    for item in array:
+        if item > min and item < max:
+            sum += item
+    return sum
 
 
 
@@ -653,8 +699,8 @@ def make_experiment_delete_from_grid(k_deleted_elements, pick_type = 'rand', typ
         IC, w = find_grid_IC_from_integration_data("./data/grid_experiments/" + for_find_grid_IC['10x10'], for_find_grid_IC['10x10t'])
 
     # Задаем далекие НУ для убранных элементов - убираем элементы чтобы не мешались
+    global undeleted_elems
     undeleted_elems = []
-    print('delete: ', k_deleted_elements, deleted_elems)
     for i in range(k_elements):
         if deleted_elems.count(i) > 0:
             if deleted_elems.count(i) > 1:
@@ -670,7 +716,7 @@ def make_experiment_delete_from_grid(k_deleted_elements, pick_type = 'rand', typ
     start_solve_time = time.time()
     print('Start solve:', start_solve_time - start_time, 'time:', hms_now())
 
-    sol = solve_ivp(func_rossler_del_elems, [0, t_max], IC, args=(k_elements, undeleted_elems, w), rtol=1e-11, atol=1e-11)
+    sol = solve_ivp(func_rossler_del_elems, [0, t_max], IC, args=(k_elements, w), rtol=1e-11, atol=1e-11)
 
     xs, ys, zs = [], [], []
     for i in range(k_elements):
@@ -708,8 +754,9 @@ def make_experiment_delete_from_grid(k_deleted_elements, pick_type = 'rand', typ
         axd['xz'].plot(xs[agent], zs[agent], alpha=0.3, color=plot_colors[agent])
         axd['yz'].plot(zs[agent], ys[agent], alpha=0.3, color=plot_colors[agent])
 
-    # plt.show()
 
+
+    # plt.show()
     fig_last, ax_last = plt.subplots(figsize=[10, 6])
     for agent in range(k_elements):
         if deleted_elems.count(agent) > 0:
@@ -906,8 +953,4 @@ def make_grid_experiment():
 
 if __name__ == '__main__':
 
-    make_experiment_delete_from_grid(4, pick_type='center')
-    make_experiment_delete_from_grid(8, pick_type='center')
-    make_experiment_delete_from_grid(12, pick_type='center')
-    make_experiment_delete_from_grid(16, pick_type='center')
-    make_experiment_delete_from_grid(24, pick_type='center')
+    make_experiment_delete_from_grid(0)
