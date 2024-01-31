@@ -9,6 +9,14 @@ k = 3           # Число уравнений для одного агента
 radius = 4      # Радиус связи
 T = 0.2         # Сила связи
 
+t_max = 100
+k_str = 5                   # Число агентов в одной строке
+k_col = 5                   # Число агентов в одном столбце
+
+small_animation = false
+full_animation = true
+need_save_last_state = false
+
 
 plot_colors = [
     "blue",
