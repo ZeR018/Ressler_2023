@@ -21,7 +21,7 @@ full_animation = s.full_animation
 need_save_last_state = s.need_save_last_state
 
 radius = s.radius           # Радиус связи
-min_radius = 0.01           # Минимальный радиус, меньше которого появляются дополнительные эффекты
+min_radius = s.min_radius   # Минимальный радиус, меньше которого появляются дополнительные эффекты
 undeleted_elems = []
 
 ####################################################### Params ##################################################################
@@ -38,6 +38,18 @@ def delete_agent(item, arr, undeleted_elems, value=10000):
     undeleted_elems.remove(item)
 
     return arr, undeleted_elems
+
+def find_min_elem_array_in_range(arr, start, stop):
+    # Находим первый НЕудаленный элемент из промежутка [start, stop] и запоминаем его номер в массиве
+    el = 0
+    for i in range(len(undeleted_elems)):
+        if undeleted_elems[i] < start:
+            el = i
+        else:
+            return el + 1
+        
+    return -1
+    
 
 # Стандартная (если связи по какой-то переменной нет)
 def default_f(index, r, T_):
@@ -87,9 +99,21 @@ def func_connect_y_grid(index, r, _T):
     else:
         stop = (n_string + 2) * k_str
 
-    for i in range(start, stop):
-        summ += d_3dim(_T, radius, r[i*k], r[index*k], r[i*k+1], r[index*k+1], r[i*k+2], r[index*k+2]) \
-                * (r[i*k + 1] - r[index*k + 1])
+    if start > undeleted_elems[-1]:
+        return 0
+    
+    el = find_min_elem_array_in_range(undeleted_elems, start, stop)
+
+    for j in range(start, stop):
+        if undeleted_elems[el] != j:
+            continue
+
+        el += 1
+        summ += d_3dim(_T, radius, r[j*k], r[index*k], r[j*k+1], r[index*k+1], r[j*k+2], r[index*k+2]) \
+                * (r[j*k + 1] - r[index*k + 1])
+        
+        if el == len(undeleted_elems):
+            return summ
         
     # print('debag', index, n_string, start, stop)
 
@@ -109,6 +133,7 @@ def func_connect_x(index, r, _T):
 def func_connect_x_3dim(index, r, _T):
     summ1, summ2 = 0, 0
     for j in range(k_elements):
+        
         if j != index:
             summ1 += d_3dim(_T, radius, r[j * k], r[index * k], r[j * k + 1], r[index * k + 1], r[j*k + 2], r[index*k+2]) \
                      * (r[j * k] - r[index * k])
@@ -123,12 +148,24 @@ def func_connect_x_grid(index, r, _T):
     stop = (n_string + 1) * k_str
     summ1, summ2 = 0, 0
 
+    # Находим первый НЕудаленный элемент из промежутка [start, stop] и запоминаем его номер в массиве
+    el = find_min_elem_array_in_range(undeleted_elems, start, stop)
+    if el == -1:
+        return 0
+
     for j in range(start, stop):
+        if undeleted_elems[el] != j:
+            continue
+
+        el += 1
         if j != index:
             summ1 += d_3dim(_T, radius, r[j * k], r[index * k], r[j * k + 1], r[index * k + 1], r[j*k + 2], r[index*k+2]) \
                         * (r[j * k] - r[index * k])
             summ2 += d_3dim(_T, radius, r[j * k], r[index * k], r[j * k + 1], r[index * k + 1], r[j*k + 2], r[index*k+2]) \
                         / (r[index * k] - r[j * k])
+            
+        if el == len(undeleted_elems):
+            return summ1 + summ2
 
     return summ1 + summ2
 
