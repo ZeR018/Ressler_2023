@@ -15,7 +15,7 @@ t_max = s.t_max             # Время интегрирования
 k_str = s.k_str             # Число агентов в одной строке
 k_col = s.k_col             # Число агентов в одном столбце
 k_elements = k_str * k_col  # Число агентов 
-k = 3                       # Число уравнений для одного агента (всегда 3)
+k = s.k                       # Число уравнений для одного агента (всегда 3)
 radius = s.radius           # Радиус связи
 
 small_animation = s.small_animation
@@ -464,7 +464,7 @@ def make_experiment_delete_from_grid(k_deleted_elements, pick_type = 'rand', typ
     start_solve_time = time.time()
     print('Start solve:', start_solve_time - start_time, 'time:', hms_now())
 
-    sol = solve_ivp(func_rossler_del_elems, [0, t_max], IC, args=(k_elements, w, undeleted_elems), rtol=1e-11, atol=1e-11)
+    sol = solve_ivp(func_rossler_del_elems, [0, t_max], IC, args=(k_elements, w, undeleted_elems, T), rtol=1e-11, atol=1e-11)
 
     xs, ys, zs = [], [], []
     for i in range(k_elements):

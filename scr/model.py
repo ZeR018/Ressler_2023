@@ -13,8 +13,8 @@ t_max = s.t_max             # Время интегрирования
 k_str = s.k_str             # Число агентов в одной строке
 k_col = s.k_col             # Число агентов в одном столбце
 k_elements = k_str * k_col  # Число агентов 
-k = 3                       # Число уравнений для одного агента (всегда 3)
-T = 0.3
+k = s.k                       # Число уравнений для одного агента (всегда 3)
+T = s.T
 
 small_animation = s.small_animation
 full_animation = s.full_animation
@@ -237,7 +237,7 @@ def func_rossler_3_dim(t, r):
 
     return res_arr
 
-def func_rossler_del_elems(t, r, k_elements, w_arr, undeleted_elems_):
+def func_rossler_del_elems(t, r, k_elements, w_arr, undeleted_elems_, T_):
     global undeleted_elems
     undeleted_elems = undeleted_elems_
 
@@ -258,9 +258,9 @@ def func_rossler_del_elems(t, r, k_elements, w_arr, undeleted_elems_):
             r, undeleted_elems, checker = connect_min_radius(i, r, min_radius, undeleted_elems)
             
         if checker == 0:
-            dx = func_dx(i, r, func_connect_x_grid, T, w_arr=w_arr)
-            dy = func_dy(i, r, func_connect_y_grid, T, w_arr=w_arr)
-            dz = func_dz(i, r, T)
+            dx = func_dx(i, r, func_connect_x_grid, T_, w_arr=w_arr)
+            dy = func_dy(i, r, func_connect_y_grid, T_, w_arr=w_arr)
+            dz = func_dz(i, r, T_)
 
             res_arr.append(dx)
             res_arr.append(dy)
