@@ -140,7 +140,7 @@ def generate_random_IC_ressler(x_max, y_max, z_max, k_elems=k_elements, x_min=''
     return res_IC_arr
 
 
-def make_frames(xs_arr, ys_arr, zs_arr, ts_arr, graph_title, graph_3d_title = '', _k_elements = k_elements, frames_interval = 25, plot_colors=s.plot_colors):
+def make_frames(xs_arr, ys_arr, zs_arr, ts_arr, graph_title, graph_3d_title = '', _k_elements = k_elements, frames_interval = 60, plot_colors=s.plot_colors):
     if graph_3d_title == '':
         graph_3d_title = graph_title
 
@@ -168,8 +168,6 @@ def make_frames(xs_arr, ys_arr, zs_arr, ts_arr, graph_title, graph_3d_title = ''
 
     # Кол-во кадров
     num_frames = len(xs_arr[0])
-
-    plot_colors = s.plot_colors
     
     frames = []
     frames_3d = []
@@ -286,14 +284,14 @@ def make_frames(xs_arr, ys_arr, zs_arr, ts_arr, graph_title, graph_3d_title = ''
 
     return frames, frames_3d, fig, fig_3d
 
-def main():
+def main(IC_range = [5, 5, 0]):
     start_time = time.time()
     print('Start time:', datetime.now().time())
 
     global w
     w = ag.generate_w_arr(k_elements, _range=[0.93, 1.07])
 
-    rand_IC = generate_random_IC_ressler(5, 5, 0)
+    rand_IC = generate_random_IC_ressler(IC_range[0], IC_range[1], IC_range[2])
     sol = solve_ivp(func_rossler_3_dim, [0, 150], rand_IC, rtol=1e-11, atol=1e-11)
 
     xs, ys, zs = [], [], []
@@ -307,49 +305,59 @@ def main():
     time_after_integrate = time.time()
     print('Integrate time:', time.time() - start_time, 'time:', datetime.now().time())
 
+    # animation
+    frames, frames_3d, fig, fig_3d = make_frames(xs, ys, zs, ts, '')
 
-    # frames, frames_3d, fig, fig_3d = make_frames(xs, ys, zs, ts)
+    time_after_make_frames = time.time()
+    print('Make frames time:', time.time() - time_after_integrate, 'time:', datetime.now().time())
 
-    # time_after_make_frames = time.time()
-    # print('Make frames time:', time.time() - time_after_integrate, 'time:', datetime.now().time())
+    # Задержка между кадрами в мс
+    interval = 50
+    # Использовать ли буферизацию для устранения мерцания
+    blit = True
+    # Будет ли анимация циклической
+    repeat = False
 
-    # # Задержка между кадрами в мс
-    # interval = 50
-    # # Использовать ли буферизацию для устранения мерцания
-    # blit = True
-    # # Будет ли анимация циклической
-    # repeat = False
+    animation = ArtistAnimation(
+                fig,
+                frames,
+                interval=interval,
+                blit=blit,
+                repeat=repeat)
 
-    # animation = ArtistAnimation(
-    #             fig,
-    #             frames,
-    #             interval=interval,
-    #             blit=blit,
-    #             repeat=repeat)
-
-    # animation_name = './data/gif/parallel_agents2'
-    # animation.save(animation_name + '.gif', writer='pillow')
-    # animation_3d = ArtistAnimation(
-    #             fig_3d,
-    #             frames_3d,
-    #             interval=interval,
-    #             blit=blit,
-    #             repeat=repeat)
+    animation_name = './data/gif/stop_agents_1'
+    animation.save(animation_name + '.gif', writer='pillow')
+    animation_3d = ArtistAnimation(
+                fig_3d,
+                frames_3d,
+                interval=interval,
+                blit=blit,
+                repeat=repeat)
     
-    # animation_3d.save(animation_name + '_3d.gif', writer='pillow')
+    animation_3d.save(animation_name + '_3d.gif', writer='pillow')
 
-    #plt.show()
-    # print('anim generate time:', time.time() - time_after_make_frames, 'time:', datetime.now().time())
+    plt.show()
+    print('anim generate time:', time.time() - time_after_make_frames, 'time:', datetime.now().time())
+    # end animation
 
     plot_colors = ag.make_colors(k_elements)
     path_save, path_save_graphs = ag.save_data([xs, ys, zs, ts], rand_IC, w, k_elements=k_elements)
 
     ag.draw_and_save_graphics_many_agents(xs, ys, ts, path_save_graphs, plot_colors, k_elements, 100)
 
+    if s.look_at_infinity:
+        for agent in range(k_elements):
+            print('IC')
+            print(rand_IC[agent * k], rand_IC[agent * k + 1], rand_IC[agent * k + 2])
+            print('Last state:')
+            print(xs[agent][-1], ys[agent][-1], zs[agent][-1])
+            if xs[agent][-1] > 1000 or  ys[agent][-1] > 1000 or zs[agent][-1] > 1000:
+                print('Some agent run on infinity')
+
     print('save time:', time.time() - time_after_integrate, 'time:', datetime.now().time())
 
 if __name__ == '__main__':
     main()
     main()
-    main()
-    main()
+
+    # 15 8 14 14 8 13

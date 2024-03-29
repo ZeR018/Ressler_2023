@@ -24,6 +24,9 @@ radius = s.radius           # Радиус связи
 min_radius = s.min_radius   # Минимальный радиус, меньше которого появляются дополнительные эффекты
 undeleted_elems = []
 
+border_radius = s.stopping_border_radius
+border_center = s.stopping_border_center
+
 ####################################################### Params ##################################################################
 
 # Создаем массив частот(w) для всех агентов
@@ -243,6 +246,9 @@ def func_rossler_del_elems(t, r, k_elements, w_arr, undeleted_elems_, T_):
 
     res_arr = []
 
+    if len(undeleted_elems) == 0:
+        return [10000 for i in range(k_elements * k)]
+
     counter = 0
     for i in undeleted_elems:
         if counter < i:
@@ -252,10 +258,19 @@ def func_rossler_del_elems(t, r, k_elements, w_arr, undeleted_elems_, T_):
                 res_arr.append(0)
             counter = i
 
-        # Добавляем проверку ближнего радиуса
+        #
         checker = 0
+        # Добавляем проверку ближнего радиуса
         if min_radius > 0:
             r, undeleted_elems, checker = connect_min_radius(i, r, min_radius, undeleted_elems)
+
+        # Проверка барьера
+        if s.stopping_borded_work == True:
+            if (r[i*k] - border_center[0])**2 + (r[i*k+1] - border_center[1])**2 >= border_radius**2:
+                checker = 1
+                print(f'remove {i}', undeleted_elems, t)
+                undeleted_elems.remove(i)
+                print(undeleted_elems)
             
         if checker == 0:
             dx = func_dx(i, r, func_connect_x_grid, T_, w_arr=w_arr)

@@ -38,7 +38,7 @@ def hms_now():
 
 
 # Сохраняет начальные условия и массив частот(w) в указанный файл
-def save_IC_and_w(IC, w, path, _k_elements = k_elements, _radius = radius):
+def save_IC_and_w(IC, w, path, _k_elements = k_elements, _radius = radius, T = s.T):
     with open(path, 'w') as f:
         print(_k_elements, file=f)
         for i in range(_k_elements):
@@ -74,10 +74,10 @@ def read_IC(path):
     k_col_ = int(k_str_col_split[1])
     k_str_ = int(k_str_col_split[3])
 
-    if len(f_data) > size + 3:
+    if len(f_data) > size + 3 == True:
         radius_IC = float(f_data[size + 4][3:])
     else:
-        radius_IC = radius
+        radius_IC = s.radius
 
     return IC, w, T_IC, [k_col_, k_str_], radius_IC
 
@@ -147,7 +147,7 @@ def save_data(integration_data, IC, w, figs_arr = [], fig_names_arr = [], delete
 
     return new_dir, data_dir
 
-def make_frames_grid_agents(xs_arr, ys_arr, plot_colors, _k_elements = k_elements, frames_step = 25, deleted_elems = []):
+def make_frames_grid_agents(xs_arr, ys_arr, plot_colors, _k_elements = k_elements, frames_step = 60, deleted_elems = []):
 
     fig = plt.figure(figsize=[12,12])
     ax = fig.add_subplot()
@@ -210,9 +210,9 @@ def draw_and_save_graphics_many_agents(xs_arr, ys_arr, ts_arr, path_save_graphs,
     for i in range(0+step_graphs, num_frames, step_graphs):
         plt.figure(figsize=[8,8])
 
-        for agent in range(k_elements):
+        for agent in range(_k_elements):
 
-            if(i < 50):
+            if(i < 101):
                 plt.plot(xs_arr[agent][:i], ys_arr[agent][:i], color=plot_colors[agent])
                 plt.scatter(xs_arr[agent][i], ys_arr[agent][i], color=plot_colors[agent])
             else:
@@ -425,7 +425,7 @@ def mean_with_filter(array, min = 1000, max = 1000):
 
 
 
-def make_experiment_delete_from_grid(k_deleted_elements, pick_type = 'rand', type = 1):
+def make_experiment_delete_from_grid(k_deleted_elements, pick_type = 'rand', type = 1, type_IC = 'grid'):
     print('Start time:', hms_now())
     start_time = time.time()
 
@@ -441,10 +441,15 @@ def make_experiment_delete_from_grid(k_deleted_elements, pick_type = 'rand', typ
 
     # Берем НУ как состояние из другого эксперимента с сеткой
     IC, w = [], []
-    if k_col == 5 and k_str == 5:
-        IC, w = find_grid_IC_from_integration_data("./data/grid_experiments/" + for_find_grid_IC['5x5'], for_find_grid_IC['5x5t'])
-    elif k_col == 10 and k_str == 10:
-        IC, w = find_grid_IC_from_integration_data("./data/grid_experiments/" + for_find_grid_IC['10x10'], for_find_grid_IC['10x10t'])
+    if type_IC == 'rand':
+        IC = m.generate_random_IC_ressler(10, 10, 0, k_elements)
+        w = generate_w_arr(k_elements)
+        T = s.T
+    elif type_IC == 'grid':
+        if k_col == 5 and k_str == 5:
+            IC, w = find_grid_IC_from_integration_data("./data/grid_experiments/" + for_find_grid_IC['5x5'], for_find_grid_IC['5x5t'])
+        elif k_col == 10 and k_str == 10:
+            IC, w = find_grid_IC_from_integration_data("./data/grid_experiments/" + for_find_grid_IC['10x10'], for_find_grid_IC['10x10t'])
 
     # Задаем далекие НУ для убранных элементов - убираем элементы чтобы не мешались
     global undeleted_elems
@@ -536,6 +541,50 @@ def make_experiment_delete_from_grid(k_deleted_elements, pick_type = 'rand', typ
 
         plt.savefig(path_save + '/first_100' + '/t_' + str(i) + '.png')
         plt.close()
+
+    # Анимация y(x)
+    if small_animation:
+        frames, fig_gif = make_frames_grid_agents(xs, ys, plot_colors, frames_step=20)
+        interval = 40
+        blit = True
+        repeat = False
+        animation = ArtistAnimation(
+                    fig_gif,
+                    frames,
+                    interval=interval,
+                    blit=blit,
+                    repeat=repeat)
+        animation_name = path_save + '/grid_agents_new'
+        animation.save(animation_name + '.gif', writer='pillow')
+
+
+    # # Анимация большая
+    if full_animation:
+        frames, frames_3d, fig, fig_3d = m.make_frames(xs, ys, zs, ts, 'Grid 5x5 agents', _k_elements = k_elements, frames_interval=50, plot_colors=plot_colors)
+        # Задержка между кадрами в мс
+        interval = 75
+        # Использовать ли буферизацию для устранения мерцания
+        blit = True
+        # Будет ли анимация циклической
+        repeat = False
+
+        animation = ArtistAnimation(
+                    fig,
+                    frames,
+                    interval=interval,
+                    blit=blit,
+                    repeat=repeat)
+
+        animation_name = path_save + '/grid_agents_new_full'
+        animation.save(animation_name + '.gif', writer='pillow')
+        animation_3d = ArtistAnimation(
+                    fig_3d,
+                    frames_3d,
+                    interval=interval,
+                    blit=blit,
+                    repeat=repeat)
+        
+        animation_3d.save(animation_name + '_3d.gif', writer='pillow')
 
     print('Other time', time.time() - time_after_integrate, 'time:', hms_now())
 
@@ -665,7 +714,7 @@ def make_grid_experiment():
                     interval=interval,
                     blit=blit,
                     repeat=repeat)
-        animation_name = path_save + '/grid_agents'
+        animation_name = path_save + '/grid_agents_new'
         animation.save(animation_name + '.gif', writer='pillow')
 
 
@@ -686,7 +735,7 @@ def make_grid_experiment():
                     blit=blit,
                     repeat=repeat)
 
-        animation_name = path_save + '/grid_agents'
+        animation_name = path_save + '/grid_agents_new_full'
         animation.save(animation_name + '.gif', writer='pillow')
         animation_3d = ArtistAnimation(
                     fig_3d,
@@ -701,4 +750,4 @@ def make_grid_experiment():
 
 if __name__ == '__main__':
 
-    make_experiment_delete_from_grid(0)
+    make_experiment_delete_from_grid(0, type_IC='rand')
