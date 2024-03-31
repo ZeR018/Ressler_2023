@@ -437,7 +437,8 @@ def make_experiment_delete_from_grid(k_deleted_elements, pick_type = 'rand', typ
     
     # Создаем "массив удаленных элементов"
     deleted_elems = pick_elements_for_delete(k_deleted_elements, type=type, pick_type=pick_type)
-    show_grid_mask(deleted_elems)
+    if k_deleted_elements > 0:
+        show_grid_mask(deleted_elems)
 
     # Берем НУ как состояние из другого эксперимента с сеткой
     IC, w = [], []
@@ -635,6 +636,15 @@ def make_experiment_use_vanderpol():
 
     
     print('Other time', time.time() - time_after_integrate, 'time:', hms_now())
+
+def make_experiment_with_controlling_agent(coeffs = [1, 1]):
+    print('Start time:', hms_now())
+    # Вид уравнения управляющего агента
+    # dx/dt = a
+    # dy/dt = b
+
+    return 0
+
 
 
 def make_grid_experiment():

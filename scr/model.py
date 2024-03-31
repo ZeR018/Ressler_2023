@@ -88,6 +88,7 @@ def func_connect_y_VDP(index, r, _T):
 
 def func_connect_y_grid(index, r, _T):
     summ = 0
+    summ2 = 0
     start, stop = 0, 0
 
     n_string = index // k_str
@@ -115,12 +116,16 @@ def func_connect_y_grid(index, r, _T):
         summ += d_3dim(_T, radius, r[j*k], r[index*k], r[j*k+1], r[index*k+1], r[j*k+2], r[index*k+2]) \
                 * (r[j*k + 1] - r[index*k + 1])
         
+        if index != j:
+            summ2 += d_3dim(_T, radius, r[j * k], r[index * k], r[j * k + 1], r[index * k + 1], r[j*k + 2], r[index*k+2]) \
+                    / (r[index * k + 1] - r[j * k + 1])
+        
         if el == len(undeleted_elems):
-            return summ
+            return summ + summ2
         
     # print('debag', index, n_string, start, stop)
 
-    return summ
+    return summ + summ2
 
 # Функция связи по x. Параллельное движение цепочки агентов
 def func_connect_x(index, r, _T):
@@ -268,9 +273,8 @@ def func_rossler_del_elems(t, r, k_elements, w_arr, undeleted_elems_, T_):
         if s.stopping_borded_work == True:
             if (r[i*k] - border_center[0])**2 + (r[i*k+1] - border_center[1])**2 >= border_radius**2:
                 checker = 1
-                print(f'remove {i}', undeleted_elems, t)
                 undeleted_elems.remove(i)
-                print(undeleted_elems)
+                print(f'remove {i}', undeleted_elems, t)
             
         if checker == 0:
             dx = func_dx(i, r, func_connect_x_grid, T_, w_arr=w_arr)
