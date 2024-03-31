@@ -471,6 +471,7 @@ def make_experiment_delete_from_grid(k_deleted_elements, pick_type = 'rand', typ
     print('Start solve:', start_solve_time - start_time, 'time:', hms_now())
 
     sol = solve_ivp(func_rossler_del_elems, [0, t_max], IC, args=(k_elements, w, undeleted_elems, T), rtol=1e-11, atol=1e-11)
+    print(f'res len: {len(sol.t)}')
 
     xs, ys, zs = [], [], []
     for i in range(k_elements):

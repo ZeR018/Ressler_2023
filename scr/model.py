@@ -1,6 +1,8 @@
 import agents_grid as ag
 from config import settings as s
 from random import uniform
+import colorama
+colorama.init()
 
 ####################################################### Params ##################################################################
 
@@ -26,6 +28,7 @@ undeleted_elems = []
 
 border_radius = s.stopping_border_radius
 border_center = s.stopping_border_center
+stopping_borded_work = s.stopping_borded_work
 
 ####################################################### Params ##################################################################
 
@@ -116,16 +119,16 @@ def func_connect_y_grid(index, r, _T):
         summ += d_3dim(_T, radius, r[j*k], r[index*k], r[j*k+1], r[index*k+1], r[j*k+2], r[index*k+2]) \
                 * (r[j*k + 1] - r[index*k + 1])
         
-        if index != j:
-            summ2 += d_3dim(_T, radius, r[j * k], r[index * k], r[j * k + 1], r[index * k + 1], r[j*k + 2], r[index*k+2]) \
-                    / (r[index * k + 1] - r[j * k + 1])
+        # if index != j:
+        #     summ2 += d_3dim(_T, radius, r[j * k], r[index * k], r[j * k + 1], r[index * k + 1], r[j*k + 2], r[index*k+2]) \
+        #             / (r[index * k + 1] - r[j * k + 1])
         
         if el == len(undeleted_elems):
-            return summ + summ2
+            return summ
         
     # print('debag', index, n_string, start, stop)
 
-    return summ + summ2
+    return summ
 
 # Функция связи по x. Параллельное движение цепочки агентов
 def func_connect_x(index, r, _T):
@@ -246,6 +249,12 @@ def func_rossler_3_dim(t, r):
     return res_arr
 
 def func_rossler_del_elems(t, r, k_elements, w_arr, undeleted_elems_, T_):
+    # Вывод в последней строке текущее время интегрирования
+    # if round(t, 2) % 2 == 0:
+        
+    #     print(f'\033[FCurrent integrate time: {round(t, 2)};', f'last update time: {ag.hms_now()}')
+
+
     global undeleted_elems
     undeleted_elems = undeleted_elems_
 
@@ -270,7 +279,7 @@ def func_rossler_del_elems(t, r, k_elements, w_arr, undeleted_elems_, T_):
             r, undeleted_elems, checker = connect_min_radius(i, r, min_radius, undeleted_elems)
 
         # Проверка барьера
-        if s.stopping_borded_work == True:
+        if stopping_borded_work == True:
             if (r[i*k] - border_center[0])**2 + (r[i*k+1] - border_center[1])**2 >= border_radius**2:
                 checker = 1
                 undeleted_elems.remove(i)
