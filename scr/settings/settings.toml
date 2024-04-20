@@ -10,7 +10,7 @@ radius = 4      # Радиус связи
 min_radius = 0.00
 T = 0.3         # Сила связи
 
-t_max = 60
+t_max = 400
 k_str = 5                   # Число агентов в одной строке
 k_col = 5                   # Число агентов в одном столбце
 
@@ -21,7 +21,7 @@ small_animation = true
 full_animation = false
 need_save_last_state = false
 look_at_infinity = false
-stopping_borded_work = false
+stopping_borded_work = true
 
 plot_colors = [
     "blue",

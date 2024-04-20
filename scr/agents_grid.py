@@ -22,6 +22,9 @@ small_animation = s.small_animation
 full_animation = s.full_animation
 need_save_last_state = s.need_save_last_state
 
+stopping_borded_work = s.stopping_borded_work
+stopping_border_radius  = s.stopping_border_radius
+
 for_find_grid_IC = {'10x10': '2023-11-04 06.49.04', '10x10t': '37.41633',
                     '7x7': '2023-11-02 19.44.45', '7x7t': '81.99422',
                     '5x5': '2023-10-28 15.24.36', '5x5t': '122.92734',
@@ -33,8 +36,13 @@ for_find_grid_IC = {'10x10': '2023-11-04 06.49.04', '10x10t': '37.41633',
 # Функции синхронизации
 
 # Возвращает время с точностью до секунды
-def hms_now():
-    return str(datetime.now().time())[:-7]
+def hms_now(type = '0'):
+    if type == '0':
+        return str(datetime.now().time())[:-7]
+    if type == 'ms':
+        return [datetime.now().minute, datetime.now().second]
+    if type == 'm':
+        return datetime.now().minute
 
 
 # Сохраняет начальные условия и массив частот(w) в указанный файл
@@ -177,7 +185,19 @@ def make_frames_grid_agents(xs_arr, ys_arr, plot_colors, _k_elements = k_element
             point = ax.scatter(xs_arr[agent][i], ys_arr[agent][i], color=plot_colors[agent])
             frame.append(point)
 
+            # Border
+        if stopping_borded_work == True:
+            n_points_circle = 10000
+            x_circle = [ stopping_border_radius * np.cos(2 * np.pi * x / n_points_circle) for x in range(n_points_circle)]
+            y_circle = [ stopping_border_radius * np.sin(2 * np.pi * x / n_points_circle) for x in range(n_points_circle)]
+
+            circle, = ax.plot(x_circle, y_circle, color='gray')
+            frame.append(circle)
+
         frames.append(frame)
+
+
+    
     return frames, fig
 
 
@@ -234,6 +254,13 @@ def draw_and_save_graphics_many_agents(xs_arr, ys_arr, ts_arr, path_save_graphs,
                 plt.plot(xs_managing_agent_arr[i-100:i], ys_managing_agent_arr[i-100:i], label=managing_agent_name, color=managing_agent_color)
             plt.scatter(xs_managing_agent_arr[i], ys_managing_agent_arr[i], color=managing_agent_color)
             plt.legend()
+
+        if stopping_borded_work == True:
+            n_points_circle = 10000
+            x_circle = [ stopping_border_radius * np.cos(2 * np.pi * x / n_points_circle) for x in range(n_points_circle)]
+            y_circle = [ stopping_border_radius * np.sin(2 * np.pi * x / n_points_circle) for x in range(n_points_circle)]
+
+            plt.plot(x_circle, y_circle, color='gray')
 
         plt.savefig(path_save_graphs + '/' + '{:05}'.format(i) + '.png')
         plt.close()
@@ -443,7 +470,7 @@ def make_experiment_delete_from_grid(k_deleted_elements, pick_type = 'rand', typ
     # Берем НУ как состояние из другого эксперимента с сеткой
     IC, w = [], []
     if type_IC == 'rand':
-        IC = m.generate_random_IC_ressler(10, 10, 0, k_elements)
+        IC = m.generate_random_IC_ressler(5, 5, 0, k_elements)
         w = generate_w_arr(k_elements)
         T = s.T
     elif type_IC == 'grid':
@@ -526,23 +553,23 @@ def make_experiment_delete_from_grid(k_deleted_elements, pick_type = 'rand', typ
     draw_and_save_graphics_many_agents(xs, ys, ts, path_save_graphs, plot_colors, k_elements, 100, undeleted_elems)
 
     # Просто посмотреть первые 100 точек - как это работает
-    os.mkdir(path_save + '/first_100')
-    for i in range(100):
-        plt.figure(figsize=[8,8])
+    # os.mkdir(path_save + '/first_100')
+    # for i in range(100):
+    #     plt.figure(figsize=[8,8])
 
-        for agent in range(k_elements):
-            if deleted_elems.count(agent) > 0:
-                continue
-            plt.plot(xs[agent][:i+1], ys[agent][:i+1], color=plot_colors[agent])
-            plt.scatter(xs[agent][i], ys[agent][i], color=plot_colors[agent])
+    #     for agent in range(k_elements):
+    #         if deleted_elems.count(agent) > 0:
+    #             continue
+    #         plt.plot(xs[agent][:i+1], ys[agent][:i+1], color=plot_colors[agent])
+    #         plt.scatter(xs[agent][i], ys[agent][i], color=plot_colors[agent])
 
-        plt.xlabel('x')
-        plt.ylabel('y')
-        plt.grid()
-        plt.suptitle(str(i) + ' time: ' + str(round(ts[i], 5)))
+    #     plt.xlabel('x')
+    #     plt.ylabel('y')
+    #     plt.grid()
+    #     plt.suptitle(str(i) + ' time: ' + str(round(ts[i], 5)))
 
-        plt.savefig(path_save + '/first_100' + '/t_' + str(i) + '.png')
-        plt.close()
+    #     plt.savefig(path_save + '/first_100' + '/t_' + str(i) + '.png')
+    #     plt.close()
 
     # Анимация y(x)
     if small_animation:
@@ -761,4 +788,12 @@ def make_grid_experiment():
 
 if __name__ == '__main__':
 
+    make_experiment_delete_from_grid(0, type_IC='rand')
+    make_experiment_delete_from_grid(0, type_IC='rand')
+    make_experiment_delete_from_grid(0, type_IC='rand')
+    make_experiment_delete_from_grid(0, type_IC='rand')
+
+    make_experiment_delete_from_grid(0, type_IC='rand')
+    make_experiment_delete_from_grid(0, type_IC='rand')
+    make_experiment_delete_from_grid(0, type_IC='rand')
     make_experiment_delete_from_grid(0, type_IC='rand')

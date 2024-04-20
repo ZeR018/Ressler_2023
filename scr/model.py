@@ -2,6 +2,7 @@ import agents_grid as ag
 from config import settings as s
 from random import uniform
 import colorama
+
 colorama.init()
 
 ####################################################### Params ##################################################################
@@ -215,16 +216,22 @@ def d_3dim(_T, _radius, x_i, x_j, y_i, y_j, z_i, z_j):
 # Функции правой части
 # По x
 def func_dx(index, r, connect_f=default_f, _T=s.T, w_arr = w):
+    if len(undeleted_elems) == 1:
+        return - w_arr[index] * r[index*k + 1] - r[index*k + 2]
     return - w_arr[index] * r[index*k + 1] - r[index*k + 2] + connect_f(index, r, _T)
 
 
 # По y.
 def func_dy(index, r, connect_f=default_f, _T=s.T, w_arr = w):
+    if len(undeleted_elems) == 1:
+        return w_arr[index] * r[index*k] + a * r[index*k + 1]
     return w_arr[index] * r[index*k] + a * r[index*k + 1] + connect_f(index, r, _T)
 
 
 # По z
 def func_dz(index, r, _T, connect_f=default_f):
+    if len(undeleted_elems) == 1:
+        return b + r[index*k + 2] * (r[index*k] - c)
     return b + r[index*k + 2] * (r[index*k] - c) + connect_f(index, r, _T)
 
 ####################################################### Rossler ##################################################################
@@ -248,11 +255,31 @@ def func_rossler_3_dim(t, r):
 
     return res_arr
 
+last_t = []
+remove = False
+last_update_time = 0
 def func_rossler_del_elems(t, r, k_elements, w_arr, undeleted_elems_, T_):
     # Вывод в последней строке текущее время интегрирования
-    # if round(t, 2) % 2 == 0:
-        
-    #     print(f'\033[FCurrent integrate time: {round(t, 2)};', f'last update time: {ag.hms_now()}')
+    global remove, last_update_time
+    if round(t, 2) % 2 == 0:
+        if remove == True:
+            print(f'Current integrate time: {round(t, 2)};', f'last update time: {ag.hms_now()}')
+            remove = False
+        else: 
+            print(f'\033[F\033[KCurrent integrate time: {round(t, 2)};', f'last update time: {ag.hms_now()}')
+        last_update_time = ag.hms_now(type = 'm')
+
+    # global last_m
+    # if ag.hms_now(type = 'm') - last_m > 0:
+    #     print('one more minute', f'last_update_time {last_update_time}', ag.hms_now(type = 'm') - last_update_time, ag.hms_now(type = 'm') - last_update_time > 5)
+    #     last_m = ag.hms_now(type = 'm')
+
+    global last_t
+    if t > 1:
+        if ag.hms_now(type = 'm') - last_update_time >= 5:
+            tyme_diff = ag.hms_now(type = 'm') - last_update_time
+            print(f'System broken. h = {t - last_t[-1000]}, {tyme_diff}')
+    last_t.append(t)
 
 
     global undeleted_elems
@@ -261,7 +288,7 @@ def func_rossler_del_elems(t, r, k_elements, w_arr, undeleted_elems_, T_):
     res_arr = []
 
     if len(undeleted_elems) == 0:
-        return [10000 for i in range(k_elements * k)]
+        return [0 for i in range(k_elements * k)]
 
     counter = 0
     for i in undeleted_elems:
@@ -272,7 +299,6 @@ def func_rossler_del_elems(t, r, k_elements, w_arr, undeleted_elems_, T_):
                 res_arr.append(0)
             counter = i
 
-        #
         checker = 0
         # Добавляем проверку ближнего радиуса
         if min_radius > 0:
@@ -283,7 +309,12 @@ def func_rossler_del_elems(t, r, k_elements, w_arr, undeleted_elems_, T_):
             if (r[i*k] - border_center[0])**2 + (r[i*k+1] - border_center[1])**2 >= border_radius**2:
                 checker = 1
                 undeleted_elems.remove(i)
-                print(f'remove {i}', undeleted_elems, t)
+                print(f'remove {i}', undeleted_elems, f'time {t}', f'x {r[i*k]}', f'y {r[i*k+1]}', (r[i*k] - border_center[0])**2 + (r[i*k+1] - border_center[1])**2)
+                remove = True
+
+                # Проверка на все удаленные элементы из-за борьера
+                if len(undeleted_elems) == 0:
+                    return [0 for i in range(k_elements * k)]
             
         if checker == 0:
             dx = func_dx(i, r, func_connect_x_grid, T_, w_arr=w_arr)
@@ -294,9 +325,9 @@ def func_rossler_del_elems(t, r, k_elements, w_arr, undeleted_elems_, T_):
             res_arr.append(dy)
             res_arr.append(dz)
         else:
-            res_arr.append(10000)
-            res_arr.append(10000)
-            res_arr.append(10000)
+            res_arr.append(0)
+            res_arr.append(0)
+            res_arr.append(0)
 
         counter += 1
 
