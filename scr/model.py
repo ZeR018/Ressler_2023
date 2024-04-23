@@ -1,13 +1,13 @@
-import agents_grid as ag
 from config import settings as s
 from random import uniform
 import colorama
+import memory_worker as mem
 
 colorama.init()
 
 ####################################################### Params ##################################################################
 
-w = []                      #
+w_arr = []                      #
 a = s.a                     # Параметры
 b = s.b                     # системы
 c = s.c                     #
@@ -25,7 +25,7 @@ need_save_last_state = s.need_save_last_state
 
 radius = s.radius           # Радиус связи
 min_radius = s.min_radius   # Минимальный радиус, меньше которого появляются дополнительные эффекты
-undeleted_elems = []
+undeleted_elems = range(k_elements)
 
 border_radius = s.stopping_border_radius
 border_center = s.stopping_border_center
@@ -215,14 +215,14 @@ def d_3dim(_T, _radius, x_i, x_j, y_i, y_j, z_i, z_j):
 
 # Функции правой части
 # По x
-def func_dx(index, r, connect_f=default_f, _T=s.T, w_arr = w):
+def func_dx(index, r, connect_f=default_f, _T=s.T, w_arr = w_arr):
     if len(undeleted_elems) == 1:
         return - w_arr[index] * r[index*k + 1] - r[index*k + 2]
     return - w_arr[index] * r[index*k + 1] - r[index*k + 2] + connect_f(index, r, _T)
 
 
 # По y.
-def func_dy(index, r, connect_f=default_f, _T=s.T, w_arr = w):
+def func_dy(index, r, connect_f=default_f, _T=s.T, w_arr = w_arr):
     if len(undeleted_elems) == 1:
         return w_arr[index] * r[index*k] + a * r[index*k + 1]
     return w_arr[index] * r[index*k] + a * r[index*k + 1] + connect_f(index, r, _T)
@@ -236,8 +236,12 @@ def func_dz(index, r, _T, connect_f=default_f):
 
 ####################################################### Rossler ##################################################################
 
-def func_rossler_3_dim(t, r):
-    global k_elements
+def func_rossler_3_dim(t, r, w_arr_, a_):
+    print(f'\033[F\033[KCurrent integrate time: {round(t, 1)};', f'last update time: {mem.hms_now()}')
+        
+    global k_elements, w_arr, a
+    w_arr = w_arr_
+    a = a_
     res_arr = []
 
     for i in range(k_elements):
@@ -245,8 +249,8 @@ def func_rossler_3_dim(t, r):
         # y_i = r[i*k + 1]
         # z_i = r[i*k + 2]
 
-        dx = func_dx(i, r, func_connect_x_grid, T, w)
-        dy = func_dy(i, r, func_connect_y_grid, T, w)
+        dx = func_dx(i, r, func_connect_x_grid, T, w_arr)
+        dy = func_dy(i, r, func_connect_y_grid, T, w_arr)
         dz = func_dz(i, r, T)
 
         res_arr.append(dx)
@@ -263,11 +267,11 @@ def func_rossler_del_elems(t, r, k_elements, w_arr, undeleted_elems_, T_):
     global remove, last_update_time
     if round(t, 2) % 2 == 0:
         if remove == True:
-            print(f'Current integrate time: {round(t, 2)};', f'last update time: {ag.hms_now()}')
+            print(f'Current integrate time: {round(t, 2)};', f'last update time: {mem.hms_now()}')
             remove = False
         else: 
-            print(f'\033[F\033[KCurrent integrate time: {round(t, 2)};', f'last update time: {ag.hms_now()}')
-        last_update_time = ag.hms_now(type = 'm')
+            print(f'\033[F\033[KCurrent integrate time: {round(t, 2)};', f'last update time: {mem.hms_now()}')
+        last_update_time = mem.hms_now(type = 'm')
 
     # global last_m
     # if ag.hms_now(type = 'm') - last_m > 0:
@@ -276,8 +280,8 @@ def func_rossler_del_elems(t, r, k_elements, w_arr, undeleted_elems_, T_):
 
     global last_t
     if t > 1:
-        if ag.hms_now(type = 'm') - last_update_time >= 5:
-            tyme_diff = ag.hms_now(type = 'm') - last_update_time
+        if mem.hms_now(type = 'm') - last_update_time >= 5:
+            tyme_diff = mem.hms_now(type = 'm') - last_update_time
             print(f'System broken. h = {t - last_t[-1000]}, {tyme_diff}')
     last_t.append(t)
 
