@@ -146,7 +146,7 @@ def make_dir_for_series_experiments(w_arr, a, n_exps, IC_file_name):
         print('IC file name: ', IC_file_name, file=f)
         print('Num experiments: ', n_exps, file=f)
         print('r: ', s.radius, file=f)
-        print('T:', s.T)
+        print('T:', s.T, file=f)
 
     figs_dir = new_dir + '/figs'
     os.mkdir(figs_dir)

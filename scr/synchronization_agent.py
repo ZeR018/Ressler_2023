@@ -68,10 +68,47 @@ def find_dist_between_agent(xs, ys, zs, ts):
     plt.show()
     return 0
 
-def find_synchronization_time(xs, ys, zs, ts):
-    from random import gauss
-    res = gauss(60, 10)
-    return 0
+def find_synchronization_time(xs, ys, zs, ts, w_arr, a):
+    size = len(ts)
+    
+    phi = [[] for i in range(k_elements)]
+    omega = [[] for i in range(k_elements)]
+
+    for t in range(size):
+        for agent in range(k_elements):
+            x = xs[agent][t]
+            y = ys[agent][t]
+            z = zs[agent][t]
+            w = w_arr[agent]
+            phi_i = np.arctan(( w * x + a * y) / (- w * y - z))
+            phi[agent].append(phi_i)
+            
+            omega_i_dyddx = - (w*x + a*y) * (-w**2*x-w*a*y-b-z*(x-c))
+            omega_i_ddydx = (-w*y-z) * (-w**2*y-w*z+a*w*x+a**2*y)
+
+            omega_i_zn = (w*y+z)**2 + (w*x + a*y)**2
+            omega[agent].append((omega_i_ddydx + omega_i_dyddx)/omega_i_zn)
+    
+    step = 100
+    omega_new = [[] for i in range(k_elements)]
+    for agent in range(k_elements):
+        for t in range(step, size, step):
+            omega_new[agent].append(np.mean(omega[agent][t-step:t]))
+
+    fig = plt.figure()
+    for agent in range(k_elements):
+        plt.plot(omega_new[agent])
+    plt.grid()
+
+    max_omega_diff = 0.2
+    synchronization_time = 0
+    for t in range(len(omega_new[0])):
+        omega_t = [omega_agent[t] for omega_agent in omega]
+        if max(omega_t) - min(omega_t) < max_omega_diff:
+            synchronization_time = ts[t * step]
+            break
+
+    return synchronization_time, fig
 
 def solo_experiment_depend_a(a, w_arr, IC, isSolo = False):
     # Integrate
@@ -107,12 +144,15 @@ def solo_experiment_depend_a(a, w_arr, IC, isSolo = False):
         mem.draw_and_save_graphics_many_agents(xs, ys, ts, path_save_graphs, plot_colors, k_elements, 100)
 
         # Order params
-        find_frequency(xs, ys, zs, ts, w_arr, a)
+        # find_frequency(xs, ys, zs, ts, w_arr, a)
 
     # Функция, которая считает время синхронизации
-    time_of_sync = find_synchronization_time(xs, ys, zs, ts)
+    synchronization_time, omega_fig = find_synchronization_time(xs, ys, zs, ts, w_arr, a)
+    
+    if isSolo:
+        omega_fig.savefig(path_save + '/omega.png')
 
-    return fig_last, time_of_sync, [[xs, ys, zs, ts]]
+    return fig_last, synchronization_time, [[xs, ys, zs, ts]]
 
 def experiments_series_depend_a(a, n_exps_in_one_cycle = 100, IC_fname = 'series_IC_500.txt'):
     IC_arr = mem.read_series_IC(s.temporary_path + IC_fname)
@@ -134,14 +174,13 @@ def experiments_series_depend_a(a, n_exps_in_one_cycle = 100, IC_fname = 'series
     plt.ylabel('Число синхронизаций')
     plt.savefig(dir + '/times_hist.png')
 
+# path = mem.generate_and_write_series_IC((8., 8., 1.), n_exps=500, k_elements=k_elements)
+w_arr = generate_w_arr(k_elements)
+IC = mem.generate_random_IC_ressler(5., 5., 1, k_elements)
+fig = solo_experiment_depend_a(s.a, w_arr, IC, isSolo=True)
+plt.show()
 
-# w_arr = generate_w_arr(k_elements)
-# IC = mem.generate_random_IC_ressler(10., 10., 1, k_elements)
-# fig = solo_experiment_depend_a(s.a, w_arr, IC)
-# plt.show()
 
-# 
-# path = mem.generate_and_write_series_IC((10., 10., 1.), n_exps=500, k_elements=k_elements)
-
-IC_file_name = 'series_IC_500.txt'
-experiments_series_depend_a(s.a, 10, IC_file_name)
+# path = mem.generate_and_write_series_IC((8., 8., 1.), n_exps=500, k_elements=k_elements)
+# IC_file_name = 'series_IC_500.txt'
+# experiments_series_depend_a(s.a, 10, IC_file_name)
