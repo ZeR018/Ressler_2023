@@ -227,7 +227,7 @@ def make_experiment_delete_from_grid(k_deleted_elements, pick_type = 'rand', typ
 
     path_save, path_save_graphs = mem.save_data([xs, ys, zs, ts], IC, w, [fig, fig_last], ['fig_graphs', 'fig_last_state'], deleted_elems=deleted_elems)
 
-    mem.sdraw_and_save_graphics_many_agents(xs, ys, ts, path_save_graphs, plot_colors, k_elements, 100, undeleted_elems)
+    mem.draw_and_save_graphics_many_agents(xs, ys, ts, path_save_graphs, plot_colors, k_elements, 100, undeleted_elems)
 
     # Просто посмотреть первые 100 точек - как это работает
     # os.mkdir(path_save + '/first_100')

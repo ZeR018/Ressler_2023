@@ -132,6 +132,27 @@ def save_data(integration_data, IC, w, figs_arr = [], fig_names_arr = [], delete
 
     return new_dir, data_dir
 
+def make_dir_for_series_experiments(w_arr, a, n_exps, IC_file_name):
+    date = str(datetime.now().date())
+    time = hms_now().replace(':', '.')
+
+    new_dir = s.grid_experiments_path + date + ' ' + time + 'series'
+    os.mkdir(new_dir)
+
+    # Save main IC data
+    with open(new_dir + 'IC.txt', 'w') as f:
+        print('w: ', w_arr, file=f)
+        print('a: ', a, file=f)
+        print('IC file name: ', IC_file_name, file=f)
+        print('Num experiments: ', n_exps, file=f)
+        print('r: ', s.radius, file=f)
+        print('T:', s.T)
+
+    figs_dir = new_dir + '/figs'
+    os.mkdir(figs_dir)
+
+    return new_dir, figs_dir
+
 def make_frames_grid_agents(xs_arr, ys_arr, plot_colors, _k_elements = k_elements, frames_step = 60, deleted_elems = []):
 
     fig = plt.figure(figsize=[12,12])
@@ -190,13 +211,13 @@ def make_colors(_k_elements):
     return res_col_arr
 
 def draw_and_save_graphics_many_agents(xs_arr, ys_arr, ts_arr, path_save_graphs, plot_colors, _k_elements, 
-                                       step_graphs=50, undeleted_elems = [], infotm_about_managing_agent = (), mashtab = [], grid=True):
+                                       step_graphs=50, undeleted_elems = [], inform_about_managing_agent = (), mashtab = [], grid=True):
     # infotm_about_managing_agent
-    if infotm_about_managing_agent != ():
+    if inform_about_managing_agent != ():
         xs_managing_agent_arr = xs_arr[-1]
         ys_managing_agent_arr = ys_arr[-1]
-        managing_agent_name = infotm_about_managing_agent[0]
-        managing_agent_color = infotm_about_managing_agent[1]
+        managing_agent_name = inform_about_managing_agent[0]
+        managing_agent_color = inform_about_managing_agent[1]
 
     
     if undeleted_elems == []:
@@ -224,7 +245,7 @@ def draw_and_save_graphics_many_agents(xs_arr, ys_arr, ts_arr, path_save_graphs,
         if grid: plt.grid()
         plt.suptitle(str(i) + ' time: ' + str(round(ts_arr[i], 5)))
 
-        if infotm_about_managing_agent != ():
+        if inform_about_managing_agent != ():
             if(i < 50):
                 plt.plot(xs_managing_agent_arr[:i], ys_managing_agent_arr[:i], label=managing_agent_name, color=managing_agent_color)
             else:
@@ -487,3 +508,35 @@ def generate_random_IC_ressler(x_max, y_max, z_max, k_elems=k_elements, x_min=''
         res_IC_arr.append(uniform(z_min, z_max))
 
     return res_IC_arr
+
+def generate_and_write_series_IC(generator_params: tuple, n_exps = 100, 
+                                 k_elements = k_elements, path = s.temporary_path, file_name = ' '):
+    gp = generator_params
+    if file_name == ' ':
+        file_name = f'series_IC_{n_exps}.txt'
+    full_path = path + file_name
+    with open(full_path, 'w') as f:
+        for i in range(n_exps):
+            IC = generate_random_IC_ressler(gp[0], gp[1], gp[2], k_elements)
+            for c in IC:
+                print(f'{c} ', file=f, end='')
+            print('', file=f)
+        
+        print(k_elements, file=f)
+        print(n_exps, file=f)
+    return full_path
+
+def read_series_IC(path):
+    k = s.k
+    with open(path, 'r') as f:
+        f_data = f.readlines()
+
+    _k_elements = int(f_data[-2])
+    n_exps = int(f_data[-1])
+        
+    IC_arr = [[] for i in range(n_exps)]
+    for i in range(n_exps):
+        line = f_data[i].split()
+        for j in range(_k_elements * k):
+            IC_arr[i].append(float(line[j]))
+    return IC_arr

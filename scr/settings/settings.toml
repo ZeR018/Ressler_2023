@@ -24,7 +24,7 @@ small_animation = true
 full_animation = false
 need_save_last_state = false
 look_at_infinity = false
-stopping_borded_work = true
+stopping_borded_work = false
 
 plot_colors = [
     "blue",
@@ -56,3 +56,4 @@ plot_colors = [
 
 # Data paths
 grid_experiments_path = './data/grid_experiments/'
+temporary_path = './data/temp/'

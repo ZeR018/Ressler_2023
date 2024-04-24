@@ -6,14 +6,12 @@ import memory_worker as mem
 import numpy as np
 import time
 
+
 t_max = s.t_max
 k_elements = s.k_col * s.k_str
 k = s.k
 b = s.b
 c = s.c
-
-def mean(arr):
-    arr.mean()
 
 def find_frequency(xs, ys, zs, ts, w_arr, a):
     size = len(ts)
@@ -30,10 +28,6 @@ def find_frequency(xs, ys, zs, ts, w_arr, a):
             phi_i = np.arctan(( w * x + a * y) / (- w * y - z))
             phi[agent].append(phi_i)
             
-            # omega_i_dyddx = -w**3*x**2 - 2*w**2*a*x*y - b*w*x - z*w*x*(x-c) \
-            #     - w**2*a*x*y - w*a**2*y**2 - b*a*y - a*y*z*(x-c)
-            # omega_i_ddydx = -w**3*y**2 - w**2*y*z + a*w**2*x*y + a**2*w*y**2 \
-            #     - w**2*y*z - w*z**2 + a*w*x*z + a**2*y*z
             omega_i_dyddx = - (w*x + a*y) * (-w**2*x-w*a*y-b-z*(x-c))
             omega_i_ddydx = (-w*y-z) * (-w**2*y-w*z+a*w*x+a**2*y)
 
@@ -49,6 +43,7 @@ def find_frequency(xs, ys, zs, ts, w_arr, a):
     plt.grid()
     plt.xlabel('t')
     plt.ylabel('omega')
+    plt.semilogy()
     plt.show()
 
     for agent in range(k_elements):
@@ -57,8 +52,6 @@ def find_frequency(xs, ys, zs, ts, w_arr, a):
     plt.xlabel('t')
     plt.ylabel('phi')
     plt.show()
-
-
 
 def find_dist_between_agent(xs, ys, zs, ts):
     dists = [[], []]
@@ -75,10 +68,16 @@ def find_dist_between_agent(xs, ys, zs, ts):
     plt.show()
     return 0
 
-def solo_experiment_depend_a(a, w_arr, IC):
+def find_synchronization_time(xs, ys, zs, ts):
+    from random import gauss
+    res = gauss(60, 10)
+    return 0
+
+def solo_experiment_depend_a(a, w_arr, IC, isSolo = False):
     # Integrate
     start_solve_time = time.time()
     print('Start solve time:', mem.hms_now())
+    print('')
     sol = solve_ivp(func_rossler_3_dim, [0, t_max], IC, args=(w_arr, a), 
                     rtol=1e-11, atol=1e-11, method=s.method)
     time_after_integrate = time.time()
@@ -93,11 +92,6 @@ def solo_experiment_depend_a(a, w_arr, IC):
 
     plot_colors = mem.make_colors(k_elements)
     
-    # find_dist_between_agent(xs, ys, zs, ts, w_arr, a)
-
-    # Order params
-    find_frequency(xs, ys, zs, ts, w_arr, a)
-
     # Plot last state
     fig_last, ax_last = plt.subplots(figsize=[10, 6])
     for agent in range(k_elements):
@@ -107,13 +101,47 @@ def solo_experiment_depend_a(a, w_arr, IC):
     ax_last.set_xlabel('x')
     ax_last.set_ylabel('y')
 
+    if isSolo:
+        path_save, path_save_graphs = mem.save_data([xs, ys, zs, ts], IC, w_arr, [fig_last], ['fig_last_state'])
+        plt.close()
+        mem.draw_and_save_graphics_many_agents(xs, ys, ts, path_save_graphs, plot_colors, k_elements, 100)
 
-    return fig_last, [xs, ys, zs, ts]
+        # Order params
+        find_frequency(xs, ys, zs, ts, w_arr, a)
 
-def experiments_series_depend_a(a_arr, n_exps_in_one_cycle = 100):
-    return 0
+    # Функция, которая считает время синхронизации
+    time_of_sync = find_synchronization_time(xs, ys, zs, ts)
 
-w_arr = generate_w_arr(k_elements)
-IC = mem.generate_random_IC_ressler(10., 10., 1, k_elements)
-fig = solo_experiment_depend_a(s.a, w_arr, IC)
-plt.show()
+    return fig_last, time_of_sync, [[xs, ys, zs, ts]]
+
+def experiments_series_depend_a(a, n_exps_in_one_cycle = 100, IC_fname = 'series_IC_500.txt'):
+    IC_arr = mem.read_series_IC(s.temporary_path + IC_fname)
+    w_arr = generate_w_arr(k_elements)
+
+    dir, figs_dir = mem.make_dir_for_series_experiments(w_arr, a, n_exps_in_one_cycle, IC_fname)
+
+    times_of_sync = []
+    for exp in range(n_exps_in_one_cycle):
+        print(f'Exp {exp + 1}. ', end='')
+        fig_exp, time_of_sync, _ = solo_experiment_depend_a(a, w_arr, IC_arr[exp])
+        times_of_sync.append(time_of_sync)
+
+        fig_exp.savefig(figs_dir + '/last_state.png')
+    
+    plt.hist(time_of_sync), 20
+    plt.grid()
+    plt.xlabel('Время синхронизации')
+    plt.ylabel('Число синхронизаций')
+    plt.savefig(dir + '/times_hist.png')
+
+
+# w_arr = generate_w_arr(k_elements)
+# IC = mem.generate_random_IC_ressler(10., 10., 1, k_elements)
+# fig = solo_experiment_depend_a(s.a, w_arr, IC)
+# plt.show()
+
+# 
+# path = mem.generate_and_write_series_IC((10., 10., 1.), n_exps=500, k_elements=k_elements)
+
+IC_file_name = 'series_IC_500.txt'
+experiments_series_depend_a(s.a, 10, IC_file_name)
