@@ -136,11 +136,11 @@ def make_dir_for_series_experiments(w_arr, a, n_exps, IC_file_name):
     date = str(datetime.now().date())
     time = hms_now().replace(':', '.')
 
-    new_dir = s.grid_experiments_path + date + ' ' + time + 'series'
+    new_dir = f'{s.grid_experiments_path + date} {time} series {n_exps}'
     os.mkdir(new_dir)
 
     # Save main IC data
-    with open(new_dir + 'IC.txt', 'w') as f:
+    with open(new_dir + '/IC.txt', 'w') as f:
         print('w: ', w_arr, file=f)
         print('a: ', a, file=f)
         print('IC file name: ', IC_file_name, file=f)

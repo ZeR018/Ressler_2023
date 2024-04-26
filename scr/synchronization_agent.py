@@ -13,61 +13,6 @@ k = s.k
 b = s.b
 c = s.c
 
-def find_frequency(xs, ys, zs, ts, w_arr, a):
-    size = len(ts)
-
-    phi = [[] for i in range(k_elements)]
-    omega = [[] for i in range(k_elements)]
-
-    for t in range(size):
-        for agent in range(k_elements):
-            x = xs[agent][t]
-            y = ys[agent][t]
-            z = zs[agent][t]
-            w = w_arr[agent]
-            phi_i = np.arctan(( w * x + a * y) / (- w * y - z))
-            phi[agent].append(phi_i)
-            
-            omega_i_dyddx = - (w*x + a*y) * (-w**2*x-w*a*y-b-z*(x-c))
-            omega_i_ddydx = (-w*y-z) * (-w**2*y-w*z+a*w*x+a**2*y)
-
-            omega_i_zn = (w*y+z)**2 + (w*x + a*y)**2
-            omega[agent].append((omega_i_ddydx + omega_i_dyddx)/omega_i_zn)
-    
-    omega_mean = [np.mean(agent) for agent in omega]
-
-    print('omega mean: ', omega_mean)
-
-    for agent in range(k_elements):
-        plt.plot(ts, omega[agent])
-    plt.grid()
-    plt.xlabel('t')
-    plt.ylabel('omega')
-    plt.semilogy()
-    plt.show()
-
-    for agent in range(k_elements):
-        plt.plot(ts, phi[agent])
-    plt.grid()
-    plt.xlabel('t')
-    plt.ylabel('phi')
-    plt.show()
-
-def find_dist_between_agent(xs, ys, zs, ts):
-    dists = [[], []]
-    size = len(ts)
-    for t in range(size):
-        sum = 0
-        for agent in range(1, k_elements):
-            sum += max((xs[agent][t] - xs[0][t])**2 + (ys[agent][t] - ys[0][t])**2)
-        dists[0].append(sum)
-        dists[1].append()
-    
-    plt.plot(ts, dists)
-    plt.grid()
-    plt.show()
-    return 0
-
 def find_synchronization_time(xs, ys, zs, ts, w_arr, a):
     size = len(ts)
     
@@ -89,24 +34,36 @@ def find_synchronization_time(xs, ys, zs, ts, w_arr, a):
             omega_i_zn = (w*y+z)**2 + (w*x + a*y)**2
             omega[agent].append((omega_i_ddydx + omega_i_dyddx)/omega_i_zn)
     
-    step = 100
+    step = 300
     omega_new = [[] for i in range(k_elements)]
     for agent in range(k_elements):
         for t in range(step, size, step):
             omega_new[agent].append(np.mean(omega[agent][t-step:t]))
 
-    fig = plt.figure()
+    fig = plt.figure(figsize=(35, 25))
     for agent in range(k_elements):
-        plt.plot(omega_new[agent])
+        plt.plot(ts[step::step], omega_new[agent])
     plt.grid()
+    plt.xlabel('t')
+    plt.ylabel('\u03A9')
 
     max_omega_diff = 0.2
-    synchronization_time = 0
+    synchronization_time = -10
     for t in range(len(omega_new[0])):
-        omega_t = [omega_agent[t] for omega_agent in omega]
+        omega_t = [omega_agent[t] for omega_agent in omega_new]
         if max(omega_t) - min(omega_t) < max_omega_diff:
-            synchronization_time = ts[t * step]
-            break
+            # Проверить, что расстояние между всеми агентами меньше 1.5r
+            dist = []
+            for agent in range(1, k_elements):
+                dist.append(np.sqrt((xs[agent][step*t] - xs[0][step*t])**2+ \
+                        (ys[agent][step*t] - ys[0][step*t])**2 + \
+                        (zs[agent][step*t] - zs[0][step*t])**2))
+            
+            if max(dist) < 1.5 * s.radius:
+                synchronization_time = ts[step*(t + 1)]
+                break
+
+
 
     return synchronization_time, fig
 
@@ -150,11 +107,15 @@ def solo_experiment_depend_a(a, w_arr, IC, isSolo = False):
     synchronization_time, omega_fig = find_synchronization_time(xs, ys, zs, ts, w_arr, a)
     
     if isSolo:
+        print(synchronization_time)
         omega_fig.savefig(path_save + '/omega.png')
 
-    return fig_last, synchronization_time, [[xs, ys, zs, ts]]
+    figs = {'fig_last_state': fig_last,
+            'fig_omega': omega_fig}
+    return synchronization_time, figs, [[xs, ys, zs, ts]]
 
 def experiments_series_depend_a(a, n_exps_in_one_cycle = 100, IC_fname = 'series_IC_500.txt'):
+    start_time = time.time()
     IC_arr = mem.read_series_IC(s.temporary_path + IC_fname)
     w_arr = generate_w_arr(k_elements)
 
@@ -163,24 +124,34 @@ def experiments_series_depend_a(a, n_exps_in_one_cycle = 100, IC_fname = 'series
     times_of_sync = []
     for exp in range(n_exps_in_one_cycle):
         print(f'Exp {exp + 1}. ', end='')
-        fig_exp, time_of_sync, _ = solo_experiment_depend_a(a, w_arr, IC_arr[exp])
+        time_of_sync, figs, _ = solo_experiment_depend_a(a, w_arr, IC_arr[exp])
         times_of_sync.append(time_of_sync)
 
-        fig_exp.savefig(figs_dir + '/last_state.png')
+        for figname, fig in figs.items():
+            fig.savefig(figs_dir + f'/{figname}_{exp}.png')
+        plt.close()
+
+    # Запись итоговых времен (times_of_sync) в файл times.txt
+    with open(dir + '/times.txt', 'w') as f:
+        for i in range(n_exps_in_one_cycle):
+            print(f'{i} {times_of_sync[i]}',  file=f)
     
-    plt.hist(time_of_sync), 20
+    plt.figure()
+    plt.hist(times_of_sync, 20)
     plt.grid()
     plt.xlabel('Время синхронизации')
     plt.ylabel('Число синхронизаций')
     plt.savefig(dir + '/times_hist.png')
 
-# path = mem.generate_and_write_series_IC((8., 8., 1.), n_exps=500, k_elements=k_elements)
-w_arr = generate_w_arr(k_elements)
-IC = mem.generate_random_IC_ressler(5., 5., 1, k_elements)
-fig = solo_experiment_depend_a(s.a, w_arr, IC, isSolo=True)
-plt.show()
+    print('Final time: ', time.time() - start_time)
+
+# path = mem.generate_and_write_series_IC((5., 5., 1.), n_exps=500, k_elements=k_elements)
+# w_arr = generate_w_arr(k_elements)
+# IC_arr = mem.read_series_IC(s.temporary_path + 'series_IC_500.txt')
+# fig = solo_experiment_depend_a(s.a, w_arr, IC_arr[0], isSolo=True)
+# plt.show()
 
 
-# path = mem.generate_and_write_series_IC((8., 8., 1.), n_exps=500, k_elements=k_elements)
-# IC_file_name = 'series_IC_500.txt'
-# experiments_series_depend_a(s.a, 10, IC_file_name)
+# path = mem.generate_and_write_series_IC((5., 5., 1.), n_exps=500, k_elements=k_elements)
+IC_file_name = 'series_IC_500.txt'
+experiments_series_depend_a(s.a, 40, IC_file_name)
