@@ -47,7 +47,7 @@ def find_synchronization_time(xs, ys, zs, ts, w_arr, a):
     plt.xlabel('t')
     plt.ylabel('\u03A9')
 
-    max_omega_diff = 0.2
+    max_omega_diff = 0.25
     synchronization_time = -10
     for t in range(len(omega_new[0])):
         omega_t = [omega_agent[t] for omega_agent in omega_new]
@@ -117,7 +117,9 @@ def solo_experiment_depend_a(a, w_arr, IC, isSolo = False):
 def experiments_series_depend_a(a, n_exps_in_one_cycle = 100, IC_fname = 'series_IC_500.txt'):
     start_time = time.time()
     IC_arr = mem.read_series_IC(s.temporary_path + IC_fname)
-    w_arr = generate_w_arr(k_elements)
+    # w_arr = generate_w_arr(k_elements)
+    w_arr = [0.957, 0.942, 0.939, 0.972, 1.024, 1.008, 1.059, 1.045, 0.976, 0.955, 1.058, 0.987, 
+            1.044, 1.057, 0.968, 0.954, 0.976, 0.97, 1.042, 0.974, 0.985, 1.037, 0.992, 0.997, 0.952]
 
     dir, figs_dir = mem.make_dir_for_series_experiments(w_arr, a, n_exps_in_one_cycle, IC_fname)
 
@@ -134,10 +136,10 @@ def experiments_series_depend_a(a, n_exps_in_one_cycle = 100, IC_fname = 'series
     # Запись итоговых времен (times_of_sync) в файл times.txt
     with open(dir + '/times.txt', 'w') as f:
         for i in range(n_exps_in_one_cycle):
-            print(f'{i} {times_of_sync[i]}',  file=f)
+            print(f'{i+1} {times_of_sync[i]}',  file=f)
     
     plt.figure()
-    plt.hist(times_of_sync, 20)
+    plt.hist(times_of_sync, 15)
     plt.grid()
     plt.xlabel('Время синхронизации')
     plt.ylabel('Число синхронизаций')
@@ -154,4 +156,4 @@ def experiments_series_depend_a(a, n_exps_in_one_cycle = 100, IC_fname = 'series
 
 # path = mem.generate_and_write_series_IC((5., 5., 1.), n_exps=500, k_elements=k_elements)
 IC_file_name = 'series_IC_500.txt'
-experiments_series_depend_a(s.a, 40, IC_file_name)
+experiments_series_depend_a(s.a, 100, IC_file_name)
