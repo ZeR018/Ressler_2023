@@ -9,6 +9,7 @@ k = 3           # Число уравнений для одного агента
 radius = 4      # Радиус связи
 min_radius = 0.00
 T = 0.3         # Сила связи
+tau = 1
 
 # method = 'DOP853'
 # method = 'LSODA'
