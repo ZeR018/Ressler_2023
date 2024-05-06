@@ -19,6 +19,7 @@ k_elements = k_str * k_col  # Число агентов
 k = s.k                       # Число уравнений для одного агента (всегда 3)
 T = s.T
 radius = s.radius
+tau = s.tau
 
 ####################################################### Params ##################################################################
 
@@ -94,7 +95,7 @@ def func_dz(index, r, _T, connect_f=default_f):
     return b + r[index*k + 2] * (r[index*k] - c) + connect_f(index, r, _T)
 
 
-def func_rossler_3_dim(t, r, w_arr_, a_):
+def func_rossler_3_dim(t, r, w_arr_, a_, tau_ = tau):
     print(f'\033[F\033[KCurrent integrate time: {round(t, 1)};', f'last update time: {mem.hms_now()}')
         
     global k_elements, w_arr, a
@@ -107,9 +108,9 @@ def func_rossler_3_dim(t, r, w_arr_, a_):
         # y_i = r[i*k + 1]
         # z_i = r[i*k + 2]
 
-        dx = func_dx(i, r, func_connect_x_grid, T, w_arr)
-        dy = func_dy(i, r, func_connect_y_grid, T, w_arr)
-        dz = func_dz(i, r, T)
+        dx = tau_ * func_dx(i, r, func_connect_x_grid, T, w_arr)
+        dy = tau_ * func_dy(i, r, func_connect_y_grid, T, w_arr)
+        dz = tau_ * func_dz(i, r, T)
 
         res_arr.append(dx)
         res_arr.append(dy)

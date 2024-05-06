@@ -132,11 +132,13 @@ def save_data(integration_data, IC, w, figs_arr = [], fig_names_arr = [], delete
 
     return new_dir, data_dir
 
-def make_dir_for_series_experiments(w_arr, a, n_exps, IC_file_name):
-    date = str(datetime.now().date())
+def make_dir_for_series_experiments(w_arr, a, n_exps, IC_file_name, dop_names = {}):
+    date_without_year = str(datetime.now().date())[5:]
     time = hms_now().replace(':', '.')
 
-    new_dir = f'{s.grid_experiments_path + date} {time} series {n_exps}'
+    new_dir = f'{s.grid_experiments_path + date_without_year} {time} s_{n_exps}'
+    for k, v in dop_names.items():
+        new_dir += f' {k}_{v}'
     os.mkdir(new_dir)
 
     # Save main IC data

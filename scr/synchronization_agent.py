@@ -67,12 +67,12 @@ def find_synchronization_time(xs, ys, zs, ts, w_arr, a):
 
     return synchronization_time, fig
 
-def solo_experiment_depend_a(a, w_arr, IC, isSolo = False):
+def solo_experiment_depend_a_tau(a, w_arr, IC, isSolo = False, tau = s.tau):
     # Integrate
     start_solve_time = time.time()
     print('Start solve time:', mem.hms_now())
     print('')
-    sol = solve_ivp(func_rossler_3_dim, [0, t_max], IC, args=(w_arr, a), 
+    sol = solve_ivp(func_rossler_3_dim, [0, t_max], IC, args=(w_arr, a, tau), 
                     rtol=1e-11, atol=1e-11, method=s.method)
     time_after_integrate = time.time()
     print('Integrate time:', time.time() - start_solve_time, 'time:', mem.hms_now())
@@ -114,19 +114,19 @@ def solo_experiment_depend_a(a, w_arr, IC, isSolo = False):
             'fig_omega': omega_fig}
     return synchronization_time, figs, [[xs, ys, zs, ts]]
 
-def experiments_series_depend_a(a, n_exps_in_one_cycle = 100, IC_fname = 'series_IC_500.txt'):
+def experiments_series_depend_a_tau(a, n_exps_in_one_cycle = 100, IC_fname = 'series_IC_500.txt', tau = 1):
     start_time = time.time()
     IC_arr = mem.read_series_IC(s.temporary_path + IC_fname)
     # w_arr = generate_w_arr(k_elements)
     w_arr = [0.957, 0.942, 0.939, 0.972, 1.024, 1.008, 1.059, 1.045, 0.976, 0.955, 1.058, 0.987, 
             1.044, 1.057, 0.968, 0.954, 0.976, 0.97, 1.042, 0.974, 0.985, 1.037, 0.992, 0.997, 0.952]
 
-    dir, figs_dir = mem.make_dir_for_series_experiments(w_arr, a, n_exps_in_one_cycle, IC_fname)
+    dir, figs_dir = mem.make_dir_for_series_experiments(w_arr, a, n_exps_in_one_cycle, IC_fname, {'a': a, "tau": tau})
 
     times_of_sync = []
     for exp in range(n_exps_in_one_cycle):
         print(f'Exp {exp + 1}. ', end='')
-        time_of_sync, figs, _ = solo_experiment_depend_a(a, w_arr, IC_arr[exp])
+        time_of_sync, figs, _ = solo_experiment_depend_a_tau(a, w_arr, IC_arr[exp], tau)
         times_of_sync.append(time_of_sync)
 
         for figname, fig in figs.items():
@@ -156,6 +156,6 @@ def experiments_series_depend_a(a, n_exps_in_one_cycle = 100, IC_fname = 'series
 
 # path = mem.generate_and_write_series_IC((5., 5., 1.), n_exps=500, k_elements=k_elements)
 IC_file_name = 'series_IC_500.txt'
-experiments_series_depend_a(0.16, 100, IC_file_name)
+experiments_series_depend_a_tau(0.16, 100, IC_file_name)
 s.a = 0.28
-experiments_series_depend_a(0.28, 100, IC_file_name)
+experiments_series_depend_a_tau(0.28, 100, IC_file_name)
