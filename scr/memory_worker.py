@@ -540,3 +540,13 @@ def read_series_IC(path):
         for j in range(_k_elements * k):
             IC_arr[i].append(float(line[j]))
     return IC_arr
+
+def read_times_series_experiments(path):
+    with open(path, 'r') as f:
+        f_data = f.readlines()
+    
+    res = []
+    for d in f_data:
+        line = d.split(' ')
+        res.append(float(line[1]))
+    return res

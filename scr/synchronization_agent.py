@@ -40,12 +40,12 @@ def find_synchronization_time(xs, ys, zs, ts, w_arr, a):
         for t in range(step, size, step):
             omega_new[agent].append(np.mean(omega[agent][t-step:t]))
 
-    fig = plt.figure(figsize=(35, 25))
+    fig = plt.figure(figsize=(60, 50))
     for agent in range(k_elements):
         plt.plot(ts[step::step], omega_new[agent])
     plt.grid()
-    plt.xlabel('t')
-    plt.ylabel('\u03A9')
+    plt.xlabel('t', fontsize=20)
+    plt.ylabel('\u03A9', fontsize=20)
 
     max_omega_diff = 0.25
     synchronization_time = -10
@@ -139,7 +139,7 @@ def experiments_series_depend_a(a, n_exps_in_one_cycle = 100, IC_fname = 'series
             print(f'{i+1} {times_of_sync[i]}',  file=f)
     
     plt.figure()
-    plt.hist(times_of_sync, 15)
+    plt.hist(times_of_sync, int(s.t_max/10.))
     plt.grid()
     plt.xlabel('Время синхронизации')
     plt.ylabel('Число синхронизаций')
@@ -156,4 +156,6 @@ def experiments_series_depend_a(a, n_exps_in_one_cycle = 100, IC_fname = 'series
 
 # path = mem.generate_and_write_series_IC((5., 5., 1.), n_exps=500, k_elements=k_elements)
 IC_file_name = 'series_IC_500.txt'
-experiments_series_depend_a(s.a, 100, IC_file_name)
+experiments_series_depend_a(0.16, 100, IC_file_name)
+s.a = 0.28
+experiments_series_depend_a(0.28, 100, IC_file_name)
