@@ -21,11 +21,11 @@ k_col = 5                   # Число агентов в одном столб
 stopping_border_radius = 20
 stopping_border_center = [0.0 ,0.0]
 
-small_animation = true
-full_animation = false
-need_save_last_state = false
-look_at_infinity = false
-stopping_borded_work = false
+small_animation = True
+full_animation = False
+need_save_last_state = False
+look_at_infinity = False
+stopping_borded_work = False
 
 plot_colors = [
     "blue",
