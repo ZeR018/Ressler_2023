@@ -1,4 +1,4 @@
-from config import settings as s
+import settings as s
 from random import uniform
 import colorama
 import memory_worker as mem

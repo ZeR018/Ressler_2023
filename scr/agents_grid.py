@@ -1,7 +1,7 @@
 from matplotlib import pyplot as plt
 from scipy.integrate import solve_ivp
 import time
-from config import settings as s
+import settings as s
 from random import sample
 
 from matplotlib.animation import ArtistAnimation

@@ -1,6 +1,6 @@
 import numpy as np
 from matplotlib import pyplot as plt
-from config import settings as s
+import settings as s
 import memory_worker as mem
 
 # # Пытаемся расположить графики
@@ -105,3 +105,4 @@ for i in range(len(times_paths)):
     plt.ylabel('Число синхронизаций')
     
     plt.savefig(f'{new_hists_dir}/hist_{a_dirs_values[i]}_{n_exp_dirs_values[i]}_{tau_dirs_values[i]}.png')
+    

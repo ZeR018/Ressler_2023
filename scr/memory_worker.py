@@ -1,6 +1,6 @@
 from datetime import datetime
 import os
-from config import settings as s
+import settings as s
 from matplotlib import pyplot as plt
 import numpy as np
 from random import uniform
