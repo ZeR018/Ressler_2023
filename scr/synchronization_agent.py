@@ -63,7 +63,8 @@ def find_synchronization_time(xs, ys, zs, ts, w_arr, a):
                 synchronization_time = ts[step*(t + 1)]
                 break
 
-
+    if synchronization_time == -10:
+        synchronization_time = 230
 
     return synchronization_time, fig
 
@@ -225,11 +226,21 @@ def experiments_series_depend_a_tau_parallel(a, n_exps_in_one_cycle = 100,
 
     times_of_sync = []
     
-    n_streams = 5
+    n_streams = 10
     for exp in range(0, n_exps_in_one_cycle, n_streams):
 
+        if tau == 1:
+            if exp < 100:
+                continue
+
         print(f'Experiments {exp + 1}-{exp+n_streams+1}. ')
-        existance = joblib.Parallel(n_jobs=n_streams)(joblib.delayed(solo_experiment_depend_a_tau_p)(a, w_arr, IC_arr, exp_num, False, tau, figs_dir) for exp_num in range(exp, exp + n_streams))
+
+        existance_next_steps = []
+        if exp + n_streams > n_exps_in_one_cycle:
+            existance_next_steps = range(exp, n_exps_in_one_cycle)
+        else:
+            existance_next_steps = range(exp, exp + n_streams)
+        existance = joblib.Parallel(n_jobs=n_streams)(joblib.delayed(solo_experiment_depend_a_tau_p)(a, w_arr, IC_arr, exp_num, False, tau, figs_dir) for exp_num in existance_next_steps)
 
         for ex_num, ex in enumerate(existance):
             time_of_sync = ex[0]
@@ -275,7 +286,7 @@ IC_file_name = 'series_IC_1000.txt'
 # s.a = 0.28
 # experiments_series_depend_a_tau_parallel(0.28, 100, IC_file_name, tau=10)
 
-tau_arr = [0.5, 1, 2]
+tau_arr = [1, 2]
 
 # t_max = s.t_max = 200
 s.a = 0.22
