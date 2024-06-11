@@ -48,7 +48,7 @@ def find_synchronization_time(xs, ys, zs, ts, w_arr, a):
     plt.ylabel('\u03A9', fontsize=20)
 
     max_omega_diff = 0.25
-    synchronization_time = -10
+    synchronization_time = 220
     for t in range(len(omega_new[0])):
         omega_t = [omega_agent[t] for omega_agent in omega_new]
         if max(omega_t) - min(omega_t) < max_omega_diff:
@@ -62,8 +62,6 @@ def find_synchronization_time(xs, ys, zs, ts, w_arr, a):
             if max(dist) < 1.5 * s.radius:
                 synchronization_time = ts[step*(t + 1)]
                 break
-
-
 
     return synchronization_time, fig
 
@@ -148,14 +146,17 @@ def experiments_series_depend_a_tau(a, n_exps_in_one_cycle = 100, IC_fname = 'se
     print('Final time: ', time.time() - start_time)
 
 # path = mem.generate_and_write_series_IC((5., 5., 1.), n_exps=500, k_elements=k_elements)
-# w_arr = generate_w_arr(k_elements)
-# IC_arr = mem.read_series_IC(s.temporary_path + 'series_IC_500.txt')
+w_arr = generate_w_arr(k_elements)
+IC_arr = mem.read_series_IC(s.temporary_path + 'series_IC_500.txt')
 # fig = solo_experiment_depend_a(s.a, w_arr, IC_arr[0], isSolo=True)
 # plt.show()
 
 
 # path = mem.generate_and_write_series_IC((5., 5., 1.), n_exps=500, k_elements=k_elements)
-IC_file_name = 'series_IC_500.txt'
-experiments_series_depend_a_tau(0.16, 100, IC_file_name)
-s.a = 0.28
-experiments_series_depend_a_tau(0.28, 100, IC_file_name)
+# IC_file_name = 'series_IC_500.txt'
+# experiments_series_depend_a_tau(0.16, 100, IC_file_name)
+# s.a = 0.28
+# experiments_series_depend_a_tau(0.28, 100, IC_file_name)
+
+for i in range(2):
+    solo_experiment_depend_a_tau(0.16, w_arr, IC_arr[i], isSolo=True)

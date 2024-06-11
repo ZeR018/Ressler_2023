@@ -21,9 +21,8 @@ def hms_now(type = '0'):
     if type == 'm':
         return datetime.now().minute
 
-
 # Сохраняет начальные условия и массив частот(w) в указанный файл
-def save_IC_and_w(IC, w, path, _k_elements = k_elements, _radius = s.radius, T = s.T):
+def save_IC_and_w(IC, w, path, _k_elements = k_elements, _radius = s.radius, T = s.T, a = s.a):
     with open(path, 'w') as f:
         print(_k_elements, file=f)
         k = s.k
@@ -31,6 +30,7 @@ def save_IC_and_w(IC, w, path, _k_elements = k_elements, _radius = s.radius, T =
             print(IC[i*k], IC[i*k+1], IC[i*k+2], file=f)
 
         print(w, file=f)
+        print('a: ', a, file=f)
         print('T:', T, file=f)
         print('k_col:', k_col, 'k_str:', k_str, file=f)
         print('r:', _radius, file=f)

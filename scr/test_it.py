@@ -50,58 +50,101 @@ import memory_worker as mem
 
 ########################################################## Чтение и изменение всех гистограмм в папке
 import os
+def change_all_hists_in_dir():
+    # рассматриваемая директория
+    directory = './data/grid_experiments/series_a_tau'
 
-# рассматриваемая директория
-directory = './data/grid_experiments/series_a_tau'
+    dirs_a = []             # подпапки основной директории
+    a_dirs_values = []      # в названии папок значения параметра а для эксперимента. массив для записи параметров а
+    n_exp_dirs_values = []  # в названии папок значения параметра n_exps для эксперимента. массив для записи параметров n_exps
 
-dirs_a = []             # подпапки основной директории
-a_dirs_values = []      # в названии папок значения параметра а для эксперимента. массив для записи параметров а
-n_exp_dirs_values = []  # в названии папок значения параметра n_exps для эксперимента. массив для записи параметров n_exps
+    # записывает все подпапки в директории
+    for dir_a in os.scandir(directory):
+        if dir_a.is_dir():
+            dirs_a.append(dir_a.path)
 
-# записывает все подпапки в директории
-for dir_a in os.scandir(directory):
-    if dir_a.is_dir():
-        dirs_a.append(dir_a.path)
+    tau_dirs_values = []    # второй уровень подпапок имеет значение tau. массив для сохраннения его значений
+    times_paths = []        # массив для всех найденных путей times
 
-tau_dirs_values = []    # второй уровень подпапок имеет значение tau. массив для сохраннения его значений
-times_paths = []        # массив для всех найденных путей times
+    for dir_a in dirs_a:
+        for dir_tau in os.scandir(dir_a):
+            # если на втором уровне директории только файлы (нет подпапок) (500 экспериментов)
+            if dir_tau.is_file():
+                if dir_tau.name == 'times.txt':
+                    tau_dirs_values.append(1)
+                    times_paths.append(dir_tau.path)
+                    a_dirs_values.append('a022')
+                    n_exp_dirs_values.append(dir_a.split('\\')[1])
 
-for dir_a in dirs_a:
-    for dir_tau in os.scandir(dir_a):
-        # если на втором уровне директории только файлы (нет подпапок) (500 экспериментов)
-        if dir_tau.is_file():
-            if dir_tau.name == 'times.txt':
-                tau_dirs_values.append(1)
-                times_paths.append(dir_tau.path)
-                a_dirs_values.append('a022')
-                n_exp_dirs_values.append(dir_a.split('\\')[1])
+            # если на втором уровне директории папки "tau"
+            if dir_tau.is_dir():
+                dir_a_name = dir_a.split('\\')[1]
+                for dir_last in os.scandir(dir_tau.path):
+                    if dir_last.is_file():
+                        if dir_last.name == 'times.txt':
+                            tau_dirs_values.append(dir_tau.name)
+                            times_paths.append(dir_last.path)
+                            a_dirs_values.append(dir_a_name.split(' ')[1])
+                            n_exp_dirs_values.append(dir_a.split('\\')[1].split(' ')[0])
+                            
+    new_hists_dir = directory + '/hists'
 
-        # если на втором уровне директории папки "tau"
-        if dir_tau.is_dir():
-            dir_a_name = dir_a.split('\\')[1]
-            for dir_last in os.scandir(dir_tau.path):
-                if dir_last.is_file():
-                    if dir_last.name == 'times.txt':
-                        tau_dirs_values.append(dir_tau.name)
-                        times_paths.append(dir_last.path)
-                        a_dirs_values.append(dir_a_name.split(' ')[1])
-                        n_exp_dirs_values.append(dir_a.split('\\')[1].split(' ')[0])
-                        
-new_hists_dir = directory + '/hists'
+    for i in range(len(times_paths)):
+        # print(times_paths[i], tau_dirs_values[i], a_dirs_values[i], n_exp_dirs_values[i])
+        times_of_sync = mem.read_times_series_experiments(times_paths[i])
+        for ti in range(len(times_of_sync)):
+            if times_of_sync[ti] == -10:
+                times_of_sync[ti] = 220
 
-for i in range(len(times_paths)):
-    # print(times_paths[i], tau_dirs_values[i], a_dirs_values[i], n_exp_dirs_values[i])
-    times_of_sync = mem.read_times_series_experiments(times_paths[i])
+        plt.figure()
+        h = np.append(np.arange(0, 210, 10), 250)
+        colors = ['#E69F00', '#56B4E9', '#F0E442', '#009E73', '#D55E00']
+        n, bins, patches = plt.hist(times_of_sync, h, edgecolor='darkblue')
+        plt.xlim(-10, 230)
+        plt.xlabel('Время синхронизации')
+        plt.ylabel('Число синхронизаций')
+        
+        plt.savefig(f'{new_hists_dir}/hist_{a_dirs_values[i]}_{n_exp_dirs_values[i]}_{tau_dirs_values[i]}.png')
+
+
+def change_time_220_in_file_end_compress():
+    path = './data/grid_experiments/series_a_tau/1000/1000 a022/1/times.txt'
+    times_of_sync = mem.read_times_series_experiments(path)
     for ti in range(len(times_of_sync)):
         if times_of_sync[ti] == -10:
             times_of_sync[ti] = 220
 
-    plt.figure()
-    h = np.append(np.arange(0, 210, 10), 250)
-    colors = ['#E69F00', '#56B4E9', '#F0E442', '#009E73', '#D55E00']
-    n, bins, patches = plt.hist(times_of_sync, h, edgecolor='black')
-    plt.xlim(-10, 230)
-    plt.xlabel('Время синхронизации')
-    plt.ylabel('Число синхронизаций')
-    
-    plt.savefig(f'{new_hists_dir}/hist_{a_dirs_values[i]}_{n_exp_dirs_values[i]}_{tau_dirs_values[i]}.png')
+    with open('./data/grid_experiments/series_a_tau/1000/1000 a022/1/times_compressed.txt', 'w') as f:
+        for ti in range(len(times_of_sync)):
+            print(times_of_sync[ti], file=f)
+
+
+from scipy.stats import gamma
+path = './data/grid_experiments/series_a_tau/1000/1000 a028/1'
+times_of_sync = mem.read_times_series_experiments(path + '/times.txt')
+for ti in range(len(times_of_sync)):
+    if times_of_sync[ti] == -10:
+        times_of_sync[ti] = 220
+plt.figure()
+h = np.append(np.arange(0, 210, 10), 250)
+colors = ['#E69F00', '#56B4E9', '#F0E442', '#009E73', '#D55E00']
+n, bins, patches = plt.hist(times_of_sync, h, edgecolor='darkblue')
+plt.xlim(-10, 230)
+plt.xlabel('Время синхронизации')
+plt.ylabel('Число синхронизаций')
+print(bins)
+plt.savefig(path + '/times_hist.png')
+plt.show()
+
+
+# График плотности распределения с параметрами из R (метод макс. правдоподобия)
+# shape, scale = 2.53477792, 0.03262352  # mean=4, std=2*sqrt(2)
+# s = np.random.gamma(shape, scale, 1000)
+# import matplotlib.pyplot as plt
+# import scipy.special as sps  
+# count, bins, ignored = plt.hist(s, 50, density=True)
+# y = bins**(shape-1)*(np.exp(-bins/scale) /  
+#                      (sps.gamma(shape)*scale**shape))
+# print(y)
+# plt.plot(bins, y, linewidth=2, color='r')  
+# plt.show()
