@@ -1,6 +1,6 @@
 from datetime import datetime
 import os
-from config import settings as s
+import settings as s
 from matplotlib import pyplot as plt
 import numpy as np
 from random import uniform
@@ -132,11 +132,15 @@ def save_data(integration_data, IC, w, figs_arr = [], fig_names_arr = [], delete
 
     return new_dir, data_dir
 
-def make_dir_for_series_experiments(w_arr, a, n_exps, IC_file_name, dop_names = {}):
+def make_dir_for_series_experiments(w_arr, a, n_exps, IC_file_name, dop_names = {}, mod = ''):
     date_without_year = str(datetime.now().date())[5:]
     time = hms_now().replace(':', '.')
 
-    new_dir = f'{s.grid_experiments_path + date_without_year} {time} s_{n_exps}'
+    if mod != '':
+        new_dir = f'{s.grid_experiments_path + date_without_year} {time} s_{n_exps}'
+    else:
+        new_dir = f'{s.grid_experiments_path + date_without_year} {time} s_{n_exps} {mod}'
+
     for k, v in dop_names.items():
         new_dir += f' {k}_{v}'
     os.mkdir(new_dir)
@@ -153,7 +157,11 @@ def make_dir_for_series_experiments(w_arr, a, n_exps, IC_file_name, dop_names = 
     figs_dir = new_dir + '/figs'
     os.mkdir(figs_dir)
 
-    return new_dir, figs_dir
+    times_dir = new_dir +'/times.txt'
+    with open(times_dir, 'w') as f:
+            print('',  file=f, end='')
+
+    return new_dir, figs_dir, times_dir
 
 def make_frames_grid_agents(xs_arr, ys_arr, plot_colors, _k_elements = k_elements, frames_step = 60, deleted_elems = []):
 

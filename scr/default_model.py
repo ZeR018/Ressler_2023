@@ -1,4 +1,4 @@
-from config import settings as s
+import settings as s
 from random import uniform
 import colorama
 import memory_worker as mem
@@ -96,7 +96,7 @@ def func_dz(index, r, _T, connect_f=default_f):
 
 
 def func_rossler_3_dim(t, r, w_arr_, a_, tau_ = tau):
-    print(f'\033[F\033[KCurrent integrate time: {round(t, 1)};', f'last update time: {mem.hms_now()}')
+    # print(f'\033[F\033[KCurrent integrate time: {round(t, 1)};', f'last update time: {mem.hms_now()}')
         
     global k_elements, w_arr, a
     w_arr = w_arr_

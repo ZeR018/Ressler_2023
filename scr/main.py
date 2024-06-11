@@ -1,7 +1,7 @@
 from matplotlib import pyplot as plt
 from scipy.integrate import solve_ivp
 import time
-from config import settings as s
+import settings as s
 from datetime import datetime
 from matplotlib.animation import ArtistAnimation
 from model import generate_w_arr, func_rossler_3_dim

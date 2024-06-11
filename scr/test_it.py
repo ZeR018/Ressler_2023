@@ -1,6 +1,6 @@
 import numpy as np
 from matplotlib import pyplot as plt
-from config import settings as s
+import settings as s
 import memory_worker as mem
 
 # # Пытаемся расположить графики
