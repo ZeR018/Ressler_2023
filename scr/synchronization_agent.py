@@ -51,7 +51,7 @@ def find_synchronization_time(xs, ys, zs, ts, w_arr, a):
     plt.ylabel('\u03A9', fontsize=20)
 
     max_omega_diff = 0.25
-    synchronization_time = 220
+    synchronization_time = -10
     for t in range(len(omega_new[0])):
         omega_t = [omega_agent[t] for omega_agent in omega_new]
         if max(omega_t) - min(omega_t) < max_omega_diff:
@@ -67,7 +67,7 @@ def find_synchronization_time(xs, ys, zs, ts, w_arr, a):
                 break
 
     if synchronization_time == -10:
-        synchronization_time = 230
+        synchronization_time = 530
 
     return synchronization_time, fig
 
@@ -290,10 +290,10 @@ def exp_series_dep_a_tau_p_2dim(a, n_exps_in_one_cycle = 100,
                 print(f'{exp+ex_num} {times_of_sync[-1]}',  file=f)
     
     # Рисуем итоговую гистограмму
-    plt.figure()
-    h = np.append(np.arange(0, 210, 10), 250)
+    plt.figure(figsize=[25, 15])
+    h = np.append(np.arange(0, 510, 20), 550)
     plt.hist(times_of_sync, h, edgecolor='darkblue')
-    plt.xlim(-10, 230)
+    plt.xlim(-10, 530)
     plt.xlabel('Время синхронизации')
     plt.ylabel('Число синхронизаций')
     plt.savefig(dir + '/times_hist.png')
