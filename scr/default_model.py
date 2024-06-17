@@ -2,6 +2,7 @@ import settings as s
 from random import uniform
 import colorama
 import memory_worker as mem
+import numpy as np
 
 colorama.init()
 
@@ -15,20 +16,18 @@ t_max = s.t_max             # Время интегрирования
 
 k_str = s.k_str             # Число агентов в одной строке
 k_col = s.k_col             # Число агентов в одном столбце
-k_elements = k_str * k_col  # Число агентов 
-k = s.k                       # Число уравнений для одного агента (всегда 3)
+k_elements = 0              # Число агентов 
+k = s.k                     # Число уравнений для одного агента (всегда 3)
 T = s.T
 radius = s.radius
 tau = s.tau
 
-####################################################### Params ##################################################################
+if s.exps_type == 'grid':
+    k_elements = k_str * k_col
+else:
+    k_elements = s.k_elements
 
-# Создаем массив частот(w) для всех агентов
-def generate_w_arr(k_elements, _range=[0.93, 1.07]):
-    w_arr = []
-    for i in range(k_elements):
-        w_arr.append(round(uniform(_range[0], _range[1]), 3))
-    return w_arr
+####################################################### Grid functions ##################################################################
 
 # Стандартная (если связи по какой-то переменной нет)
 def default_f(index, r, T_):
@@ -117,3 +116,97 @@ def func_rossler_3_dim(t, r, w_arr_, a_, tau_ = tau):
         res_arr.append(dz)
 
     return res_arr
+
+####################################################### Posledovatelnoye ##################################################################
+
+# Функция включения связи между двумя агентами
+def d(_T, _radius, x_i, x_j, y_i, y_j):
+    if (x_i - x_j)**2 + (y_i - y_j)**2 < _radius**2:
+        return _T
+    else:
+        return 0
+
+# Функция связи по x. Параллельное движение цепочки агентов
+def func_connect_x(index, r, _T):
+    summ1, summ2 = 0, 0
+    for j in range(k_elements):   
+        if j != index:
+            summ1 += d(_T, radius, r[j*k], r[index*k], r[j*k+1], r[index*k+1]) * (r[j*k] - r[index*k])
+            summ2 += d(_T, radius, r[j*k], r[index*k], r[j*k+1], r[index*k+1]) / (r[index*k] - r[j*k])
+            
+    return summ1 + summ2
+
+# Функция связи по y. Последовательное движение цепочки агентов
+def func_connect_y(index, r, _T):
+    summ = 0
+    for i in range(k_elements):
+        summ += d(_T, radius, r[i*k], r[index*k], r[i*k+1], r[index*k+1]) * (r[i*k + 1] - r[index*k + 1])
+    return summ
+
+def func_rossler_2_dim(t, r, w_arr_, a_, tau_ = tau):
+    global k_elements, w_arr, a
+    w_arr = w_arr_
+    a = a_
+    res_arr = []
+
+    for i in range(k_elements):
+        # x_i = r[i*k]
+        # y_i = r[i*k + 1]
+        # z_i = r[i*k + 2]
+
+        dx = tau_ * func_dx(i, r, default_f, T, w_arr)
+        dy = tau_ * func_dy(i, r, func_connect_y, T, w_arr)
+        dz = tau_ * func_dz(i, r, T)
+
+        res_arr.append(dx)
+        res_arr.append(dy)
+        res_arr.append(dz)
+
+    return res_arr
+
+####################################################### events ##################################################################
+
+phi = [[] for i in range(k_elements)]
+omega = [[] for i in range(k_elements)]
+step = 300
+def synchronization_event(t, r, w_arr_, a_, tau_):
+    max_omega_diff = 0.25
+
+    omega_range_last = []
+    for agent in range(k_elements):
+        x = r[agent*k]
+        y = r[agent*k + 1]
+        z = r[agent*k + 2]
+        w = w_arr[agent]
+        phi_i = np.arctan(( w * x + a * y) / (- w * y - z))
+        phi[agent].append(phi_i)
+        
+        omega_i_dyddx = - (w*x + a*y) * (-w**2*x-w*a*y-b-z*(x-c))
+        omega_i_ddydx = (-w*y-z) * (-w**2*y-w*z+a*w*x+a**2*y)
+
+        omega_i_zn = (w*y+z)**2 + (w*x + a*y)**2
+        omega[agent].append((omega_i_ddydx + omega_i_dyddx)/omega_i_zn)
+
+        if len(omega) > step:
+            omega_range_last.append(np.mean(omega[agent][-step]))
+        else:
+            return -1
+        
+        # Проверить, что расстояние между всеми агентами меньше 1.5r
+        x0 = r[0]
+        y0 = r[1]
+        z0 = r[2]
+        dist = (np.sqrt((x - x0)**2+ \
+                (y - y0)**2 + (z - z0)**2))
+        if dist > 1.5 * s.radius:
+            return -1
+    
+    if max(omega_range_last) - min(omega_range_last) > max_omega_diff:
+        return -1
+    
+    print("sync!!!!", t[-1])
+    return 1
+        
+
+
+    

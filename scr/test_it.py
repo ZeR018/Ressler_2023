@@ -108,19 +108,20 @@ def change_all_hists_in_dir():
 
 
 def change_time_220_in_file_end_compress():
-    path = './data/grid_experiments/series_a_tau/1000/1000 a022/1/times.txt'
+    path = './data/grid_experiments/series_a_tau/1000/1000 a022/2/times.txt'
     times_of_sync = mem.read_times_series_experiments(path)
     for ti in range(len(times_of_sync)):
         if times_of_sync[ti] == -10:
             times_of_sync[ti] = 220
 
-    with open('./data/grid_experiments/series_a_tau/1000/1000 a022/1/times_compressed.txt', 'w') as f:
+    with open('./data/grid_experiments/series_a_tau/1000/1000 a022/2/times_compressed.txt', 'w') as f:
         for ti in range(len(times_of_sync)):
             print(times_of_sync[ti], file=f)
 
+change_time_220_in_file_end_compress()
 
 from scipy.stats import gamma
-path = './data/grid_experiments/series_a_tau/1000/1000 a028/1'
+path = './data/grid_experiments/series_a_tau/1000/1000 a022/10'
 times_of_sync = mem.read_times_series_experiments(path + '/times.txt')
 for ti in range(len(times_of_sync)):
     if times_of_sync[ti] == -10:
@@ -132,7 +133,6 @@ n, bins, patches = plt.hist(times_of_sync, h, edgecolor='darkblue')
 plt.xlim(-10, 230)
 plt.xlabel('Время синхронизации')
 plt.ylabel('Число синхронизаций')
-print(bins)
 plt.savefig(path + '/times_hist.png')
 plt.show()
 

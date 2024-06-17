@@ -12,6 +12,13 @@ k_col = s.k_col             # Число агентов в одном столб
 k_elements = k_str * k_col  # Число агентов 
 
 
+# Создаем массив частот(w) для всех агентов
+def generate_w_arr(k_elements, _range=[0.93, 1.07]):
+    w_arr = []
+    for i in range(k_elements):
+        w_arr.append(round(uniform(_range[0], _range[1]), 3))
+    return w_arr
+
 # Возвращает время с точностью до секунды
 def hms_now(type = '0'):
     if type == '0':
@@ -241,10 +248,10 @@ def draw_and_save_graphics_many_agents(xs_arr, ys_arr, ts_arr, path_save_graphs,
         for agent in range(_k_elements):
 
             if(i < 101):
-                plt.plot(xs_arr[agent][:i], ys_arr[agent][:i], color=plot_colors[agent])
+                plt.plot(xs_arr[agent][:i+1], ys_arr[agent][:i+1], color=plot_colors[agent])
                 plt.scatter(xs_arr[agent][i], ys_arr[agent][i], color=plot_colors[agent])
             else:
-                plt.plot(xs_arr[agent][i-100:i], ys_arr[agent][i-100:i], color=plot_colors[agent])
+                plt.plot(xs_arr[agent][i-100:i+1], ys_arr[agent][i-100:i+1], color=plot_colors[agent])
                 plt.scatter(xs_arr[agent][i], ys_arr[agent][i], color=plot_colors[agent])
 
         if mashtab != []:
@@ -259,7 +266,7 @@ def draw_and_save_graphics_many_agents(xs_arr, ys_arr, ts_arr, path_save_graphs,
             if(i < 50):
                 plt.plot(xs_managing_agent_arr[:i], ys_managing_agent_arr[:i], label=managing_agent_name, color=managing_agent_color)
             else:
-                plt.plot(xs_managing_agent_arr[i-100:i], ys_managing_agent_arr[i-100:i], label=managing_agent_name, color=managing_agent_color)
+                plt.plot(xs_managing_agent_arr[i-100:i+1], ys_managing_agent_arr[i-100:i+1], label=managing_agent_name, color=managing_agent_color)
             plt.scatter(xs_managing_agent_arr[i], ys_managing_agent_arr[i], color=managing_agent_color)
             plt.legend()
 
@@ -520,18 +527,30 @@ def generate_random_IC_ressler(x_max, y_max, z_max, k_elems=k_elements, x_min=''
     return res_IC_arr
 
 def generate_and_write_series_IC(generator_params: tuple, n_exps = 100, 
-                                 k_elements = k_elements, path = s.temporary_path, file_name = ' '):
+                                 k_elements = k_elements, path = s.temporary_path, file_name = ' ', w_arr = []):
     gp = generator_params
+
+    if w_arr == []:
+        w_arr = generate_w_arr(k_elements)
+
     if file_name == ' ':
-        file_name = f'series_IC_{n_exps}.txt'
+        file_name = f'series_IC_{n_exps}_{k_elements}.txt'
     full_path = path + file_name
+
     with open(full_path, 'w') as f:
+        # Generate and save IC for any exp
         for i in range(n_exps):
             IC = generate_random_IC_ressler(gp[0], gp[1], gp[2], k_elements)
             for c in IC:
                 print(f'{c} ', file=f, end='')
             print('', file=f)
         
+        # Save w_arr
+        for w in w_arr:
+            print(f'{w} ', file=f, end='')
+        print('', file=f)
+
+        # Save params
         print(k_elements, file=f)
         print(n_exps, file=f)
     return full_path
@@ -541,6 +560,9 @@ def read_series_IC(path):
     with open(path, 'r') as f:
         f_data = f.readlines()
 
+    w_str = f_data[-3].split(' ')[:-1]
+    w_arr = [float(i) for i in w_str]
+
     _k_elements = int(f_data[-2])
     n_exps = int(f_data[-1])
         
@@ -549,7 +571,7 @@ def read_series_IC(path):
         line = f_data[i].split()
         for j in range(_k_elements * k):
             IC_arr[i].append(float(line[j]))
-    return IC_arr
+    return IC_arr, w_arr
 
 def read_times_series_experiments(path):
     with open(path, 'r') as f:

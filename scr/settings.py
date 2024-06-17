@@ -3,23 +3,27 @@ a = 0.22        # Параметры
 b = 0.1         # системы
 c = 8.5         #
 
-k_elements = 5  # Число агентов
+exps_type = 'posl' # 'posl'/'parall'/'grid' 
+k_elements = 10  # Число агентов (не для 'grid')
 k = 3           # Число уравнений для одного агента (всегда 3)
 
-radius = 4      # Радиус связи
+radius = 3      # Радиус связи
 min_radius = 0.00
-T = 0.3         # Сила связи
+T = 0.2         # Сила связи
 tau = 1
 
 # method = 'DOP853'
 # method = 'LSODA'
 method = 'RK45'
-t_max = 50
+t_max = 500
 k_str = 5                   # Число агентов в одной строке
 k_col = 5                   # Число агентов в одном столбце
 
 stopping_border_radius = 20
 stopping_border_center = [0.0 ,0.0]
+
+toch = [1e-11, 1e-11]
+n_streams = 10
 
 small_animation = True
 full_animation = False
