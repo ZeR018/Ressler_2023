@@ -251,14 +251,14 @@ def exp_series_dep_a_tau_p_2dim(a, n_exps_in_one_cycle = 100,
     # Если tau большое, для экономии времени уменьшаем время интегрирования
     global t_max
     if tau >= 5 and (a == 0.22 or a == 0.28):
-        s.t_max = 100
-        t_max = 100
+        s.t_max = 400
+        t_max = 400
         if tau >= 10:
-            s.t_max = 50
-            t_max = 50
+            s.t_max = 350
+            t_max = 350
     else:
-        t_max = 200
-        s.t_max = 200
+        t_max = 500
+        s.t_max = 500
     
     dir, figs_dir, times_dir = mem.make_dir_for_series_experiments(w_arr, a, 
                                     n_exps_in_one_cycle, IC_fname, {'a': a, "tau": tau})
