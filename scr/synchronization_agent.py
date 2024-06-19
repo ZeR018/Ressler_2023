@@ -69,7 +69,16 @@ def find_synchronization_time(xs, ys, zs, ts, w_arr, a):
     if synchronization_time == -10:
         synchronization_time = 530
 
-    return synchronization_time, fig
+    # Проверка на синхронность в последний момент 
+    dist_last = []
+    sync_last_time = True
+    for agent in range(1, k_elements):
+        dist_last.append(np.sqrt((xs[agent][-1] - xs[0][-1])**2+ \
+                (ys[agent][-1] - ys[0][-1])**2))
+    if max(dist_last) > 1.3 * s.radius:
+        sync_last_time = False
+
+    return synchronization_time, sync_last_time, fig
 
 def solo_experiment_depend_a_tau_p(a, w_arr, IC_arr, index = 0, isSolo = False, tau = s.tau, path_save = './data/temp/'):
     IC = IC_arr[index]
@@ -222,14 +231,15 @@ def solo_experiment_depend_a_tau_p_2dim(a, w_arr, IC_arr, index = 0, isSolo = Fa
     ax_last.set_xlabel('x')
     ax_last.set_ylabel('y')
 
+    # Функция, которая считает время синхронизации
+    synchronization_time, sync_last_time, omega_fig = find_synchronization_time(xs, ys, zs, ts, w_arr, a)
+
     # Сохранить все данные интегрирования, если соло эксперимент
     if isSolo:
         path_save, path_save_graphs = mem.save_data([xs, ys, zs, ts], IC, w_arr, [fig_last], ['fig_last_state'], k_elements=k_elements)
         plt.close()
         mem.draw_and_save_graphics_many_agents(xs, ys, ts, path_save_graphs, plot_colors, k_elements, 100)
-
-    # Функция, которая считает время синхронизации
-    synchronization_time, omega_fig = find_synchronization_time(xs, ys, zs, ts, w_arr, a)
+        print('Non sync last time')
 
     # Сохраняем графики
     omega_fig.savefig(path_save + '/fig_omega' + str(index) +'.png')
@@ -237,7 +247,7 @@ def solo_experiment_depend_a_tau_p_2dim(a, w_arr, IC_arr, index = 0, isSolo = Fa
     fig_last.savefig(path_save + '/fig_last_state' + str(index) +'.png')
     plt.close(fig_last)
 
-    return synchronization_time, [[xs, ys, zs, ts]]
+    return synchronization_time, sync_last_time, [[xs, ys, zs, ts]]
 
 def exp_series_dep_a_tau_p_2dim(a, n_exps_in_one_cycle = 100, 
                                              IC_fname = 'series_IC_1000_10.txt', 
@@ -282,12 +292,17 @@ def exp_series_dep_a_tau_p_2dim(a, n_exps_in_one_cycle = 100,
         # Достаем данные, полученные из каждого потока
         for ex_num, ex in enumerate(existance):
             time_of_sync = ex[0]
+            sync_last_time = ex[1]
         
             times_of_sync.append(time_of_sync)
 
             # Запись итоговых времен (times_of_sync) в файл times.txt
             with open(times_dir, 'a') as f:
-                print(f'{exp+ex_num} {times_of_sync[-1]}',  file=f)
+                print(f'{exp+ex_num} {times_of_sync[-1]}',  file=f, end='')
+                if not sync_last_time:
+                    print(f'\tnsl', file = f)
+                else:
+                    print('', file = f)
     
     # Рисуем итоговую гистограмму
     plt.figure(figsize=[25, 15])
@@ -307,14 +322,14 @@ def exp_series_dep_a_tau_p_2dim(a, n_exps_in_one_cycle = 100,
 
 # path = mem.generate_and_write_series_IC((5., 5., 1.), n_exps=1000, k_elements=k_elements)
 # Solo experiment
-IC_arr, w_arr = mem.read_series_IC(s.temporary_path + 'series_IC_1000_10.txt')
-for i in range(1, 100):
-    synchronization_time, _ = solo_experiment_depend_a_tau_p_2dim(s.a, w_arr, IC_arr, index=i, isSolo=True)
-    print(i, 'Sync time:', synchronization_time)
+# IC_arr, w_arr = mem.read_series_IC(s.temporary_path + 'series_IC_1000_10.txt')
+# for i in range(1, 100):
+#     synchronization_time, _, fig = solo_experiment_depend_a_tau_p_2dim(s.a, w_arr, IC_arr, index=i, isSolo=True)
+#     print(i, 'Sync time:', synchronization_time)
 
 # Parallel series
-# tau_arr = [0.1, 0.5, 1, 2, 5, 10]
-# IC_file_name = 'series_IC_1000_10.txt'
-# s.a = 0.22
-# for tau in tau_arr:
-#     exp_series_dep_a_tau_p_2dim(0.22, 1000, IC_file_name, tau=tau)
+tau_arr = [0.1, 0.5, 1, 2, 5, 10]
+IC_file_name = 'series_IC_1000_10.txt'
+s.a = 0.22
+for tau in tau_arr:
+    exp_series_dep_a_tau_p_2dim(0.22, 1000, IC_file_name, tau=tau)
