@@ -306,16 +306,15 @@ def exp_series_dep_a_tau_p_2dim(a, n_exps_in_one_cycle = 100,
         print('')
 
 # path = mem.generate_and_write_series_IC((5., 5., 1.), n_exps=1000, k_elements=k_elements)
-# IC_arr, w_arr = mem.read_series_IC(s.temporary_path + 'series_IC_1000_10.txt')
 # Solo experiment
-# w_arr = mem.generate_w_arr(k_elements)
-# for i in range(50, 100):
-#     synchronization_time, _ = solo_experiment_depend_a_tau_p_2dim(s.a, w_arr, IC_arr, index=i, isSolo=True)
-#     print(i, 'Sync time:', synchronization_time)
+IC_arr, w_arr = mem.read_series_IC(s.temporary_path + 'series_IC_1000_10.txt')
+for i in range(1, 100):
+    synchronization_time, _ = solo_experiment_depend_a_tau_p_2dim(s.a, w_arr, IC_arr, index=i, isSolo=True)
+    print(i, 'Sync time:', synchronization_time)
 
 # Parallel series
-tau_arr = [0.1, 0.5, 1, 2, 5, 10]
-IC_file_name = 'series_IC_1000_10.txt'
-s.a = 0.22
-for tau in tau_arr:
-    exp_series_dep_a_tau_p_2dim(0.22, 1000, IC_file_name, tau=tau)
+# tau_arr = [0.1, 0.5, 1, 2, 5, 10]
+# IC_file_name = 'series_IC_1000_10.txt'
+# s.a = 0.22
+# for tau in tau_arr:
+#     exp_series_dep_a_tau_p_2dim(0.22, 1000, IC_file_name, tau=tau)

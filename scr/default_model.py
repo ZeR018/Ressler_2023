@@ -80,18 +80,18 @@ def d_3dim(_T, _radius, x_i, x_j, y_i, y_j, z_i, z_j):
 
 # Функции правой части
 # По x
-def func_dx(index, r, connect_f=default_f, _T=s.T, w_arr = w_arr):
-    return - w_arr[index] * r[index*k + 1] - r[index*k + 2] + connect_f(index, r, _T)
+def func_dx(i, r, connect_f=default_f, _T=s.T, w_arr = w_arr):
+    return - w_arr[i] * r[i*k + 1] - r[i*k + 2] + connect_f(i, r, _T)
 
 
 # По y.
-def func_dy(index, r, connect_f=default_f, _T=s.T, w_arr = w_arr):
-    return w_arr[index] * r[index*k] + a * r[index*k + 1] + connect_f(index, r, _T)
+def func_dy(i, r, connect_f=default_f, _T=s.T, w_arr = w_arr):
+    return w_arr[i] * r[i*k] + a * r[i*k + 1] + connect_f(i, r, _T)
 
 
 # По z
-def func_dz(index, r, _T, connect_f=default_f):
-    return b + r[index*k + 2] * (r[index*k] - c) + connect_f(index, r, _T)
+def func_dz(i, r, _T, connect_f=default_f):
+    return b + r[i*k + 2] * (r[i*k] - c) + connect_f(i, r, _T)
 
 
 def func_rossler_3_dim(t, r, w_arr_, a_, tau_ = tau):
@@ -127,20 +127,21 @@ def d(_T, _radius, x_i, x_j, y_i, y_j):
         return 0
 
 # Функция связи по x. Параллельное движение цепочки агентов
-def func_connect_x(index, r, _T):
+def func_connect_x(i, r, _T):
     summ1, summ2 = 0, 0
     for j in range(k_elements):   
-        if j != index:
-            summ1 += d(_T, radius, r[j*k], r[index*k], r[j*k+1], r[index*k+1]) * (r[j*k] - r[index*k])
-            summ2 += d(_T, radius, r[j*k], r[index*k], r[j*k+1], r[index*k+1]) / (r[index*k] - r[j*k])
+        if j != i:
+            summ1 += d(_T, radius, r[j*k], r[i*k], r[j*k+1], r[i*k+1]) * (r[j*k] - r[i*k])
+            summ2 += d(_T, radius, r[j*k], r[i*k], r[j*k+1], r[i*k+1]) / (r[i*k] - r[j*k])
             
     return summ1 + summ2
 
 # Функция связи по y. Последовательное движение цепочки агентов
-def func_connect_y(index, r, _T):
+def func_connect_y(i, r, _T):
     summ = 0
-    for i in range(k_elements):
-        summ += d(_T, radius, r[i*k], r[index*k], r[i*k+1], r[index*k+1]) * (r[i*k + 1] - r[index*k + 1])
+    for j in range(k_elements):
+        if j != i:
+            summ += d(_T, radius, r[j*k], r[i*k], r[j*k+1], r[i*k+1]) * (r[j*k + 1] - r[i*k + 1])
     return summ
 
 def func_rossler_2_dim(t, r, w_arr_, a_, tau_ = tau):
