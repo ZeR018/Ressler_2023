@@ -52,7 +52,7 @@ import memory_worker as mem
 import os
 def change_all_hists_in_dir():
     # рассматриваемая директория
-    directory = './data/grid_experiments/series_a_tau'
+    directory = './data/grid_experiments/series_a_tau/simple'
 
     dirs_a = []             # подпапки основной директории
     a_dirs_values = []      # в названии папок значения параметра а для эксперимента. массив для записи параметров а
@@ -88,23 +88,27 @@ def change_all_hists_in_dir():
                             n_exp_dirs_values.append(dir_a.split('\\')[1].split(' ')[0])
                             
     new_hists_dir = directory + '/hists'
+    try:
+        os.mkdir(new_hists_dir)
+    except Exception as e:
+        print('Hists dir is already exists')
 
     for i in range(len(times_paths)):
         # print(times_paths[i], tau_dirs_values[i], a_dirs_values[i], n_exp_dirs_values[i])
-        times_of_sync = mem.read_times_series_experiments(times_paths[i])
+        times_of_sync = mem.read_times_series_experiments_looking_nsl(times_paths[i])
         for ti in range(len(times_of_sync)):
             if times_of_sync[ti] == -10:
-                times_of_sync[ti] = 220
+                times_of_sync[ti] = 520
 
         plt.figure()
-        h = np.append(np.arange(0, 210, 10), 250)
+        h = np.append(np.arange(0, 510, 20), 550)
         colors = ['#E69F00', '#56B4E9', '#F0E442', '#009E73', '#D55E00']
         n, bins, patches = plt.hist(times_of_sync, h, edgecolor='darkblue')
-        plt.xlim(-10, 230)
+        plt.xlim(-10, 530)
         plt.xlabel('Время синхронизации')
         plt.ylabel('Число синхронизаций')
         
-        plt.savefig(f'{new_hists_dir}/hist_{a_dirs_values[i]}_{n_exp_dirs_values[i]}_{tau_dirs_values[i]}.png')
+        plt.savefig(f'{new_hists_dir}/hist_{a_dirs_values[i]}_{tau_dirs_values[i]}_{n_exp_dirs_values[i]}.png')
 
 
 def change_time_220_in_file_end_compress():
@@ -118,23 +122,26 @@ def change_time_220_in_file_end_compress():
         for ti in range(len(times_of_sync)):
             print(times_of_sync[ti], file=f)
 
-change_time_220_in_file_end_compress()
 
-from scipy.stats import gamma
-path = './data/grid_experiments/series_a_tau/1000/1000 a022/10'
-times_of_sync = mem.read_times_series_experiments(path + '/times.txt')
-for ti in range(len(times_of_sync)):
-    if times_of_sync[ti] == -10:
-        times_of_sync[ti] = 220
-plt.figure()
-h = np.append(np.arange(0, 210, 10), 250)
-colors = ['#E69F00', '#56B4E9', '#F0E442', '#009E73', '#D55E00']
-n, bins, patches = plt.hist(times_of_sync, h, edgecolor='darkblue')
-plt.xlim(-10, 230)
-plt.xlabel('Время синхронизации')
-plt.ylabel('Число синхронизаций')
-plt.savefig(path + '/times_hist.png')
-plt.show()
+change_all_hists_in_dir()
+
+# change_time_220_in_file_end_compress()
+
+# from scipy.stats import gamma
+# path = './data/grid_experiments/series_a_tau/1000/1000 a022/10'
+# times_of_sync = mem.read_times_series_experiments(path + '/times.txt')
+# for ti in range(len(times_of_sync)):
+#     if times_of_sync[ti] == -10:
+#         times_of_sync[ti] = 220
+# plt.figure()
+# h = np.append(np.arange(0, 210, 10), 250)
+# colors = ['#E69F00', '#56B4E9', '#F0E442', '#009E73', '#D55E00']
+# n, bins, patches = plt.hist(times_of_sync, h, edgecolor='darkblue')
+# plt.xlim(-10, 230)
+# plt.xlabel('Время синхронизации')
+# plt.ylabel('Число синхронизаций')
+# plt.savefig(path + '/times_hist.png')
+# plt.show()
 
 
 # График плотности распределения с параметрами из R (метод макс. правдоподобия)

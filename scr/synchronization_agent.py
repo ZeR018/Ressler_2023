@@ -62,7 +62,7 @@ def find_synchronization_time(xs, ys, zs, ts, w_arr, a):
                         (ys[agent][step*t] - ys[0][step*t])**2 + \
                         (zs[agent][step*t] - zs[0][step*t])**2))
             
-            if max(dist) < 1.3 * s.radius:
+            if max(dist) < 2.0 * s.radius:
                 synchronization_time = ts[step*(t + 1)]
                 break
 
@@ -239,7 +239,8 @@ def solo_experiment_depend_a_tau_p_2dim(a, w_arr, IC_arr, index = 0, isSolo = Fa
         path_save, path_save_graphs = mem.save_data([xs, ys, zs, ts], IC, w_arr, [fig_last], ['fig_last_state'], k_elements=k_elements)
         plt.close()
         mem.draw_and_save_graphics_many_agents(xs, ys, ts, path_save_graphs, plot_colors, k_elements, 100)
-        print('Non sync last time')
+        if not sync_last_time:
+            print('Non sync last time')
 
     # Сохраняем графики
     omega_fig.savefig(path_save + '/fig_omega' + str(index) +'.png')
@@ -323,12 +324,13 @@ def exp_series_dep_a_tau_p_2dim(a, n_exps_in_one_cycle = 100,
 # path = mem.generate_and_write_series_IC((5., 5., 1.), n_exps=1000, k_elements=k_elements)
 # Solo experiment
 # IC_arr, w_arr = mem.read_series_IC(s.temporary_path + 'series_IC_1000_10.txt')
-# for i in range(1, 100):
+# for i in range(0, 100):
+#     print('Exp', i)
 #     synchronization_time, _, fig = solo_experiment_depend_a_tau_p_2dim(s.a, w_arr, IC_arr, index=i, isSolo=True)
-#     print(i, 'Sync time:', synchronization_time)
+#     print('Sync time:', synchronization_time)
 
 # Parallel series
-tau_arr = [0.1, 0.5, 1, 2, 5, 10]
+tau_arr = [1, 2, 5, 10]
 IC_file_name = 'series_IC_1000_10.txt'
 s.a = 0.22
 for tau in tau_arr:

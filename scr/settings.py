@@ -7,7 +7,7 @@ exps_type = 'posl' # 'posl'/'parall'/'grid'
 k_elements = 10  # Число агентов (не для 'grid')
 k = 3           # Число уравнений для одного агента (всегда 3)
 
-radius = 3      # Радиус связи
+radius = 4.      # Радиус связи
 min_radius = 0.00
 T = 0.3         # Сила связи
 tau = 1
@@ -23,7 +23,7 @@ stopping_border_radius = 20
 stopping_border_center = [0.0 ,0.0]
 
 toch = [1e-11, 1e-11]
-n_streams = 10
+n_streams = 20
 
 small_animation = True
 full_animation = False

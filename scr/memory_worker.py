@@ -579,6 +579,32 @@ def read_times_series_experiments(path):
     
     res = []
     for d in f_data:
-        line = d.split(' ')
-        res.append(float(line[1]))
+        line = d.split(' ')             # Line делится на номер и остальное
+        index = int(line[0])
+        
+        line = line[1].split('\t')      # остальная часть линии делится на value и nls(not synchronizated last time) при наличии
+        value = float(line[0])
+        
+        if not len(line) == 1:          # если у нас есть nsl, надо его обработать (пока не обрабатываем)
+            nsl = line[1][:-1]
+
+        res.append(value)
+    return res
+
+def read_times_series_experiments_looking_nsl(path, new_value_for_nsl = 550):
+    with open(path, 'r') as f:
+        f_data = f.readlines()
+    
+    res = []
+    for d in f_data:
+        line = d.split(' ')             # Line делится на номер и остальное
+        index = int(line[0])
+        
+        line = line[1].split('\t')      # остальная часть линии делится на value и nls(not synchronizated last time) при наличии
+        value = float(line[0])
+        
+        if not len(line) == 1:          # если у нас есть nsl, надо его обработать (пока не обрабатываем)
+            nsl = line[1][:-1]
+            # value = new_value_for_nsl
+        res.append(value)
     return res
