@@ -23,7 +23,7 @@ stopping_border_radius = 20
 stopping_border_center = [0.0 ,0.0]
 
 toch = [1e-11, 1e-11]
-n_streams = 20
+n_streams = 10
 
 small_animation = True
 full_animation = False

@@ -366,24 +366,24 @@ def exp_series_dep_a_tau_p_2dim(a, n_exps_in_one_cycle = 100,
 #path = mem.generate_and_write_series_IC((5., 5., 1.), n_exps=1000, k_elements=k_elements)
 
 #Solo experiment
-IC_arr, w_arr = mem.read_series_IC(s.temporary_path + 'series_IC_1000_10(1).txt')
-for i in range(3, 100):
-    print('Exp', i, '---------------------------------------------')
-    s.a = 0.28
-    synchronization_time, _, fig = solo_experiment_depend_a_tau_p_2dim(s.a, w_arr, IC_arr, index=i, isSolo=True)
-    print(' ', 'Sync time:', synchronization_time, f'a = {s.a}')
+# IC_arr, w_arr = mem.read_series_IC(s.temporary_path + 'series_IC_1000_10(1).txt')
+# for i in range(3, 100):
+#     print('Exp', i, '---------------------------------------------')
+#     s.a = 0.28
+#     synchronization_time, _, fig = solo_experiment_depend_a_tau_p_2dim(s.a, w_arr, IC_arr, index=i, isSolo=True)
+#     print(' ', 'Sync time:', synchronization_time, f'a = {s.a}')
 
-    s.a = 0.22
-    synchronization_time, _, fig = solo_experiment_depend_a_tau_p_2dim(s.a, w_arr, IC_arr, index=i, isSolo=True)
-    print(' ', 'Sync time:', synchronization_time, f'a = {s.a}')
+#     s.a = 0.22
+#     synchronization_time, _, fig = solo_experiment_depend_a_tau_p_2dim(s.a, w_arr, IC_arr, index=i, isSolo=True)
+#     print(' ', 'Sync time:', synchronization_time, f'a = {s.a}')
 
-    s.a = 0.16
-    synchronization_time, _, fig = solo_experiment_depend_a_tau_p_2dim(s.a, w_arr, IC_arr, index=i, isSolo=True)
-    print(' ', 'Sync time:', synchronization_time, f'a = {s.a}')
+#     s.a = 0.16
+#     synchronization_time, _, fig = solo_experiment_depend_a_tau_p_2dim(s.a, w_arr, IC_arr, index=i, isSolo=True)
+#     print(' ', 'Sync time:', synchronization_time, f'a = {s.a}')
 
 # Parallel series
-# tau_arr = [1, 2, 5, 10]
-# IC_file_name = 'series_IC_1000_10.txt'
-# s.a = 0.22
-# for tau in tau_arr:
-#     exp_series_dep_a_tau_p_2dim(0.22, 1000, IC_file_name, tau=tau)
+tau_arr = [0.1, 0.5, 1, 2, 5, 10]
+IC_file_name = 'series_IC_1000_10(1).txt'
+s.a = 0.22
+for tau in tau_arr:
+    exp_series_dep_a_tau_p_2dim(s.a, 1000, IC_file_name, tau=tau)
