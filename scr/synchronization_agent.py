@@ -89,7 +89,7 @@ def find_synchronization_time(xs, ys, zs, ts, w_arr, a):
         if max(deviation_phi) > np.pi / 8.0:
             continue
         else:
-            synchronization_time = ts[step*t]
+            synchronization_time = ts[step*(t-1)]
             break
 
     # Делаем часть графика омег в примерном месте предполагаемой синхронизации
