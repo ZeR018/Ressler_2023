@@ -11,6 +11,14 @@ k_str = s.k_str             # Число агентов в одной строк
 k_col = s.k_col             # Число агентов в одном столбце
 k_elements = k_str * k_col  # Число агентов 
 
+# Проверяет существование файла
+def exists(path):
+    try:
+        file = open(path)
+    except IOError as e:
+        return False
+    else:
+        return True
 
 # Создаем массив частот(w) для всех агентов
 def generate_w_arr(k_elements, _range=[0.93, 1.07]):
@@ -29,7 +37,7 @@ def hms_now(type = '0'):
         return datetime.now().minute
 
 # Сохраняет начальные условия и массив частот(w) в указанный файл
-def save_IC_and_w(IC, w, path, _k_elements = k_elements, _radius = s.radius, T = s.T, a = s.a):
+def save_IC_and_w(IC, w, path, _k_elements = k_elements, _radius = s.radius, T = s.T, a = s.a, tau = s.tau):
     with open(path, 'w') as f:
         print(_k_elements, file=f)
         k = s.k
@@ -41,6 +49,7 @@ def save_IC_and_w(IC, w, path, _k_elements = k_elements, _radius = s.radius, T =
         print('T:', T, file=f)
         print('k_col:', k_col, 'k_str:', k_str, file=f)
         print('r:', _radius, file=f)
+        print('tau:', tau, file=f)
 
 
 # Считывает сохраненные НУ и w из указанного файла
@@ -72,7 +81,10 @@ def read_IC(path):
     else:
         radius_IC = s.radius
 
-    return IC, w, T_IC, [k_col_, k_str_], radius_IC
+    if len(f_data) > size + 4 == True:
+        tau = float(f_data[size + 5][5:])
+
+    return IC, w, T_IC, [k_col_, k_str_], radius_IC, tau
 
 
 # Сохраняет данные, полученные интегрированием в указанный файл
@@ -116,14 +128,14 @@ def read_integration_data(path):
 
 
 # Сохраняет данные интегрирования, НУ, w, и все необходимые графики
-def save_data(integration_data, IC, w, figs_arr = [], fig_names_arr = [], deleted_elems = [], k_elements = k_elements):
+def save_data(integration_data, IC, w, figs_arr = [], fig_names_arr = [], deleted_elems = [], k_elements = k_elements, a = s.a, T = s.T, tau = s.tau):
     date = str(datetime.now().date())
     time = hms_now().replace(':', '.')
 
     new_dir = s.grid_experiments_path + date + ' ' + time
     os.mkdir(new_dir)
 
-    save_IC_and_w(IC, w,new_dir + '/IC.txt', _k_elements = k_elements)
+    save_IC_and_w(IC, w,new_dir + '/IC.txt', _k_elements = k_elements, a=a, T = T, tau = s.tau)
     save_integration_data(integration_data, new_dir + '/integration_data.txt', _k_elements = k_elements)
     
     if figs_arr != []:
@@ -303,7 +315,7 @@ def find_grid_IC_from_integration_data(datapath, time):
 
     # Берем необходимую информацию о начальных условиях
     IC_data = read_IC(datapath + '/IC.txt')
-    _ , w, T_IC, [k_col_IC, k_str_IC], _ = IC_data
+    _ , w, T_IC, [k_col_IC, k_str_IC], _, _ = IC_data
 
     global T, k_col, k_str, k_elements
     T = T_IC
@@ -537,6 +549,22 @@ def generate_and_write_series_IC(generator_params: tuple, n_exps = 100,
         file_name = f'series_IC_{n_exps}_{k_elements}.txt'
     full_path = path + file_name
 
+    # Смотрим, есть ли путь с таким названием
+    is_path_new = False
+    idx = 1
+    while not is_path_new:
+        if exists(full_path):
+            if idx == 1:
+                full_path = full_path[:-4] + f'({idx})' + '.txt'
+            else:
+                num_symbols_idx = int(np.log10(idx))
+                full_path = full_path[:-num_symbols_idx-4] + f'({idx})' + '.txt'
+
+            idx += 1
+        else:
+            is_path_new = True
+
+
     with open(full_path, 'w') as f:
         # Generate and save IC for any exp
         for i in range(n_exps):
@@ -605,6 +633,6 @@ def read_times_series_experiments_looking_nsl(path, new_value_for_nsl = 550):
         
         if not len(line) == 1:          # если у нас есть nsl, надо его обработать (пока не обрабатываем)
             nsl = line[1][:-1]
-            # value = new_value_for_nsl
+            value = new_value_for_nsl
         res.append(value)
     return res

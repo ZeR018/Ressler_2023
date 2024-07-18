@@ -101,10 +101,10 @@ def change_all_hists_in_dir():
                 times_of_sync[ti] = 520
 
         plt.figure()
-        h = np.append(np.arange(0, 510, 20), 550)
+        h = np.append(np.arange(0, 310, 10), 550)
         colors = ['#E69F00', '#56B4E9', '#F0E442', '#009E73', '#D55E00']
         n, bins, patches = plt.hist(times_of_sync, h, edgecolor='darkblue')
-        plt.xlim(-10, 530)
+        plt.xlim(-10, 330)
         plt.xlabel('Время синхронизации')
         plt.ylabel('Число синхронизаций')
         

@@ -37,7 +37,7 @@ def find_synchronization_time(xs, ys, zs, ts, w_arr, a):
             omega_i_zn = (w*y+z)**2 + (w*x + a*y)**2
             omega[agent].append((omega_i_ddydx + omega_i_dyddx)/omega_i_zn)
     
-    step = 300
+    step = 250
     omega_new = [[] for i in range(k_elements)]
     for agent in range(k_elements):
         for t in range(step, size, step):
@@ -50,21 +50,57 @@ def find_synchronization_time(xs, ys, zs, ts, w_arr, a):
     plt.xlabel('t', fontsize=20)
     plt.ylabel('\u03A9', fontsize=20)
 
-    max_omega_diff = 0.25
     synchronization_time = -10
-    for t in range(len(omega_new[0])):
+    
+    for t in range(1, len(omega_new[0])):
+
+        # Проверить, что изменение угловых скоростей всех агентов происходит симметрично 
+        # (с шагом угловая скорость всех агентов изменяется примерно одинаково)
         omega_t = [omega_agent[t] for omega_agent in omega_new]
-        if max(omega_t) - min(omega_t) < max_omega_diff:
-            # Проверить, что расстояние между всеми агентами меньше 1.5r
-            dist = []
-            for agent in range(1, k_elements):
-                dist.append(np.sqrt((xs[agent][step*t] - xs[0][step*t])**2+ \
-                        (ys[agent][step*t] - ys[0][step*t])**2 + \
-                        (zs[agent][step*t] - zs[0][step*t])**2))
-            
-            if max(dist) < 2.0 * s.radius:
-                synchronization_time = ts[step*(t + 1)]
-                break
+        omega_prev_t = [omega_agent[t-1] for omega_agent in omega_new]
+
+        diff_betveen_omega_last_and_prev = [abs(omega_t[i] - omega_prev_t[i]) for i in range(k_elements)]
+        mean_diff_betveen_omega_last_and_prev = np.mean(diff_betveen_omega_last_and_prev)
+        deviation_from_mean_omega = [abs(mean_diff_betveen_omega_last_and_prev - diff_betveen_omega_last_and_prev[i]) for i in range(k_elements)]
+
+        max_div = 0.01
+        if a == 0.28:
+            max_div = 0.1
+        if a == 0.22:
+            max_div = 0.05
+        if max(deviation_from_mean_omega) >= max_div:
+            continue
+
+        # Проверить, что расстояние между всеми агентами меньше 1.5r
+        dist = []
+        for agent in range(1, k_elements):
+            dist.append(np.sqrt((xs[agent][step*t] - xs[0][step*t])**2+ \
+                    (ys[agent][step*t] - ys[0][step*t])**2 + \
+                    (zs[agent][step*t] - zs[0][step*t])**2))
+        
+        if max(dist) >= 1.5 * s.radius:
+            continue
+
+        # Проверить, что все агенты находятся в относительно близких фазах
+        phi_t = [phi[agent][step*t] for agent in range(k_elements)]
+        mean_phi_t = np.mean(phi_t)
+        deviation_phi = [abs(phi_t[agent] - mean_phi_t) for agent in range(k_elements)]
+
+        if max(deviation_phi) > np.pi / 8.0:
+            continue
+        else:
+            synchronization_time = ts[step*t]
+            break
+
+    # Делаем часть графика омег в примерном месте предполагаемой синхронизации
+    fig_omega_small = plt.figure()
+    for agent in range(k_elements):
+        if t > 6 and t < len(omega_new[0]) - 5:
+            plt.plot(ts[(t-6) * step:(t+4)*step:step], omega_new[agent][t-6 : t+4])
+    plt.grid()
+    plt.xlabel('t', fontsize=20)
+    plt.ylabel('\u03A9', fontsize=20)
+    plt.title('Момент синхронизации на графике омеги')
 
     if synchronization_time == -10:
         synchronization_time = 530
@@ -78,7 +114,7 @@ def find_synchronization_time(xs, ys, zs, ts, w_arr, a):
     if max(dist_last) > 1.3 * s.radius:
         sync_last_time = False
 
-    return synchronization_time, sync_last_time, fig
+    return synchronization_time, sync_last_time, fig, fig_omega_small
 
 def solo_experiment_depend_a_tau_p(a, w_arr, IC_arr, index = 0, isSolo = False, tau = s.tau, path_save = './data/temp/'):
     IC = IC_arr[index]
@@ -111,7 +147,7 @@ def solo_experiment_depend_a_tau_p(a, w_arr, IC_arr, index = 0, isSolo = False, 
     ax_last.set_ylabel('y')
 
     if isSolo:
-        path_save, path_save_graphs = mem.save_data([xs, ys, zs, ts], IC, w_arr, [fig_last], ['fig_last_state'])
+        path_save, path_save_graphs = mem.save_data([xs, ys, zs, ts], IC, w_arr, [fig_last], ['fig_last_state'], k_elements=k_elements, a=a, tau=tau)
         plt.close()
         mem.draw_and_save_graphics_many_agents(xs, ys, ts, path_save_graphs, plot_colors, k_elements, 100)
 
@@ -119,12 +155,14 @@ def solo_experiment_depend_a_tau_p(a, w_arr, IC_arr, index = 0, isSolo = False, 
         # find_frequency(xs, ys, zs, ts, w_arr, a)
 
     # Функция, которая считает время синхронизации
-    synchronization_time, omega_fig = find_synchronization_time(xs, ys, zs, ts, w_arr, a)
+    synchronization_time, omega_fig, fig_omega_small = find_synchronization_time(xs, ys, zs, ts, w_arr, a)
 
     omega_fig.savefig(path_save + '/fig_last_state' + str(index) +'.png')
     plt.close(omega_fig)
     fig_last.savefig(path_save + '/fig_omega' + str(index) +'.png')
     plt.close(fig_last)
+    fig_omega_small.savefig(path_save + '/fig_omega_small' + str(index) +'.png')
+    plt.close(fig_omega_small)
 
     figs = {'fig_last_state': fig_last,
             'fig_omega': omega_fig}
@@ -232,21 +270,25 @@ def solo_experiment_depend_a_tau_p_2dim(a, w_arr, IC_arr, index = 0, isSolo = Fa
     ax_last.set_ylabel('y')
 
     # Функция, которая считает время синхронизации
-    synchronization_time, sync_last_time, omega_fig = find_synchronization_time(xs, ys, zs, ts, w_arr, a)
+    synchronization_time, sync_last_time, omega_fig, fig_omega_small = find_synchronization_time(xs, ys, zs, ts, w_arr, a)
 
     # Сохранить все данные интегрирования, если соло эксперимент
     if isSolo:
-        path_save, path_save_graphs = mem.save_data([xs, ys, zs, ts], IC, w_arr, [fig_last], ['fig_last_state'], k_elements=k_elements)
+        path_save, path_save_graphs = mem.save_data([xs, ys, zs, ts], IC, w_arr, [fig_last], ['fig_last_state'], k_elements=k_elements, a=a, tau=tau)
         plt.close()
         mem.draw_and_save_graphics_many_agents(xs, ys, ts, path_save_graphs, plot_colors, k_elements, 100)
         if not sync_last_time:
             print('Non sync last time')
+
+        plt.plot()
 
     # Сохраняем графики
     omega_fig.savefig(path_save + '/fig_omega' + str(index) +'.png')
     plt.close(omega_fig)
     fig_last.savefig(path_save + '/fig_last_state' + str(index) +'.png')
     plt.close(fig_last)
+    fig_omega_small.savefig(path_save + '/fig_omega_small' + str(index) +'.png')
+    plt.close(fig_omega_small)
 
     return synchronization_time, sync_last_time, [[xs, ys, zs, ts]]
 
@@ -321,17 +363,27 @@ def exp_series_dep_a_tau_p_2dim(a, n_exps_in_one_cycle = 100,
     else:
         print('')
 
-# path = mem.generate_and_write_series_IC((5., 5., 1.), n_exps=1000, k_elements=k_elements)
-# Solo experiment
-# IC_arr, w_arr = mem.read_series_IC(s.temporary_path + 'series_IC_1000_10.txt')
-# for i in range(0, 100):
-#     print('Exp', i)
-#     synchronization_time, _, fig = solo_experiment_depend_a_tau_p_2dim(s.a, w_arr, IC_arr, index=i, isSolo=True)
-#     print('Sync time:', synchronization_time)
+#path = mem.generate_and_write_series_IC((5., 5., 1.), n_exps=1000, k_elements=k_elements)
+
+#Solo experiment
+IC_arr, w_arr = mem.read_series_IC(s.temporary_path + 'series_IC_1000_10(1).txt')
+for i in range(3, 100):
+    print('Exp', i, '---------------------------------------------')
+    s.a = 0.28
+    synchronization_time, _, fig = solo_experiment_depend_a_tau_p_2dim(s.a, w_arr, IC_arr, index=i, isSolo=True)
+    print(' ', 'Sync time:', synchronization_time, f'a = {s.a}')
+
+    s.a = 0.22
+    synchronization_time, _, fig = solo_experiment_depend_a_tau_p_2dim(s.a, w_arr, IC_arr, index=i, isSolo=True)
+    print(' ', 'Sync time:', synchronization_time, f'a = {s.a}')
+
+    s.a = 0.16
+    synchronization_time, _, fig = solo_experiment_depend_a_tau_p_2dim(s.a, w_arr, IC_arr, index=i, isSolo=True)
+    print(' ', 'Sync time:', synchronization_time, f'a = {s.a}')
 
 # Parallel series
-tau_arr = [1, 2, 5, 10]
-IC_file_name = 'series_IC_1000_10.txt'
-s.a = 0.22
-for tau in tau_arr:
-    exp_series_dep_a_tau_p_2dim(0.22, 1000, IC_file_name, tau=tau)
+# tau_arr = [1, 2, 5, 10]
+# IC_file_name = 'series_IC_1000_10.txt'
+# s.a = 0.22
+# for tau in tau_arr:
+#     exp_series_dep_a_tau_p_2dim(0.22, 1000, IC_file_name, tau=tau)
