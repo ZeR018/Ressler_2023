@@ -1,4 +1,4 @@
-from default_model import func_rossler_3_dim, synchronization_event, func_rossler_2_dim
+from default_model import func_rossler_3_dim, synchronization_event, func_rossler_2_dim, func_rossler_2_dim_params_maker
 from scipy.integrate import solve_ivp
 import settings as s
 from matplotlib import pyplot as plt
@@ -16,32 +16,47 @@ k = s.k
 b = s.b
 c = s.c
 
+# Подсчет Фи и Омеги вынесен в отдельную функцию
+def calc_phi_and_omega(xs, ys, zs, ts, w, a, step = 250):
+    size = len(ts)
+    
+    phi = []
+    omega = []
+
+    for t in range(size):
+        x = xs[t]
+        y = ys[t]
+        z = zs[t]
+        phi_i = np.arctan(( w * x + a * y) / (- w * y - z))
+        phi.append(phi_i)
+        
+        omega_i_dyddx = - (w*x + a*y) * (-w**2*x-w*a*y-b-z*(x-c))
+        omega_i_ddydx = (-w*y-z) * (-w**2*y-w*z+a*w*x+a**2*y)
+
+        omega_i_zn = (w*y+z)**2 + (w*x + a*y)**2
+        omega.append((omega_i_ddydx + omega_i_dyddx)/omega_i_zn)
+
+    omega_mean = []
+    for t in range(step, size, step):
+        omega_mean.append(np.mean(omega[t-step:t]))
+
+    return phi, omega, omega_mean
+
+
 def find_synchronization_time(xs, ys, zs, ts, w_arr, a):
+    phi = [[] for i in range(k_elements)]
+    omega = [[] for i in range(k_elements)]
+    omega_new = [[] for i in range(k_elements)]
+    step = 250
+
+    for agent in range(k_elements):
+        phi_agent, omega_agent, omega_mean_agent = calc_phi_and_omega(xs[agent], ys[agent], zs[agent], 
+                                                                      ts, w_arr[agent], a, step)
+
     size = len(ts)
     
     phi = [[] for i in range(k_elements)]
     omega = [[] for i in range(k_elements)]
-
-    for t in range(size):
-        for agent in range(k_elements):
-            x = xs[agent][t]
-            y = ys[agent][t]
-            z = zs[agent][t]
-            w = w_arr[agent]
-            phi_i = np.arctan(( w * x + a * y) / (- w * y - z))
-            phi[agent].append(phi_i)
-            
-            omega_i_dyddx = - (w*x + a*y) * (-w**2*x-w*a*y-b-z*(x-c))
-            omega_i_ddydx = (-w*y-z) * (-w**2*y-w*z+a*w*x+a**2*y)
-
-            omega_i_zn = (w*y+z)**2 + (w*x + a*y)**2
-            omega[agent].append((omega_i_ddydx + omega_i_dyddx)/omega_i_zn)
-    
-    step = 250
-    omega_new = [[] for i in range(k_elements)]
-    for agent in range(k_elements):
-        for t in range(step, size, step):
-            omega_new[agent].append(np.mean(omega[agent][t-step:t]))
 
     fig = plt.figure(figsize=(60, 50))
     for agent in range(k_elements):
@@ -363,27 +378,150 @@ def exp_series_dep_a_tau_p_2dim(a, n_exps_in_one_cycle = 100,
     else:
         print('')
 
+def one_elem_omega_a_existance(a, w, IC, k_elements, t_max = s.t_max, tau = s.tau):
+    # Integrate
+    start_solve_time = time.time()
+    print('Start solve time:', mem.hms_now())
+
+    func_rossler_2_dim_params = func_rossler_2_dim_params_maker(k_elements)
+
+    w_arr = [w]
+    sol = solve_ivp(func_rossler_2_dim_params, [0, t_max], IC, args=(w_arr, a, tau), 
+                    rtol=s.toch[0], atol=s.toch[1], method=s.method)
+    
+    time_after_integrate = time.time()
+    print('Integrate time:', time.time() - start_solve_time, 'time:', mem.hms_now())
+
+    xs = sol.y[0]
+    ys = sol.y[1]
+    zs = sol.y[2]
+    ts = sol.t
+
+    return a, [xs, ys, zs, ts]
+
+# 1 agent, grapg omega(a)
+def omega_a_experiment_p(IC_fname = 'series_IC_1000_10(1).txt', IC_index = (0, 0), a_inform = (0.15, 0.3, 0.01), w = 1.02, tau = 1):
+    start_a, stop_a, step_a = a_inform
+    a_arr = np.arange(start_a, stop_a + step_a, step_a)
+    num_exps = len(a_arr)
+
+    dir, figs_dir, times_dir = mem.make_dir_for_series_experiments(w, a_arr, num_exps, IC_fname, {"tau": tau})
+    IC_arr, w_arr = mem.read_series_IC(s.temporary_path + IC_fname)
+    IC_solo_many_agent = IC_arr[IC_index[0]]
+    IC = IC_solo_many_agent[IC_index[1] : IC_index[1] + 3]
+    print(IC)
+
+    s.k_elements = k_elements = 1
+    omega_mean_a = []
+
+    n_streams = s.n_streams     # Число потоков для параллельной реализации
+    num_batches = - 1 * num_exps // n_streams * - 1 # число пачек экспериментов (число вызова existance)
+    batch_step_a = step_a * n_streams
+
+    for exp in range(num_batches):
+        a_arr_exp = None
+        start = start_a + exp * batch_step_a
+        if exp == num_batches - 1:
+            if start == stop_a:
+                a_arr_exp = [stop_a]
+            else:
+                a_arr_exp = np.arange(start, stop_a + step_a, step_a)[0:-1]
+        else:
+            a_arr_exp = np.arange(start, start + batch_step_a - step_a, step_a)
+
+        # Округлить заведомо глупые значения а
+        for i in range(len(a_arr_exp)):
+            a_arr_exp[i] = round(a_arr_exp[i], 4)
+
+        print(f'-------------------------- Exp a: {a_arr_exp[0]} - {a_arr_exp[-1]} --------------------------')
+
+        # Запускаем параллельно серию одиночных экспериментов
+        existance = joblib.Parallel(n_jobs=n_streams)(joblib.delayed(one_elem_omega_a_existance)
+                        (a, w, IC, k_elements) for a in a_arr_exp)
+        
+        for ex_num, ex in enumerate(existance):
+            a = ex[0]
+            sol_res = ex[1]
+            xs, ys, zs, ts = sol_res
+
+            # plot trajectory
+            plt.plot(xs, ys)
+            plt.grid()
+            plt.title(f'Финальная траектория при a = {a}')
+            plt.xlabel('x')
+            plt.ylabel('y')
+            plt.savefig(figs_dir + f'/a{a}_fig.png')
+            plt.close()
+
+            phi, omega, omega_mean = calc_phi_and_omega(xs, ys, zs, ts, w, a)
+
+            # phi(t)
+            plt.plot(ts, phi)
+            plt.grid()
+            plt.xlabel('t')
+            plt.ylabel('phi')
+            plt.title(f'Зависимость phi(t) при a = {a}')
+            plt.savefig(figs_dir + f'/a{a}_phi_t.png')
+            plt.close()
+
+            # omega(t)
+            plt.plot(ts, omega)
+            plt.scatter(ts[100], omega[100], color='g')
+            plt.grid()
+            plt.xlabel('t')
+            plt.ylabel('omega')
+            plt.title(f'Зависимость omega(t) при a = {a}')
+            plt.savefig(figs_dir + f'/a{a}_omega_t.png')
+            plt.close()
+
+            # Выкидываем первые 100 точек - считаем их переходным процессом
+            omega_mean_a.append(np.mean(omega[100:]))
+    
+    plt.plot(a_arr, omega_mean_a)
+    plt.grid()
+    plt.xlabel('a')
+    plt.ylabel('omega')
+    plt.title('Финальная зависимость omega(a)')
+    plt.savefig(figs_dir + '/omega_a.png')
+    plt.close()
+
+
+    # for exp_a in np.arange(0, num_exps, n_streams):
+    #     print(f'Experiments {exp_a}-{exp_a+n_streams}. ')
+
+    #     # Подбираем номера итераций для всех потоков для нового цикла
+
+
+    #     # a_existance_step = []
+    #     # print(exp_a, step_a, step_a * (n_streams - 1), num_exps * step_a, exp_a + step_a * (n_streams + 1) > num_exps * step_a)
+    #     # if exp_a + step_a * (n_streams + 1) > num_exps * step_a:
+    #     #     a_existance_step = np.arange(exp_a, num_exps * step_a, step_a)
+    #     # else:
+    #     #     a_existance_step = np.arange(exp_a, exp_a * n_streamsstop_a)
+
+    #     print(a_existance_step)
+
+
+
+################################################################## Make experiments ###########################################################
+
 #path = mem.generate_and_write_series_IC((5., 5., 1.), n_exps=1000, k_elements=k_elements)
 
 #Solo experiment
-# IC_arr, w_arr = mem.read_series_IC(s.temporary_path + 'series_IC_1000_10(1).txt')
-# for i in range(3, 100):
-#     print('Exp', i, '---------------------------------------------')
-#     s.a = 0.28
-#     synchronization_time, _, fig = solo_experiment_depend_a_tau_p_2dim(s.a, w_arr, IC_arr, index=i, isSolo=True)
-#     print(' ', 'Sync time:', synchronization_time, f'a = {s.a}')
-
-#     s.a = 0.22
-#     synchronization_time, _, fig = solo_experiment_depend_a_tau_p_2dim(s.a, w_arr, IC_arr, index=i, isSolo=True)
-#     print(' ', 'Sync time:', synchronization_time, f'a = {s.a}')
-
-#     s.a = 0.16
-#     synchronization_time, _, fig = solo_experiment_depend_a_tau_p_2dim(s.a, w_arr, IC_arr, index=i, isSolo=True)
-#     print(' ', 'Sync time:', synchronization_time, f'a = {s.a}')
+def series_solo(a_arr = [0.16, 0.22, 0.28], range_ = range(1, 100), IC_path = 'series_IC_1000_10(1).txt'):
+    IC_arr, w_arr = mem.read_series_IC(s.temporary_path + IC_path)
+    for i in range_:
+        print('Exp', i, '---------------------------------------------')
+        for a in a_arr:
+            s.a = a
+            synchronization_time, _, fig = solo_experiment_depend_a_tau_p_2dim(s.a, w_arr, IC_arr, index=i, isSolo=True)
+            print(' ', 'Sync time:', synchronization_time, f'a = {s.a}')
 
 # Parallel series
-tau_arr = [0.1, 0.5, 1, 2, 5, 10]
-IC_file_name = 'series_IC_1000_10(1).txt'
-s.a = 0.22
-for tau in tau_arr:
-    exp_series_dep_a_tau_p_2dim(s.a, 1000, IC_file_name, tau=tau)
+def parallel_series(tau_arr, a_arr = [0.16, 0.22, 0.28], IC_file_name = 'series_IC_1000_10(1).txt'):
+    for a in a_arr:
+        for tau in tau_arr:
+            exp_series_dep_a_tau_p_2dim(s.a, 1000, IC_file_name, tau=tau)
+
+# print(np.arange(0.3, 0.30001, 0.0001)[0:-1])
+omega_a_experiment_p(a_inform=(0.15, 0.3, 0.001))

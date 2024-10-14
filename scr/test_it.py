@@ -95,37 +95,79 @@ def change_all_hists_in_dir():
 
     for i in range(len(times_paths)):
         # print(times_paths[i], tau_dirs_values[i], a_dirs_values[i], n_exp_dirs_values[i])
-        times_of_sync = mem.read_times_series_experiments_looking_nsl(times_paths[i])
+        times_of_sync = mem.read_times_series_experiments(times_paths[i], look_at_nsl=False)
         for ti in range(len(times_of_sync)):
             if times_of_sync[ti] == -10:
                 times_of_sync[ti] = 520
 
+        
+        # probability theory
+        mean = np.mean(times_of_sync)
+        sigma = np.var(times_of_sync)
+        median = np.median(times_of_sync)
+        path = times_paths[i].removesuffix('times.txt') + 'analysis.txt'
+        with open(path, 'w') as f:
+            print(f'mean: {mean}', file=f)
+            print(f'dispersion: {sigma}', file=f)
+            print(f'median: {median}', file=f)
+
+        # plot
         plt.figure()
-        h = np.append(np.arange(0, 310, 10), 550)
+        h = np.append(np.arange(0, 520, 20), 550)
         colors = ['#E69F00', '#56B4E9', '#F0E442', '#009E73', '#D55E00']
         n, bins, patches = plt.hist(times_of_sync, h, edgecolor='darkblue')
-        plt.xlim(-10, 330)
+        plt.xlim(-10, 530)
         plt.xlabel('Время синхронизации')
         plt.ylabel('Число синхронизаций')
+        plt.title(f'mean = {round(mean, 2)}, d = {round(sigma, 2)}, median = {round(median, 2)}')
         
         plt.savefig(f'{new_hists_dir}/hist_{a_dirs_values[i]}_{tau_dirs_values[i]}_{n_exp_dirs_values[i]}.png')
+        plt.close()
 
 
-def change_time_220_in_file_end_compress():
-    path = './data/grid_experiments/series_a_tau/1000/1000 a022/2/times.txt'
-    times_of_sync = mem.read_times_series_experiments(path)
+
+
+def change_time_220_in_file_and_compress():
+    path = './data/grid_experiments/series_a_tau/simple/1000 a028/05'
+    times_of_sync = mem.read_times_series_experiments(path + '/times.txt', look_at_nsl=False)
     for ti in range(len(times_of_sync)):
         if times_of_sync[ti] == -10:
-            times_of_sync[ti] = 220
+            times_of_sync[ti] = 530
 
-    with open('./data/grid_experiments/series_a_tau/1000/1000 a022/2/times_compressed.txt', 'w') as f:
+    with open(path + '/times_compressed.txt', 'w') as f:
         for ti in range(len(times_of_sync)):
             print(times_of_sync[ti], file=f)
 
 
-change_all_hists_in_dir()
+# change_all_hists_in_dir()
+change_time_220_in_file_and_compress()
 
-# change_time_220_in_file_end_compress()
+
+# shapes = [
+#     # tau = 0.5, 1, 2, 5, 10
+#     [1.587, 1.283, 1.1133, 0.953, 0.897982550], # a = 0.16
+#     [1.837, 1.8275, 1.84, 1.837, 1.851], # a = 0.22
+#     [1.829, 1.7985, 1.795, 1.788, 1.78]  # a = 0.28
+# ]
+
+# rates = [
+#     # tau = 1, 2, 5, 10
+#     [0.0066, 0.009, 0.01448, 0.028, 0.050152811], # a = 0.16
+#     [0.0148, 0.029, 0.06, 0.1474, 0.299], # a = 0.22
+#     [0.01126, 0.022, 0.044, 0.109, 0.216]  # a = 0.28
+# ]
+
+# taus = [0.5, 1., 2., 5., 10]
+# a_arr = [0.16, 0.22, 0.28]
+
+# for i, a_i in enumerate(a_arr):
+#     plt.plot(shapes[i], rates[i], label=f'a = {a_i}')
+# plt.grid()
+# plt.xlabel('shapes')
+# plt.ylabel('rates')
+# plt.legend()
+# plt.show()
+
 
 # from scipy.stats import gamma
 # path = './data/grid_experiments/series_a_tau/1000/1000 a022/10'

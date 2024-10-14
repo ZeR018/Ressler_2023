@@ -15,7 +15,7 @@ tau = 1
 # method = 'DOP853'
 # method = 'LSODA'
 method = 'RK45'
-t_max = 500
+t_max = 10000
 k_str = 5                   # Число агентов в одной строке
 k_col = 5                   # Число агентов в одном столбце
 

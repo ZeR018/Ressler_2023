@@ -146,6 +146,7 @@ def func_connect_y(i, r, _T):
 
 def func_rossler_2_dim(t, r, w_arr_, a_, tau_ = tau):
     global k_elements, w_arr, a
+    print(k_elements)
     w_arr = w_arr_
     a = a_
     res_arr = []
@@ -164,6 +165,30 @@ def func_rossler_2_dim(t, r, w_arr_, a_, tau_ = tau):
         res_arr.append(dz)
 
     return res_arr
+
+def func_rossler_2_dim_params_maker(k_elements_):
+    def func_rossler_2_dim_params(t, r, w_arr_, a_, tau_ = tau):
+        global k_elements, w_arr, a
+        k_elements = k_elements_
+        w_arr = w_arr_
+        a = a_
+        res_arr = []
+
+        for i in range(k_elements):
+            # x_i = r[i*k]
+            # y_i = r[i*k + 1]
+            # z_i = r[i*k + 2]
+
+            dx = tau_ * func_dx(i, r, default_f, T, w_arr)
+            dy = tau_ * func_dy(i, r, func_connect_y, T, w_arr)
+            dz = tau_ * func_dz(i, r, T)
+
+            res_arr.append(dx)
+            res_arr.append(dy)
+            res_arr.append(dz)
+
+        return res_arr
+    return func_rossler_2_dim_params
 
 ####################################################### events ##################################################################
 

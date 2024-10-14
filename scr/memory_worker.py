@@ -151,14 +151,14 @@ def save_data(integration_data, IC, w, figs_arr = [], fig_names_arr = [], delete
 
     return new_dir, data_dir
 
-def make_dir_for_series_experiments(w_arr, a, n_exps, IC_file_name, dop_names = {}, mod = ''):
-    date_without_year = str(datetime.now().date())[5:]
+def make_dir_for_series_experiments(w, a, n_exps, IC_file_name, dop_names = {}, mod = ''):
+    date_without_year = str(datetime.now().date())
     time = hms_now().replace(':', '.')
 
     if mod != '':
         new_dir = f'{s.grid_experiments_path + date_without_year} {time} s_{n_exps}'
     else:
-        new_dir = f'{s.grid_experiments_path + date_without_year} {time} s_{n_exps} {mod}'
+        new_dir = f'{s.grid_experiments_path + date_without_year} {time} s_{n_exps}_{mod}'
 
     for k, v in dop_names.items():
         new_dir += f' {k}_{v}'
@@ -166,7 +166,7 @@ def make_dir_for_series_experiments(w_arr, a, n_exps, IC_file_name, dop_names = 
 
     # Save main IC data
     with open(new_dir + '/IC.txt', 'w') as f:
-        print('w: ', w_arr, file=f)
+        print('w: ', w, file=f)
         print('a: ', a, file=f)
         print('IC file name: ', IC_file_name, file=f)
         print('Num experiments: ', n_exps, file=f)
@@ -601,7 +601,7 @@ def read_series_IC(path):
             IC_arr[i].append(float(line[j]))
     return IC_arr, w_arr
 
-def read_times_series_experiments(path):
+def read_times_series_experiments(path, new_value_for_nsl = 550, look_at_nsl = True):
     with open(path, 'r') as f:
         f_data = f.readlines()
     
@@ -615,24 +615,7 @@ def read_times_series_experiments(path):
         
         if not len(line) == 1:          # если у нас есть nsl, надо его обработать (пока не обрабатываем)
             nsl = line[1][:-1]
-
-        res.append(value)
-    return res
-
-def read_times_series_experiments_looking_nsl(path, new_value_for_nsl = 550):
-    with open(path, 'r') as f:
-        f_data = f.readlines()
-    
-    res = []
-    for d in f_data:
-        line = d.split(' ')             # Line делится на номер и остальное
-        index = int(line[0])
-        
-        line = line[1].split('\t')      # остальная часть линии делится на value и nls(not synchronizated last time) при наличии
-        value = float(line[0])
-        
-        if not len(line) == 1:          # если у нас есть nsl, надо его обработать (пока не обрабатываем)
-            nsl = line[1][:-1]
-            value = new_value_for_nsl
+            if look_at_nsl: 
+                value = new_value_for_nsl
         res.append(value)
     return res
