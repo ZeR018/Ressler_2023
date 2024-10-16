@@ -43,8 +43,8 @@ def one_exp_couplings(IC, w_arr, a, isSolo = True, couplings = (False, True, Fal
 
         # Анимация y(x)
         if small_animation:
-            frames, fig_gif = mem.make_frames_grid_agents(xs, ys, plot_colors, frames_step=20, _k_elements = k_elements)
-            interval = 40
+            frames, fig_gif = mem.make_frames_grid_agents(xs, ys, plot_colors, frames_step=40, _k_elements = k_elements)
+            interval = 60
             blit = True
             repeat = False
             animation = ArtistAnimation(
