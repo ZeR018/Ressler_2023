@@ -409,7 +409,6 @@ def omega_a_experiment_p(IC_fname = 'series_IC_1000_10(1).txt', IC_index = (0, 0
     IC_arr, w_arr = mem.read_series_IC(s.temporary_path + IC_fname)
     IC_solo_many_agent = IC_arr[IC_index[0]]
     IC = IC_solo_many_agent[IC_index[1] : IC_index[1] + 3]
-    print(IC)
 
     s.k_elements = k_elements = 1
     omega_mean_a = []
@@ -441,6 +440,7 @@ def omega_a_experiment_p(IC_fname = 'series_IC_1000_10(1).txt', IC_index = (0, 0
         
         for ex_num, ex in enumerate(existance):
             a = ex[0]
+            a_str = str(a) + '0' * (5 - len(str(a))) # приводим вывод различных а к одной длине для правильного  порядка
             sol_res = ex[1]
             xs, ys, zs, ts = sol_res
 
@@ -450,7 +450,7 @@ def omega_a_experiment_p(IC_fname = 'series_IC_1000_10(1).txt', IC_index = (0, 0
             plt.title(f'Финальная траектория при a = {a}')
             plt.xlabel('x')
             plt.ylabel('y')
-            plt.savefig(figs_dir + f'/a{a}_fig.png')
+            plt.savefig(figs_dir + f'/a{a_str}_fig.png')
             plt.close()
 
             phi, omega, omega_mean = calc_phi_and_omega(xs, ys, zs, ts, w, a)
@@ -461,7 +461,7 @@ def omega_a_experiment_p(IC_fname = 'series_IC_1000_10(1).txt', IC_index = (0, 0
             plt.xlabel('t')
             plt.ylabel('phi')
             plt.title(f'Зависимость phi(t) при a = {a}')
-            plt.savefig(figs_dir + f'/a{a}_phi_t.png')
+            plt.savefig(figs_dir + f'/a{a_str}_phi_t.png')
             plt.close()
 
             # omega(t)
@@ -471,7 +471,7 @@ def omega_a_experiment_p(IC_fname = 'series_IC_1000_10(1).txt', IC_index = (0, 0
             plt.xlabel('t')
             plt.ylabel('omega')
             plt.title(f'Зависимость omega(t) при a = {a}')
-            plt.savefig(figs_dir + f'/a{a}_omega_t.png')
+            plt.savefig(figs_dir + f'/a{a_str}_omega_t.png')
             plt.close()
 
             # Выкидываем первые 100 точек - считаем их переходным процессом

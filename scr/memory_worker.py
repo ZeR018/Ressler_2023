@@ -128,11 +128,11 @@ def read_integration_data(path):
 
 
 # Сохраняет данные интегрирования, НУ, w, и все необходимые графики
-def save_data(integration_data, IC, w, figs_arr = [], fig_names_arr = [], deleted_elems = [], k_elements = k_elements, a = s.a, T = s.T, tau = s.tau):
+def save_data(integration_data, IC, w, figs_arr = [], fig_names_arr = [], deleted_elems = [], k_elements = k_elements, a = s.a, T = s.T, tau = s.tau, dir_name_suffix = ''):
     date = str(datetime.now().date())
     time = hms_now().replace(':', '.')
 
-    new_dir = s.grid_experiments_path + date + ' ' + time
+    new_dir = s.grid_experiments_path + date + ' ' + time + ' ' + dir_name_suffix
     os.mkdir(new_dir)
 
     save_IC_and_w(IC, w,new_dir + '/IC.txt', _k_elements = k_elements, a=a, T = T, tau = s.tau)
@@ -223,7 +223,7 @@ def make_frames_grid_agents(xs_arr, ys_arr, plot_colors, _k_elements = k_element
 
         frames.append(frame)
 
-
+    print(f'Frames made, time: {hms_now()}')
     
     return frames, fig
 

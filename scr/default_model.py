@@ -30,7 +30,7 @@ else:
 ####################################################### Grid functions ##################################################################
 
 # Стандартная (если связи по какой-то переменной нет)
-def default_f(index, r, T_):
+def default_f(index, r, T_, p):
     return 0
 
 def func_connect_y_grid(index, r, _T):
@@ -80,18 +80,18 @@ def d_3dim(_T, _radius, x_i, x_j, y_i, y_j, z_i, z_j):
 
 # Функции правой части
 # По x
-def func_dx(i, r, connect_f=default_f, _T=s.T, w_arr = w_arr):
-    return - w_arr[i] * r[i*k + 1] - r[i*k + 2] + connect_f(i, r, _T)
+def func_dx(i, r, connect_f=default_f, _T=s.T, w_arr = w_arr, connect_f_inh = default_f):
+    return - w_arr[i] * r[i*k + 1] - r[i*k + 2] + connect_f(i, r, _T, 'x') + connect_f_inh(i, r, _T, 'x')
 
 
 # По y.
-def func_dy(i, r, connect_f=default_f, _T=s.T, w_arr = w_arr):
-    return w_arr[i] * r[i*k] + a * r[i*k + 1] + connect_f(i, r, _T)
+def func_dy(i, r, connect_f=default_f, _T=s.T, w_arr = w_arr, connect_f_inh = default_f):
+    return w_arr[i] * r[i*k] + a * r[i*k + 1] + connect_f(i, r, _T, 'y') + connect_f_inh(i, r, _T, 'y')
 
 
 # По z
-def func_dz(i, r, _T, connect_f=default_f):
-    return b + r[i*k + 2] * (r[i*k] - c) + connect_f(i, r, _T)
+def func_dz(i, r, connect_f=default_f, _T = s.T, connect_f_inh = default_f):
+    return b + r[i*k + 2] * (r[i*k] - c) + connect_f(i, r, _T, 'z') + connect_f_inh(i, r, _T, 'z')
 
 
 def func_rossler_3_dim(t, r, w_arr_, a_, tau_ = tau):
@@ -109,7 +109,7 @@ def func_rossler_3_dim(t, r, w_arr_, a_, tau_ = tau):
 
         dx = tau_ * func_dx(i, r, func_connect_x_grid, T, w_arr)
         dy = tau_ * func_dy(i, r, func_connect_y_grid, T, w_arr)
-        dz = tau_ * func_dz(i, r, T)
+        dz = tau_ * func_dz(i, r, _T = T)
 
         res_arr.append(dx)
         res_arr.append(dy)
@@ -127,7 +127,7 @@ def d(_T, _radius, x_i, x_j, y_i, y_j):
         return 0
 
 # Функция связи по x. Параллельное движение цепочки агентов
-def func_connect_x(i, r, _T):
+def f_connect_x_repulsive(i, r, _T, perem = 'x'):
     summ1, summ2 = 0, 0
     for j in range(k_elements):   
         if j != i:
@@ -136,12 +136,33 @@ def func_connect_x(i, r, _T):
             
     return summ1 + summ2
 
-# Функция связи по y. Последовательное движение цепочки агентов
-def func_connect_y(i, r, _T):
+def f_connect_st(i, r, _T, perem = 'y'):
+    if perem == 'z':
+        p_shift = 2
+    if perem == 'x':
+        p_shift = 0
+    else:
+        p_shift = 1
+
+
     summ = 0
     for j in range(k_elements):
         if j != i:
-            summ += d(_T, radius, r[j*k], r[i*k], r[j*k+1], r[i*k+1]) * (r[j*k + 1] - r[i*k + 1])
+            summ += d(_T, radius, r[j*k], r[i*k], r[j*k+1], r[i*k+1]) * (r[j*k + p_shift] - r[i*k + p_shift])
+    return summ
+
+def f_connect_inh(i, r, _T, perem = 'y'):
+    if perem == 'z':
+        p_shift = 2
+    if perem == 'x':
+        p_shift = 0
+    else:
+        p_shift = 1
+
+    summ = 0
+    for j in range(k_elements):
+        if j != i:
+            summ += d(_T, radius, r[j*k], r[i*k], r[j*k+1], r[i*k+1]) / (r[i*k + p_shift] - r[j*k + p_shift])
     return summ
 
 def func_rossler_2_dim(t, r, w_arr_, a_, tau_ = tau):
@@ -157,8 +178,8 @@ def func_rossler_2_dim(t, r, w_arr_, a_, tau_ = tau):
         # z_i = r[i*k + 2]
 
         dx = tau_ * func_dx(i, r, default_f, T, w_arr)
-        dy = tau_ * func_dy(i, r, func_connect_y, T, w_arr)
-        dz = tau_ * func_dz(i, r, T)
+        dy = tau_ * func_dy(i, r, f_connect_st, T, w_arr)
+        dz = tau_ * func_dz(i, r, _T = T)
 
         res_arr.append(dx)
         res_arr.append(dy)
@@ -166,7 +187,14 @@ def func_rossler_2_dim(t, r, w_arr_, a_, tau_ = tau):
 
     return res_arr
 
-def func_rossler_2_dim_params_maker(k_elements_):
+def func_rossler_2_dim_params_maker(k_elements_, couplings = (False, True, False), couplings_inh = (False, False, False)):
+    f_dx_coup = f_connect_st if couplings[0] else default_f
+    f_dy_coup = f_connect_st if couplings[1] else default_f
+    f_dz_coup = f_connect_st if couplings[2] else default_f
+    f_dx_coup_inh = f_connect_inh if couplings_inh[0] else default_f
+    f_dy_coup_inh = f_connect_inh if couplings_inh[1] else default_f
+    f_dz_coup_inh = f_connect_inh if couplings_inh[2] else default_f
+
     def func_rossler_2_dim_params(t, r, w_arr_, a_, tau_ = tau):
         global k_elements, w_arr, a
         k_elements = k_elements_
@@ -179,9 +207,9 @@ def func_rossler_2_dim_params_maker(k_elements_):
             # y_i = r[i*k + 1]
             # z_i = r[i*k + 2]
 
-            dx = tau_ * func_dx(i, r, default_f, T, w_arr)
-            dy = tau_ * func_dy(i, r, func_connect_y, T, w_arr)
-            dz = tau_ * func_dz(i, r, T)
+            dx = tau_ * func_dx(i, r, f_dx_coup, T, w_arr, connect_f_inh=f_dx_coup_inh)
+            dy = tau_ * func_dy(i, r, f_dy_coup, T, w_arr, connect_f_inh=f_dy_coup_inh)
+            dz = tau_ * func_dz(i, r, f_dz_coup, T, connect_f_inh=f_dz_coup_inh)
 
             res_arr.append(dx)
             res_arr.append(dy)
