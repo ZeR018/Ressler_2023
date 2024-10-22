@@ -39,12 +39,14 @@ def one_exp_couplings(IC, w_arr, a, isSolo = True, couplings = (False, True, Fal
 
         path_save, path_save_graphs = mem.save_data([xs, ys, zs, ts], IC, w_arr, [], [], k_elements=k_elements, a=a, tau=tau, dir_name_suffix=suffix)
         plt.close()
-        mem.draw_and_save_graphics_many_agents(xs, ys, ts, path_save_graphs, plot_colors, k_elements, 100)
+        lim_param = 20
+        mem.draw_and_save_graphics_many_agents(xs, ys, ts, path_save_graphs, plot_colors, k_elements, 100, 
+                                               mashtab=[-lim_param, lim_param, -lim_param, lim_param])
 
         # Анимация y(x)
         if small_animation:
-            frames, fig_gif = mem.make_frames_grid_agents(xs, ys, plot_colors, frames_step=40, _k_elements = k_elements)
-            interval = 60
+            frames, fig_gif = mem.make_frames_grid_agents(xs, ys, plot_colors, frames_step=100, _k_elements = k_elements, lims=[-lim_param, lim_param, -lim_param, lim_param])
+            interval = 120
             blit = True
             repeat = False
             animation = ArtistAnimation(
@@ -65,10 +67,4 @@ IC_index = 0
 IC_arr, w_arr = mem.read_series_IC(s.temporary_path + IC_fname)
 IC = IC_arr[IC_index]
 
-one_exp_couplings(IC, w_arr, a, couplings=(1, 0, 0), k_elements=k_elements, t_max=100, tau=1)
-one_exp_couplings(IC, w_arr, a, couplings=(0, 1, 0), k_elements=k_elements, t_max=100, tau=1)
-one_exp_couplings(IC, w_arr, a, couplings=(0, 0, 1), k_elements=k_elements, t_max=100, tau=1)
-one_exp_couplings(IC, w_arr, a, couplings=(1, 1, 0), k_elements=k_elements, t_max=100, tau=1)
-one_exp_couplings(IC, w_arr, a, couplings=(1, 0, 1), k_elements=k_elements, t_max=100, tau=1)
-one_exp_couplings(IC, w_arr, a, couplings=(0, 1, 1), k_elements=k_elements, t_max=100, tau=1)
-one_exp_couplings(IC, w_arr, a, couplings=(1, 1, 1), k_elements=k_elements, t_max=100, tau=1)
+one_exp_couplings(IC, w_arr, a, couplings=(0, 0, 1), k_elements=k_elements, t_max=1000, tau=1, small_animation=False)

@@ -37,10 +37,9 @@ def hms_now(type = '0'):
         return datetime.now().minute
 
 # Сохраняет начальные условия и массив частот(w) в указанный файл
-def save_IC_and_w(IC, w, path, _k_elements = k_elements, _radius = s.radius, T = s.T, a = s.a, tau = s.tau):
+def save_IC_and_w(IC, w, path, _k_elements = k_elements, _radius = s.radius, T = s.T, a = s.a, tau = s.tau, k = s.k):
     with open(path, 'w') as f:
         print(_k_elements, file=f)
-        k = s.k
         for i in range(_k_elements):
             print(IC[i*k], IC[i*k+1], IC[i*k+2], file=f)
 
@@ -128,15 +127,19 @@ def read_integration_data(path):
 
 
 # Сохраняет данные интегрирования, НУ, w, и все необходимые графики
-def save_data(integration_data, IC, w, figs_arr = [], fig_names_arr = [], deleted_elems = [], k_elements = k_elements, a = s.a, T = s.T, tau = s.tau, dir_name_suffix = ''):
+def save_data(integration_data, IC, w, figs_arr = [], fig_names_arr = [], deleted_elems = [], k_elements = k_elements, 
+              a = s.a, T = s.T, tau = s.tau, dir_name_suffix = '', k = s.k, save_int_data = True):
     date = str(datetime.now().date())
     time = hms_now().replace(':', '.')
 
-    new_dir = s.grid_experiments_path + date + ' ' + time + ' ' + dir_name_suffix
+    suffix = ' ' + dir_name_suffix if dir_name_suffix != '' else ''
+    new_dir = s.grid_experiments_path + date + ' ' + time + suffix
     os.mkdir(new_dir)
 
-    save_IC_and_w(IC, w,new_dir + '/IC.txt', _k_elements = k_elements, a=a, T = T, tau = s.tau)
-    save_integration_data(integration_data, new_dir + '/integration_data.txt', _k_elements = k_elements)
+    save_IC_and_w(IC, w,new_dir + '/IC.txt', _k_elements = k_elements, a=a, T = T, tau = s.tau, k = k)
+
+    if save_int_data:
+        save_integration_data(integration_data, new_dir + '/integration_data.txt', _k_elements = k_elements)
     
     if figs_arr != []:
         for i in range(len(figs_arr)):
@@ -182,7 +185,7 @@ def make_dir_for_series_experiments(w, a, n_exps, IC_file_name, dop_names = {}, 
 
     return new_dir, figs_dir, times_dir
 
-def make_frames_grid_agents(xs_arr, ys_arr, plot_colors, _k_elements = k_elements, frames_step = 60, deleted_elems = []):
+def make_frames_grid_agents(xs_arr, ys_arr, plot_colors, _k_elements = k_elements, frames_step = 60, deleted_elems = [], lims = []):
 
     fig = plt.figure(figsize=[12,12])
     ax = fig.add_subplot()
@@ -190,6 +193,10 @@ def make_frames_grid_agents(xs_arr, ys_arr, plot_colors, _k_elements = k_element
     ax.set_ylabel('y')
     ax.grid()
     fig.suptitle('Сетка мобильных агентов')
+
+    if lims != []:
+        ax.set_xlim(lims[0], lims[1])
+        ax.set_ylim(lims[2], lims[3])
 
     # Кол-во кадров
     num_frames = len(xs_arr[0])
@@ -394,7 +401,6 @@ def make_frames(xs_arr, ys_arr, zs_arr, ts_arr, graph_title, graph_3d_title = ''
         axd[ax_n].set_xlabel(ax_n[1])
         axd[ax_n].set_ylabel(ax_n[0])
     fig.suptitle(graph_title)
-
     
     fig_3d = plt.figure(figsize=[8,8])
     ax_3d = fig_3d.add_subplot(projection='3d')

@@ -29,6 +29,9 @@ else:
 
 ####################################################### Grid functions ##################################################################
 
+def calc_distance_3d(i, r):
+    return np.sqrt(r[i*k]**2 + r[i*k + 1]**2 + r[i*k + 2]**2)
+
 # Стандартная (если связи по какой-то переменной нет)
 def default_f(index, r, T_, p):
     return 0
@@ -195,6 +198,8 @@ def func_rossler_2_dim_params_maker(k_elements_, couplings = (False, True, False
     f_dy_coup_inh = f_connect_inh if couplings_inh[1] else default_f
     f_dz_coup_inh = f_connect_inh if couplings_inh[2] else default_f
 
+    elements = [i for i in range(k_elements)]
+
     def func_rossler_2_dim_params(t, r, w_arr_, a_, tau_ = tau):
         global k_elements, w_arr, a
         k_elements = k_elements_
@@ -202,10 +207,20 @@ def func_rossler_2_dim_params_maker(k_elements_, couplings = (False, True, False
         a = a_
         res_arr = []
 
-        for i in range(k_elements):
+        for i in elements:
             # x_i = r[i*k]
             # y_i = r[i*k + 1]
             # z_i = r[i*k + 2]
+
+            if couplings[2]:
+                if calc_distance_3d(i, r) > 10000:
+                    # elements.remove(i)
+                    # print('remove', i)
+                    # continue
+                    res_arr.append(0)
+                    res_arr.append(0)
+                    res_arr.append(0)
+                    continue
 
             dx = tau_ * func_dx(i, r, f_dx_coup, T, w_arr, connect_f_inh=f_dx_coup_inh)
             dy = tau_ * func_dy(i, r, f_dy_coup, T, w_arr, connect_f_inh=f_dy_coup_inh)
