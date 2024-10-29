@@ -41,7 +41,9 @@ def save_IC_and_w(IC, w, path, _k_elements = k_elements, _radius = s.radius, T =
     with open(path, 'w') as f:
         print(_k_elements, file=f)
         for i in range(_k_elements):
-            print(IC[i*k], IC[i*k+1], IC[i*k+2], file=f)
+            for param in range(k):
+                print(IC[i*k + param], file=f, end='\t')
+            print('', file=f)
 
         print(w, file=f)
         print('a: ', a, file=f)

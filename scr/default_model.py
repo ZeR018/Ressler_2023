@@ -27,6 +27,8 @@ if s.exps_type == 'grid':
 else:
     k_elements = s.k_elements
 
+min_radius = 1.
+
 ####################################################### Grid functions ##################################################################
 
 def calc_distance_3d(i, r):
@@ -123,8 +125,13 @@ def func_rossler_3_dim(t, r, w_arr_, a_, tau_ = tau):
 ####################################################### Posledovatelnoye ##################################################################
 
 # Функция включения связи между двумя агентами
-def d(_T, _radius, x_i, x_j, y_i, y_j):
-    if (x_i - x_j)**2 + (y_i - y_j)**2 < _radius**2:
+def d(_T, _radius, x_i, x_j, y_i, y_j, min_radius = 0.):
+    dist = (x_i - x_j)**2 + (y_i - y_j)**2
+    if dist < _radius**2:
+        if min_radius != 0.:
+            if dist < min_radius:
+                return 0
+            
         return _T
     else:
         return 0
@@ -151,7 +158,7 @@ def f_connect_st(i, r, _T, perem = 'y'):
     summ = 0
     for j in range(k_elements):
         if j != i:
-            summ += d(_T, radius, r[j*k], r[i*k], r[j*k+1], r[i*k+1]) * (r[j*k + p_shift] - r[i*k + p_shift])
+            summ += d(_T, radius, r[j*k], r[i*k], r[j*k+1], r[i*k+1], min_radius=min_radius) * (r[j*k + p_shift] - r[i*k + p_shift])
     return summ
 
 def f_connect_inh(i, r, _T, perem = 'y'):
@@ -169,8 +176,8 @@ def f_connect_inh(i, r, _T, perem = 'y'):
     return summ
 
 def func_rossler_2_dim(t, r, w_arr_, a_, tau_ = tau):
+    print(f'\033[F\033[KCurrent integrate time: {round(t, 1)};', f'last update time: {mem.hms_now()}')
     global k_elements, w_arr, a
-    print(k_elements)
     w_arr = w_arr_
     a = a_
     res_arr = []

@@ -8,6 +8,7 @@ import time
 import joblib
 from matplotlib.animation import ArtistAnimation
 
+
 def one_exp_couplings(IC, w_arr, a, isSolo = True, couplings = (False, True, False), 
                       k_elements = s.k_elements, t_max = s.t_max, tau = s.tau, small_animation = True):
 
@@ -58,9 +59,21 @@ def one_exp_couplings(IC, w_arr, a, isSolo = True, couplings = (False, True, Fal
             animation_name = path_save + '/grid_agents_new'
             animation.save(animation_name + '.gif', writer='pillow')
 
+        plt.figure(figsize=[10, 6])
+        start = np.searchsorted(ts, 50, side='left')
+        end = np.searchsorted(ts, 100, side="left")
+        for agent in range(k_elements):
+            plt.plot(ts[start:end], xs[agent][start:end], color=plot_colors[agent], label=f'agent {agent+1}')
+        plt.grid()
+        plt.ylim(-20, 20)
+        plt.xlabel('t')
+        plt.ylabel('x')
+        plt.legend()
+        plt.savefig(path_save + '/xt_final.png')
+
     return 0
 
-k_elements = 20
+k_elements = 10
 a = 0.22
 IC_fname = 'series_IC_20_20.txt'
 IC_index = 0

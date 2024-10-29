@@ -44,19 +44,16 @@ def calc_phi_and_omega(xs, ys, zs, ts, w, a, step = 250):
 
 
 def find_synchronization_time(xs, ys, zs, ts, w_arr, a):
-    phi = [[] for i in range(k_elements)]
-    omega = [[] for i in range(k_elements)]
-    omega_new = [[] for i in range(k_elements)]
+    phi = []
+    omega_new = []
     step = 250
 
     for agent in range(k_elements):
         phi_agent, omega_agent, omega_mean_agent = calc_phi_and_omega(xs[agent], ys[agent], zs[agent], 
                                                                       ts, w_arr[agent], a, step)
-
+        phi.append(phi_agent)
+        omega_new.append(omega_mean_agent)
     size = len(ts)
-    
-    phi = [[] for i in range(k_elements)]
-    omega = [[] for i in range(k_elements)]
 
     fig = plt.figure(figsize=(60, 50))
     for agent in range(k_elements):
@@ -250,7 +247,7 @@ def experiments_series_depend_a_tau_parallel(a, n_exps_in_one_cycle = 100,
     else:
         print('')
 
-def solo_experiment_depend_a_tau_p_2dim(a, w_arr, IC_arr, index = 0, isSolo = False, tau = s.tau, path_save = './data/temp/'):
+def solo_experiment_depend_a_tau_p_2dim(a, w_arr, IC_arr, index = 0, isSolo = False, tau = s.tau, path_save = './data/temp/', find_sync_time = True):
     # IC
     IC = IC_arr[index]
 
@@ -524,4 +521,6 @@ def parallel_series(tau_arr, a_arr = [0.16, 0.22, 0.28], IC_file_name = 'series_
             exp_series_dep_a_tau_p_2dim(s.a, 1000, IC_file_name, tau=tau)
 
 # print(np.arange(0.3, 0.30001, 0.0001)[0:-1])
-omega_a_experiment_p(a_inform=(0.15, 0.3, 0.001))
+# omega_a_experiment_p(a_inform=(0.15, 0.3, 0.001))
+
+series_solo(a_arr=[0.22])
