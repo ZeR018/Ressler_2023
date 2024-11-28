@@ -627,3 +627,21 @@ def read_times_series_experiments(path, new_value_for_nsl = 550, look_at_nsl = T
                 value = new_value_for_nsl
         res.append(value)
     return res
+
+def make_dirs_lorenz_exps(dir_name_suffix):
+    date = str(datetime.now().date())
+    time = hms_now().replace(':', '.')
+
+    suffix = ' ' + dir_name_suffix if dir_name_suffix != '' else ''
+    new_dir = s.grid_experiments_path + date + ' ' + time + suffix
+    os.mkdir(new_dir)
+
+    # директория для xt
+    xt_dir = f'{new_dir}/xt'
+    os.mkdir(xt_dir)
+
+    # Директория для dist(t)
+    dists_dir = f'{new_dir}/dists'
+    os.mkdir(dists_dir)
+
+    return new_dir, xt_dir, dists_dir

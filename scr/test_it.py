@@ -93,6 +93,8 @@ def change_all_hists_in_dir():
     except Exception as e:
         print('Hists dir is already exists')
 
+    
+    fig, axs = plt.subplots(7, 3, figsize=(12, 15))
     for i in range(len(times_paths)):
         # print(times_paths[i], tau_dirs_values[i], a_dirs_values[i], n_exp_dirs_values[i])
         times_of_sync = mem.read_times_series_experiments(times_paths[i], look_at_nsl=False)
@@ -100,6 +102,9 @@ def change_all_hists_in_dir():
             if times_of_sync[ti] == -10:
                 times_of_sync[ti] = 520
 
+        # a, tau
+        a_needed = {'016': 0, '022': 1, '028': 2}
+        tau_needed = {'01': 0, '05': 1, '1': 2, '2': 3, '5': 4, '10': 5, '20': 6}
         
         # probability theory
         mean = np.mean(times_of_sync)
@@ -112,17 +117,48 @@ def change_all_hists_in_dir():
             print(f'median: {median}', file=f)
 
         # plot
-        plt.figure()
+        # plt.figure(figsize=[4,3])
+        plt.subplots_adjust(left=0.085, right=0.99, top=0.99, bottom=0.055)
+        fig.supxlabel('Время синхронизации', fontsize=14)
+        fig.supylabel('Число синхронизаций', fontsize=14)
+        # plt.margins(x=0.1, y=0.1)
         h = np.append(np.arange(0, 520, 20), 550)
+
         colors = ['#E69F00', '#56B4E9', '#F0E442', '#009E73', '#D55E00']
-        n, bins, patches = plt.hist(times_of_sync, h, edgecolor='darkblue')
-        plt.xlim(-10, 530)
-        plt.xlabel('Время синхронизации')
-        plt.ylabel('Число синхронизаций')
-        plt.title(f'mean = {round(mean, 2)}, d = {round(sigma, 2)}, median = {round(median, 2)}')
+        ind = tau_needed[tau_dirs_values[i]]
+        jnd = a_needed[a_dirs_values[i][1:]]
+        ax = axs[ind, jnd]
+        n, bins, patches = ax.hist(times_of_sync, h, edgecolor='darkblue')
+        ax.set_xlim(-10, 530)
+        # plt.xlabel('Время синхронизации')
+        # plt.ylabel('Число синхронизаций')
+        # plt.title(f'mean = {round(mean, 2)}, d = {round(sigma, 2)}, median = {round(median, 2)}')
+
+        if ind == 6:
+            if jnd == 0:
+                ax.set_xlabel('a = 0.16', fontweight='semibold', fontstyle='italic')
+            if jnd == 1:
+                ax.set_xlabel('a = 0.22', fontweight='semibold', fontstyle='italic')
+            if jnd == 2:
+                ax.set_xlabel('a = 0.28', fontweight='semibold', fontstyle='italic')
+        if jnd == 0:
+            if ind == 0:
+                ax.set_ylabel('\u03C4 = 0.1', fontweight='semibold', fontstyle='italic')
+            if ind == 1:
+                ax.set_ylabel('\u03C4 = 0.5', fontweight='semibold', fontstyle='italic')
+            if ind == 2:
+                ax.set_ylabel('\u03C4 = 1', fontweight='semibold', fontstyle='italic')
+            if ind == 3:
+                ax.set_ylabel('\u03C4 = 2', fontweight='semibold', fontstyle='italic')
+            if ind == 4:
+                ax.set_ylabel('\u03C4 = 5', fontweight='semibold', fontstyle='italic')
+            if ind == 5:
+                ax.set_ylabel('\u03C4 = 10', fontweight='semibold', fontstyle='italic')
+            if ind == 6:
+                ax.set_ylabel('\u03C4 = 20', fontweight='semibold', fontstyle='italic')
         
-        plt.savefig(f'{new_hists_dir}/hist_{a_dirs_values[i]}_{tau_dirs_values[i]}_{n_exp_dirs_values[i]}.png')
-        plt.close()
+    plt.savefig(f'{new_hists_dir}/all_hists.png')
+    plt.close()
 
 
 
@@ -139,8 +175,8 @@ def change_time_220_in_file_and_compress():
             print(times_of_sync[ti], file=f)
 
 
-# change_all_hists_in_dir()
-change_time_220_in_file_and_compress()
+change_all_hists_in_dir()
+# change_time_220_in_file_and_compress()
 
 
 # shapes = [

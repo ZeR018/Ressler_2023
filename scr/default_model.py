@@ -31,11 +31,11 @@ min_radius = 1.
 
 ####################################################### Grid functions ##################################################################
 
-def calc_distance_3d(i, r):
-    return np.sqrt(r[i*k]**2 + r[i*k + 1]**2 + r[i*k + 2]**2)
+def calc_norm_inf(i, r):
+    return max(r[i*k], r[i*k+1], r[i*k+2])
 
 # Стандартная (если связи по какой-то переменной нет)
-def default_f(index, r, T_, p):
+def default_f(index, r, T_, perem = 'y', k = s.k, k_elements = k_elements, radius=radius):
     return 0
 
 def func_connect_y_grid(index, r, _T):
@@ -86,18 +86,17 @@ def d_3dim(_T, _radius, x_i, x_j, y_i, y_j, z_i, z_j):
 # Функции правой части
 # По x
 def func_dx(i, r, connect_f=default_f, _T=s.T, w_arr = w_arr, connect_f_inh = default_f):
-    return - w_arr[i] * r[i*k + 1] - r[i*k + 2] + connect_f(i, r, _T, 'x') + connect_f_inh(i, r, _T, 'x')
+    return - w_arr[i] * r[i*k + 1] - r[i*k + 2] + connect_f(i, r, _T, 'x', k_elements=k_elements) + connect_f_inh(i, r, _T, 'x')
 
 
 # По y.
 def func_dy(i, r, connect_f=default_f, _T=s.T, w_arr = w_arr, connect_f_inh = default_f):
-    return w_arr[i] * r[i*k] + a * r[i*k + 1] + connect_f(i, r, _T, 'y') + connect_f_inh(i, r, _T, 'y')
+    return w_arr[i] * r[i*k] + a * r[i*k + 1] + connect_f(i, r, _T, 'y', k_elements=k_elements) + connect_f_inh(i, r, _T, 'y')
 
 
 # По z
 def func_dz(i, r, connect_f=default_f, _T = s.T, connect_f_inh = default_f):
-    return b + r[i*k + 2] * (r[i*k] - c) + connect_f(i, r, _T, 'z') + connect_f_inh(i, r, _T, 'z')
-
+    return b + r[i*k + 2] * (r[i*k] - c) + connect_f(i, r, _T, 'z', k_elements=k_elements) + connect_f_inh(i, r, _T, 'z')
 
 def func_rossler_3_dim(t, r, w_arr_, a_, tau_ = tau):
     # print(f'\033[F\033[KCurrent integrate time: {round(t, 1)};', f'last update time: {mem.hms_now()}')
@@ -146,7 +145,7 @@ def f_connect_x_repulsive(i, r, _T, perem = 'x'):
             
     return summ1 + summ2
 
-def f_connect_st(i, r, _T, perem = 'y'):
+def f_connect_st(i, r, _T, perem = 'y', k=s.k, k_elements=k_elements, radius = s.radius):
     if perem == 'z':
         p_shift = 2
     if perem == 'x':
@@ -154,11 +153,11 @@ def f_connect_st(i, r, _T, perem = 'y'):
     else:
         p_shift = 1
 
-
     summ = 0
     for j in range(k_elements):
         if j != i:
             summ += d(_T, radius, r[j*k], r[i*k], r[j*k+1], r[i*k+1], min_radius=min_radius) * (r[j*k + p_shift] - r[i*k + p_shift])
+    # print(f'coup {perem}, sum={round(summ, 2)}')
     return summ
 
 def f_connect_inh(i, r, _T, perem = 'y'):
@@ -205,22 +204,23 @@ def func_rossler_2_dim_params_maker(k_elements_, couplings = (False, True, False
     f_dy_coup_inh = f_connect_inh if couplings_inh[1] else default_f
     f_dz_coup_inh = f_connect_inh if couplings_inh[2] else default_f
 
-    elements = [i for i in range(k_elements)]
-
     def func_rossler_2_dim_params(t, r, w_arr_, a_, tau_ = tau):
+        if round(t, 3) % 2 == 0:
+            print(t)
         global k_elements, w_arr, a
         k_elements = k_elements_
         w_arr = w_arr_
         a = a_
         res_arr = []
 
-        for i in elements:
+        for i in range(k_elements):
             # x_i = r[i*k]
             # y_i = r[i*k + 1]
             # z_i = r[i*k + 2]
 
+            # Связь по z
             if couplings[2]:
-                if calc_distance_3d(i, r) > 10000:
+                if calc_norm_inf(i, r) > 10000:
                     # elements.remove(i)
                     # print('remove', i)
                     # continue
@@ -240,49 +240,51 @@ def func_rossler_2_dim_params_maker(k_elements_, couplings = (False, True, False
         return res_arr
     return func_rossler_2_dim_params
 
-####################################################### events ##################################################################
+############################################################# Lorenz ################################################################
 
-phi = [[] for i in range(k_elements)]
-omega = [[] for i in range(k_elements)]
-step = 300
-def synchronization_event(t, r, w_arr_, a_, tau_):
-    max_omega_diff = 0.25
+def func_dx_lorenz(i, X, l, c, connect_f = default_f):
+    return l.sigma * (X[i*l.k + 1] - X[i*l.k]) + connect_f(i, X, c.T, 'x', k=l.k, k_elements=c.k_elements, radius=c.radius)
 
-    omega_range_last = []
-    for agent in range(k_elements):
-        x = r[agent*k]
-        y = r[agent*k + 1]
-        z = r[agent*k + 2]
-        w = w_arr[agent]
-        phi_i = np.arctan(( w * x + a * y) / (- w * y - z))
-        phi[agent].append(phi_i)
+def func_dy_lorenz(i, X, l, c, connect_f = default_f):
+    return l.r[i] * X[i*l.k] - X[i*l.k + 1] - X[i*l.k] * X[i*l.k + 2] + connect_f(i, X, c.T, 'y', k=l.k, k_elements=c.k_elements, radius=c.radius)
+
+def func_dz_lorenz(i, X, l, c, connect_f = default_f):
+    return - l.b * X[i*l.k + 2] + X[i*l.k] * X[i * l.k + 1] + connect_f(i, X, c.T, 'z', k=l.k, k_elements=c.k_elements, radius=c.radius)
+
+class Lorenz_params:
+    def __init__(self, sigma = 10, b = 8/3, r = [166.1, 166.12], k = 3):
+        self.k = k
+        self.sigma = sigma
+        self.b = b
+        # self.d = d
+        self.r = r
+
+class Coup_params:
+    def __init__(self, k_elements, radius, T, couplings = (False, False, False)):
+        self.T = T
+        self.k_elements = k_elements
+        self.couplings = couplings
+        self.radius = radius
+
+def func_lorenz_params(l: Lorenz_params, c: Coup_params, tau = 1):
+    f_dx_coup = f_connect_st if c.couplings[0] else default_f
+    f_dy_coup = f_connect_st if c.couplings[1] else default_f
+    f_dz_coup = f_connect_st if c.couplings[2] else default_f
+
+    def func_lorenz(t, X):
+        res_arr = []
+
+        for i in range(c.k_elements):
+            dx = tau * func_dx_lorenz(i, X, l, c, connect_f=f_dx_coup)
+            dy = tau * func_dy_lorenz(i, X, l, c, connect_f=f_dy_coup)
+            dz = tau * func_dz_lorenz(i, X, l, c, connect_f=f_dz_coup)
+
+            res_arr.append(dx)
+            res_arr.append(dy)
+            res_arr.append(dz)
         
-        omega_i_dyddx = - (w*x + a*y) * (-w**2*x-w*a*y-b-z*(x-c))
-        omega_i_ddydx = (-w*y-z) * (-w**2*y-w*z+a*w*x+a**2*y)
-
-        omega_i_zn = (w*y+z)**2 + (w*x + a*y)**2
-        omega[agent].append((omega_i_ddydx + omega_i_dyddx)/omega_i_zn)
-
-        if len(omega) > step:
-            omega_range_last.append(np.mean(omega[agent][-step]))
-        else:
-            return -1
-        
-        # Проверить, что расстояние между всеми агентами меньше 1.5r
-        x0 = r[0]
-        y0 = r[1]
-        z0 = r[2]
-        dist = (np.sqrt((x - x0)**2+ \
-                (y - y0)**2 + (z - z0)**2))
-        if dist > 1.5 * s.radius:
-            return -1
+        return res_arr
     
-    if max(omega_range_last) - min(omega_range_last) > max_omega_diff:
-        return -1
-    
-    print("sync!!!!", t[-1])
-    return 1
-        
-
+    return func_lorenz
 
     

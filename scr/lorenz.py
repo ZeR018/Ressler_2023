@@ -42,9 +42,9 @@ def make_lorenz_experiment():
     IC = [5, 5., 5., 
           1., 1., 1.]
     
-    lorenz_system = lorenz_system_maker(d = 0.1)
+    lorenz_system = lorenz_system_maker(d = 0.5)
     
-    sol = solve_ivp(lorenz_system, [0, 30], IC, 'RK45', rtol=1e-11, atol=1e-11)
+    sol = solve_ivp(lorenz_system, [0, 100], IC, 'RK45', rtol=1e-11, atol=1e-11)
 
     xs1, ys1, zs1, xs2, ys2, zs2 = sol.y
     ts = sol.t

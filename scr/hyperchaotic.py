@@ -5,6 +5,43 @@ from scipy.integrate import solve_ivp
 import time
 import matplotlib.pyplot as plt
 
+def calc_phi_omega_4d(data, a, b, c, d, omega, step = 250):
+    xs, ys, zs, ws, ts = data
+
+    size = len(ts)
+    phi = []
+    Omega = []
+
+    for t in range(size):
+        x = xs[t]
+        y = ys[t]
+        z = zs[t]
+        w = ws[t]
+
+        dx = -omega*y - z
+        dy = omega*x + a*y + w
+        dz = b + x*z
+        dw = -c*z + d*w
+
+        if dx == 0:
+            phi_i = 0
+        else:
+            phi_i = np.arctan(dy/dx)
+
+        ddx = - omega*dy - dz
+        ddy = omega*dx + a*dy + dw
+        omega_i = (ddy*dx - dy*ddx) / (dy**2 + dx**2)
+        
+        phi.append(phi_i)
+        Omega.append(omega_i)
+
+    Omega_mean = []
+    for t in range(step, size, step):
+        Omega_mean.append(np.mean(Omega[t-step:t]))
+
+    return phi, Omega, Omega_mean
+
+
 def dist(data1, data2, k = 4):
     dist = []
 
@@ -27,11 +64,11 @@ class Coup_params:
 def default_f(index, r, T_, p):
     return 0
 
-def func_dx(i, r, omega, k = 4):
-    return - omega[i] * r[i*k + 1] - r[i*k + 2]
+def func_dx(i, r, omega, k = 4, connect_f = default_f, params = None):
+    return - omega[i] * r[i*k + 1] - r[i*k + 2] + connect_f(i, r, params, 'x')
 
 def func_dy(i, r, a, omega, k = 4, connect_f = default_f, params = None):
-    return omega * r[i*k] + a * r[i*k + 1] + r[i*k + 3] + connect_f(i, r, params, 'y')
+    return omega[i] * r[i*k] + a * r[i*k + 1] + r[i*k + 3] + connect_f(i, r, params, 'y')
 
 def func_dz(i, r, b, k = 4):
     return b + r[i*k] * r[i*k + 2]
@@ -39,9 +76,13 @@ def func_dz(i, r, b, k = 4):
 def func_dw(i, r, c, d, k = 4):
     return - c * r[i*k + 2] + d * r[i*k + 3]
 
+
+couplings_on = False
 # Функция включения связи между двумя агентами
 def d(_T, _radius, x_i, x_j, y_i, y_j):
-    if (x_i - x_j)**2 + (y_i - y_j)**2 < _radius**2:
+    global couplings_on
+    if (x_i - x_j)**2 + (y_i - y_j)**2 < _radius**2 or couplings_on:
+        couplings_on = True
         return _T
     else:
         return 0
@@ -61,7 +102,7 @@ def f_connect_st(i, r, params, perem = 'y'):
             summ += d(params.T, params.radius, r[j*k], r[i*k], r[j*k+1], r[i*k+1]) * (r[j*k + p_shift] - r[i*k + p_shift])
     return summ
 
-def func_rossler_4d_params_maker(a, b, c, d, T = 0.3, k_elements = 1, tau = 1, radius = 4., omega = [0.97, 1.03]):
+def func_rossler_4d_params_maker(a, b, c, d, T = 0.3, k_elements = 2, tau = 1, radius = 4., omega = [0.99, 1.01]):
     k = 4
 
     params = Coup_params(T, k_elements, radius, k)
@@ -81,9 +122,12 @@ def func_rossler_4d_params_maker(a, b, c, d, T = 0.3, k_elements = 1, tau = 1, r
             # dw = -c * z_i + d * w_i
 
             dx = func_dx(i, r, omega)
-            dy = func_dy(i, r, a, omega, k, f_connect_st, params)
+            dy = func_dy(i, r, a, omega, k, connect_f=f_connect_st, params=params)
             dz = func_dz(i, r, b)
             dw = func_dw(i ,r, c, d)
+
+            if max(r[i*k], r[i*k+1], r[i*k+2], r[i*k+3]) > 10000:
+                print('Inf', f'T: {t}')
 
             res_arr.append(dx)
             res_arr.append(dy)
@@ -108,31 +152,33 @@ def calculate_dx_dy(xs, ys, zs, ws, a):
 
     return dx, dy
 
-def solo_experiment_4d_rossler():
+def solo_experiment_4d_rossler(T = 0.01):
     # params
     a = 0.25
     b = 3
     c = 0.5
     d = 0.05
+    omega = [0.99, 1.01]
     k_elements = 2
     k = 4
-    T = 0.6
 
     # IC
-    IC = [#-10., 1., 1., 10.,
-        #   -20., 0., 0., 15.,
-        #   -9., 0., 1., 9.5
+    IC = [
+        -7.2, 19.6, 1.3, 30.1,
+        -7.1, 19.5, 1.3, 30.,
+        -10., 1., 1., 10.,
+        -20., 0., 0., 15.,
+        -9., 0., 1., 9.5,
         0., 0., 0., 20.,
-        0., 1., 0., 20.
-          ]
-    print('IC:', IC)
+        0., 1., 0., 20. 
+        ]
 
     # integrate
-    func_rossler_4d_params = func_rossler_4d_params_maker(a, b, c, d, k_elements=k_elements, T = T)
+    func_rossler_4d_params = func_rossler_4d_params_maker(a, b, c, d, k_elements=k_elements, T = T, omega=omega)
 
     start_solve_time = time.time()
     print('Start solve time:', mem.hms_now())
-    sol = solve_ivp(func_rossler_4d_params, [0, 70], IC, method=s.method, rtol=s.toch[0], atol=s.toch[1])
+    sol = solve_ivp(func_rossler_4d_params, [0, 5000], IC[:k*k_elements], method=s.method, rtol=s.toch[0], atol=s.toch[1])
 
     time_after_integrate = time.time()
     print('Integrate time:', time.time() - start_solve_time, 'time:', mem.hms_now())
@@ -154,7 +200,7 @@ def solo_experiment_4d_rossler():
 
     # graphs
 
-    # Пытаемся расположить графики
+    # Двумерные проекции
     gs_kw = dict(width_ratios=[1, 1], height_ratios=[1,1,1])
     fig, axd = plt.subplot_mosaic([['yx', 'yz',],
                                    ['xz', 'yw',],
@@ -176,22 +222,31 @@ def solo_experiment_4d_rossler():
         axd['yz'].plot(zs[agent], ys[agent], color=plot_colors[agent])
         axd['yw'].plot(ws[agent], ys[agent], color=plot_colors[agent])
         axd['wz'].plot(zs[agent], ws[agent], color=plot_colors[agent])
-
+    
     new_dir, data_dir = mem.save_data([], IC, 1, k_elements=k_elements, k=k, dir_name_suffix='4dim', save_int_data=False, T=T)
     fig.savefig(new_dir + '/2d_graphs.png')
     plt.close(fig)
 
-    data_names = ['x', 'y', 'z', 'w']
-    sol_data = [xs, ys, zs, ws]
-    for i, data in enumerate(sol_data):
-        plt.figure(figsize=[6, 4])
-        plt.xlabel('t')
-        plt.grid()
-        plt.ylabel(data_names[i])
-        for agent in range(k_elements):
-            plt.plot(ts, data[agent], color=plot_colors[agent])
-        plt.savefig(new_dir + f'/fig_{data_names[i]}_t.png')
-        plt.close()
+    # Осциллограммы 
+    gs_kw = dict(width_ratios=[1, 1], height_ratios=[1,1])
+    fig, axd = plt.subplot_mosaic([['xt', 'yt',],
+                                   ['zt', 'wt',]],
+                                gridspec_kw=gs_kw, figsize=(12, 8),
+                                layout="constrained")
+    for ax_n in axd:
+        axd[ax_n].grid()
+        axd[ax_n].set_xlabel(ax_n[1])
+        axd[ax_n].set_ylabel(ax_n[0])
+    fig.suptitle('Осциллограммы')
+
+    for agent in range(k_elements):
+        axd['xt'].plot(ts, xs[agent], color=plot_colors[agent])
+        axd['yt'].plot(ts, ys[agent], color=plot_colors[agent])
+        axd['zt'].plot(ts, zs[agent], color=plot_colors[agent])
+        axd['wt'].plot(ts, ws[agent], color=plot_colors[agent])
+
+    fig.savefig(new_dir + '/temporary_implementations.png')
+    plt.close(fig)
 
     if k_elements == 2:
         dist_arr = dist([xs[0], ys[0], zs[0], ws[0]], 
@@ -202,6 +257,22 @@ def solo_experiment_4d_rossler():
         plt.xlabel('t')
         plt.ylabel('Евклидово расстояние между агентами')
         plt.savefig(new_dir + '/dist_png')
+        plt.close()
+
+        # Считаем средние частоты
+        step = 100
+        plt.figure(figsize=[20, 10])
+        for agent in range(k_elements):
+            phi, Omega, Omega_mean = calc_phi_omega_4d((xs[agent], ys[agent], zs[agent], ws[agent], ts), a, b, c, d, omega[agent], step=step)
+            plt.plot(ts[step::step], Omega_mean, label=f'omega {agent}')
+        plt.grid()
+        plt.legend()
+        plt.xlabel('t')
+        plt.ylabel('Среднее Omega')
+        plt.savefig(new_dir + '/Omega_t.png')
+
+    # for agent in range(k_elements):
+    #     print(agent+1, xs[agent][-1], ys[agent][-1], zs[agent][-1], ws[agent][-1])
 
     # dx, dy = calculate_dx_dy(xs, ys, zs, ws, a)
 
@@ -213,5 +284,4 @@ def solo_experiment_4d_rossler():
     # plt.savefig(new_dir + '/fig_dy_dx.png')
     # plt.close()
 
-
-solo_experiment_4d_rossler()
+solo_experiment_4d_rossler(T = 0.0)
