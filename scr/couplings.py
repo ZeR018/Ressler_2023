@@ -134,7 +134,7 @@ def series_lorenz_dist_agents(IC, T_arr, couplings = (False, True, False),
         print(f'T = {T:.3f}', 'Start solve time:', mem.hms_now())
 
         c = Coup_params(k_elements=k_elements, radius=radius, T = T, couplings=couplings)
-        r = [166.1, 166.1]
+        r = [166.1, 166.12, 166.14, 166.16, 166.18]
         # r = [28, 28.05, 28.1, 28.12, 28.15]
         l = Lorenz_params(r=r)
         func_rhs = func_lorenz_params(l, c)
@@ -217,13 +217,13 @@ def series_lorenz_dist_agents(IC, T_arr, couplings = (False, True, False),
     plt.grid()
     plt.xlabel('t')
     plt.ylabel('Расст. между агентами')
-    plt.semilogx()
+    # plt.semilogx()
     plt.title('Зависимость расстояния между агентами от T')
     plt.savefig(dir + f'/dist_t.png')
     plt.close()
 
         
-k_elements = 2
+k_elements = 5
 a = 0.22
 IC_fname = 'series_IC_20_20.txt'
 IC_index = 0
@@ -235,4 +235,7 @@ IC = IC_arr[IC_index][:k_elements*s.k]
 
 # one_exp_couplings(IC, w_arr, a, couplings=(0, 0, 1), k_elements=k_elements, t_max=1000, tau=1, small_animation=False, system = 'rossler')
 
-series_lorenz_dist_agents(IC, np.logspace(-2, 1, num=31), k_elements=k_elements, t_max=1000, couplings=(0, 1, 0), radius=200)
+# T_arr = np.logspace(-2, 1, num=31)
+T_arr = np.arange(4., 6., 0.2)
+series_lorenz_dist_agents(IC, T_arr, k_elements=k_elements, t_max=500, couplings=(0, 1, 0), radius=100)
+# T = 5
