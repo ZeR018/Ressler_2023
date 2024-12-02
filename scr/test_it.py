@@ -94,8 +94,9 @@ def change_all_hists_in_dir():
         print('Hists dir is already exists')
 
     
-    fig, axs = plt.subplots(7, 3, figsize=(12, 15))
+    fig, axs = plt.subplots(5, 3, figsize=(16, 19))
     for i in range(len(times_paths)):
+
         # print(times_paths[i], tau_dirs_values[i], a_dirs_values[i], n_exp_dirs_values[i])
         times_of_sync = mem.read_times_series_experiments(times_paths[i], look_at_nsl=False)
         for ti in range(len(times_of_sync)):
@@ -105,6 +106,13 @@ def change_all_hists_in_dir():
         # a, tau
         a_needed = {'016': 0, '022': 1, '028': 2}
         tau_needed = {'01': 0, '05': 1, '1': 2, '2': 3, '5': 4, '10': 5, '20': 6}
+
+        ind = tau_needed[tau_dirs_values[i]]
+        jnd = a_needed[a_dirs_values[i][1:]]
+
+        # Пропускаем tau = 10, 20
+        if ind == 5 or ind == 6:
+            continue
         
         # probability theory
         mean = np.mean(times_of_sync)
@@ -119,43 +127,44 @@ def change_all_hists_in_dir():
         # plot
         # plt.figure(figsize=[4,3])
         plt.subplots_adjust(left=0.085, right=0.99, top=0.99, bottom=0.055)
-        fig.supxlabel('Время синхронизации', fontsize=14)
-        fig.supylabel('Число синхронизаций', fontsize=14)
+        fig.supxlabel(r'$T_n$', fontsize=20)
+        fig.supylabel(r'$C_n$', fontsize=20)
         # plt.margins(x=0.1, y=0.1)
         h = np.append(np.arange(0, 520, 20), 550)
 
         colors = ['#E69F00', '#56B4E9', '#F0E442', '#009E73', '#D55E00']
-        ind = tau_needed[tau_dirs_values[i]]
-        jnd = a_needed[a_dirs_values[i][1:]]
         ax = axs[ind, jnd]
         n, bins, patches = ax.hist(times_of_sync, h, edgecolor='darkblue')
         ax.set_xlim(-10, 530)
+        # ax.set_xticks(fontsize = 15)
+        # ax.set_yticks(fontsize=15)
+        ax.tick_params(axis='both', labelsize=14)
         # plt.xlabel('Время синхронизации')
         # plt.ylabel('Число синхронизаций')
         # plt.title(f'mean = {round(mean, 2)}, d = {round(sigma, 2)}, median = {round(median, 2)}')
 
-        if ind == 6:
+        if ind == 4:
             if jnd == 0:
-                ax.set_xlabel('a = 0.16', fontweight='semibold', fontstyle='italic')
+                ax.set_xlabel('a = 0.16', fontweight='semibold', fontstyle='italic',fontsize=17)
             if jnd == 1:
-                ax.set_xlabel('a = 0.22', fontweight='semibold', fontstyle='italic')
+                ax.set_xlabel('a = 0.22', fontweight='semibold', fontstyle='italic',fontsize=17)
             if jnd == 2:
-                ax.set_xlabel('a = 0.28', fontweight='semibold', fontstyle='italic')
+                ax.set_xlabel('a = 0.28', fontweight='semibold', fontstyle='italic',fontsize=17)
         if jnd == 0:
             if ind == 0:
-                ax.set_ylabel('\u03C4 = 0.1', fontweight='semibold', fontstyle='italic')
+                ax.set_ylabel('\u03C4 = 0.1', fontweight='semibold', fontstyle='italic',fontsize=17)
             if ind == 1:
-                ax.set_ylabel('\u03C4 = 0.5', fontweight='semibold', fontstyle='italic')
+                ax.set_ylabel('\u03C4 = 0.5', fontweight='semibold', fontstyle='italic',fontsize=17)
             if ind == 2:
-                ax.set_ylabel('\u03C4 = 1', fontweight='semibold', fontstyle='italic')
+                ax.set_ylabel('\u03C4 = 1', fontweight='semibold', fontstyle='italic',fontsize=17)
             if ind == 3:
-                ax.set_ylabel('\u03C4 = 2', fontweight='semibold', fontstyle='italic')
+                ax.set_ylabel('\u03C4 = 2', fontweight='semibold', fontstyle='italic',fontsize=17)
             if ind == 4:
-                ax.set_ylabel('\u03C4 = 5', fontweight='semibold', fontstyle='italic')
+                ax.set_ylabel('\u03C4 = 5', fontweight='semibold', fontstyle='italic',fontsize=17)
             if ind == 5:
-                ax.set_ylabel('\u03C4 = 10', fontweight='semibold', fontstyle='italic')
+                ax.set_ylabel('\u03C4 = 10', fontweight='semibold', fontstyle='italic',fontsize=17)
             if ind == 6:
-                ax.set_ylabel('\u03C4 = 20', fontweight='semibold', fontstyle='italic')
+                ax.set_ylabel('\u03C4 = 20', fontweight='semibold', fontstyle='italic',fontsize=17)
         
     plt.savefig(f'{new_hists_dir}/all_hists.png')
     plt.close()
