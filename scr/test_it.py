@@ -126,9 +126,9 @@ def change_all_hists_in_dir():
 
         # plot
         # plt.figure(figsize=[4,3])
-        plt.subplots_adjust(left=0.085, right=0.99, top=0.99, bottom=0.055)
-        fig.supxlabel(r'$T_n$', fontsize=20)
-        fig.supylabel(r'$C_n$', fontsize=20)
+        plt.subplots_adjust(left=0.1, right=0.99, top=0.99, bottom=0.066)
+        fig.supxlabel(r'$T_n$', fontsize=25)
+        fig.supylabel(r'$C_n$', fontsize=25)
         # plt.margins(x=0.1, y=0.1)
         h = np.append(np.arange(0, 520, 20), 550)
 
@@ -138,33 +138,33 @@ def change_all_hists_in_dir():
         ax.set_xlim(-10, 530)
         # ax.set_xticks(fontsize = 15)
         # ax.set_yticks(fontsize=15)
-        ax.tick_params(axis='both', labelsize=14)
+        ax.tick_params(axis='both', labelsize=20)
         # plt.xlabel('Время синхронизации')
         # plt.ylabel('Число синхронизаций')
         # plt.title(f'mean = {round(mean, 2)}, d = {round(sigma, 2)}, median = {round(median, 2)}')
 
         if ind == 4:
             if jnd == 0:
-                ax.set_xlabel('a = 0.16', fontweight='semibold', fontstyle='italic',fontsize=17)
+                ax.set_xlabel('a = 0.16', fontweight='semibold', fontstyle='italic',fontsize=20)
             if jnd == 1:
-                ax.set_xlabel('a = 0.22', fontweight='semibold', fontstyle='italic',fontsize=17)
+                ax.set_xlabel('a = 0.22', fontweight='semibold', fontstyle='italic',fontsize=20)
             if jnd == 2:
-                ax.set_xlabel('a = 0.28', fontweight='semibold', fontstyle='italic',fontsize=17)
+                ax.set_xlabel('a = 0.28', fontweight='semibold', fontstyle='italic',fontsize=20)
         if jnd == 0:
             if ind == 0:
-                ax.set_ylabel('\u03C4 = 0.1', fontweight='semibold', fontstyle='italic',fontsize=17)
+                ax.set_ylabel('\u03C4 = 0.1', fontweight='semibold', fontstyle='italic',fontsize=20)
             if ind == 1:
-                ax.set_ylabel('\u03C4 = 0.5', fontweight='semibold', fontstyle='italic',fontsize=17)
+                ax.set_ylabel('\u03C4 = 0.5', fontweight='semibold', fontstyle='italic',fontsize=20)
             if ind == 2:
-                ax.set_ylabel('\u03C4 = 1', fontweight='semibold', fontstyle='italic',fontsize=17)
+                ax.set_ylabel('\u03C4 = 1', fontweight='semibold', fontstyle='italic',fontsize=20)
             if ind == 3:
-                ax.set_ylabel('\u03C4 = 2', fontweight='semibold', fontstyle='italic',fontsize=17)
+                ax.set_ylabel('\u03C4 = 2', fontweight='semibold', fontstyle='italic',fontsize=20)
             if ind == 4:
-                ax.set_ylabel('\u03C4 = 5', fontweight='semibold', fontstyle='italic',fontsize=17)
+                ax.set_ylabel('\u03C4 = 5', fontweight='semibold', fontstyle='italic',fontsize=20)
             if ind == 5:
-                ax.set_ylabel('\u03C4 = 10', fontweight='semibold', fontstyle='italic',fontsize=17)
+                ax.set_ylabel('\u03C4 = 10', fontweight='semibold', fontstyle='italic',fontsize=20)
             if ind == 6:
-                ax.set_ylabel('\u03C4 = 20', fontweight='semibold', fontstyle='italic',fontsize=17)
+                ax.set_ylabel('\u03C4 = 20', fontweight='semibold', fontstyle='italic',fontsize=20)
         
     plt.savefig(f'{new_hists_dir}/all_hists.png')
     plt.close()

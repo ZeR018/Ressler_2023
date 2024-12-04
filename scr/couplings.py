@@ -8,9 +8,6 @@ import time
 import joblib
 from matplotlib.animation import ArtistAnimation
 
-
-
-
 def one_exp_couplings(IC, w_arr, a, isSolo = True, couplings = (False, True, False), 
                       k_elements = s.k_elements, t_max = s.t_max, tau = s.tau, small_animation = True, system = 'rossler'):
 
@@ -134,8 +131,8 @@ def series_lorenz_dist_agents(IC, T_arr, couplings = (False, True, False),
         print(f'T = {T:.3f}', 'Start solve time:', mem.hms_now())
 
         c = Coup_params(k_elements=k_elements, radius=radius, T = T, couplings=couplings)
-        r = [166.1, 166.12, 166.14, 166.16, 166.18]
-        # r = [28, 28.05, 28.1, 28.12, 28.15]
+        # r = [166.1, 166.12, 166.14, 166.16, 166.18]
+        r = [28, 28.05, 28.1, 28.12, 28.15]
         l = Lorenz_params(r=r)
         func_rhs = func_lorenz_params(l, c)
         sol = solve_ivp(func_rhs, [0, t_max], IC, 
@@ -152,6 +149,9 @@ def series_lorenz_dist_agents(IC, T_arr, couplings = (False, True, False),
             ys.append(sol.y[i*k+1])
             zs.append(sol.y[i*k+2])
         ts = sol.t
+
+        if len(T_arr) == 1:
+            mem.save_integration_data([xs, ys, zs, ts], dir + '/integration_data.txt', _k_elements=k_elements)
 
         plot_colors = mem.make_colors(k_elements)
 
@@ -236,6 +236,7 @@ IC = IC_arr[IC_index][:k_elements*s.k]
 # one_exp_couplings(IC, w_arr, a, couplings=(0, 0, 1), k_elements=k_elements, t_max=1000, tau=1, small_animation=False, system = 'rossler')
 
 # T_arr = np.logspace(-2, 1, num=31)
-T_arr = np.arange(4., 6., 0.2)
+# T_arr = np.arange(4., 6., 0.2)
+T_arr = [4]
 series_lorenz_dist_agents(IC, T_arr, k_elements=k_elements, t_max=500, couplings=(0, 1, 0), radius=100)
 # T = 5
