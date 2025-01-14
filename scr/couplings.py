@@ -223,7 +223,9 @@ def series_lorenz_dist_agents(IC, T_arr, couplings = (False, True, False),
     plt.close()
 
         
-k_elements = 5
+k_elements = 3
+# a_arr = [0.162, 0.202, 0.224]
+# a = a_arr[0]
 a = 0.22
 IC_fname = 'series_IC_20_20.txt'
 IC_index = 0
@@ -233,10 +235,10 @@ IC = IC_arr[IC_index][:k_elements*s.k]
 # IC = mem.generate_random_IC_ressler(5, 5, 1, k_elements)
 # w_arr = []
 
-# one_exp_couplings(IC, w_arr, a, couplings=(0, 0, 1), k_elements=k_elements, t_max=1000, tau=1, small_animation=False, system = 'rossler')
+one_exp_couplings(IC, w_arr, a, couplings=(0, 0, 1), k_elements=k_elements, t_max=1000, tau=1, small_animation=False, system = 'rossler')
 
 # T_arr = np.logspace(-2, 1, num=31)
 # T_arr = np.arange(4., 6., 0.2)
-T_arr = [4]
-series_lorenz_dist_agents(IC, T_arr, k_elements=k_elements, t_max=500, couplings=(0, 1, 0), radius=100)
+# T_arr = [4]
+# series_lorenz_dist_agents(IC, T_arr, k_elements=k_elements, t_max=500, couplings=(0, 1, 0), radius=100)
 # T = 5

@@ -20,7 +20,7 @@ def lorenz_new_maker(sigma = 10, b = 8/3, r = 166.1):
         return [dx, dy, dz]
     return rhs
 
-def ressler_default_maker(a=0.16, b=0.1, c=8.5):
+def ressler_default_maker(a=0.22, b=0.1, c=8.5):
     def rhs(t, X):
         x, y, z = X
         dx = -y - z
@@ -30,7 +30,7 @@ def ressler_default_maker(a=0.16, b=0.1, c=8.5):
     return rhs
 
 def make_xt_attractors():
-    system = 2
+    system = 3
     if system == 1 or system == 4:
         ic = lorenz_default_IC = [5, 1, 25] # 50
         lim = lorenz_default_lim = 30
@@ -51,7 +51,7 @@ def make_xt_attractors():
     ts = sol.t
 
     plt.figure(figsize=[4, 4])
-    plt.subplots_adjust(left=0.22, right=0.95, top=0.960, bottom=0.2)
+    plt.subplots_adjust(left=0.26, right=0.97, top=0.960, bottom=0.19)
     if system == 3:
         plt.plot(xs, ys)
         plt.xlabel('x', fontsize=25)
@@ -85,9 +85,9 @@ def make_xt_attractors():
     
     # plt.xlim(0, lim)
     # plt.grid()
-    # plt.axis('equal')
-    # plt.xticks([0, 15, 30], fontsize=20)
-    # plt.yticks([50, 25, 0], fontsize=20)
+    plt.axis('equal')
+    plt.xticks([-10, 0, 10], fontsize=20)
+    plt.yticks([-10, 0, 10], fontsize=20)
 
     plt.show()
 

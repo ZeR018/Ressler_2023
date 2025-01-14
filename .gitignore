@@ -2,6 +2,8 @@
 # Ignore dynaconf secret files
 .secrets.*
 /data/grid_experiments
+/data/saved_graphs
 /data/gif
 /Диженин код
 /Отчеты
+/saved_graphs

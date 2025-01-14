@@ -1,4 +1,4 @@
-from default_model import func_rossler_3_dim, synchronization_event, func_rossler_2_dim, func_rossler_2_dim_params_maker
+from default_model import func_rossler_3_dim, func_rossler_2_dim, func_rossler_2_dim_params_maker
 from scipy.integrate import solve_ivp
 import settings as s
 from matplotlib import pyplot as plt
@@ -134,7 +134,7 @@ def solo_experiment_depend_a_tau_p(a, w_arr, IC_arr, index = 0, isSolo = False, 
     start_solve_time = time.time()
     print('Start solve time:', mem.hms_now())
     sol = solve_ivp(func_rossler_3_dim, [0, t_max], IC, args=(w_arr, a, tau), 
-                    rtol=s.toch[0], atol=s.toch[1], method=s.method, events=synchronization_event)
+                    rtol=s.toch[0], atol=s.toch[1], method=s.method)
     
     time_after_integrate = time.time()
     print('Integrate time:', time.time() - start_solve_time, 'time:', mem.hms_now())
@@ -397,8 +397,8 @@ def one_elem_omega_a_existance(a, w, IC, k_elements, t_max = s.t_max, tau = s.ta
     return a, [xs, ys, zs, ts]
 
 # 1 agent, grapg omega(a)
-def omega_a_experiment_p(IC_fname = 'series_IC_1000_10(1).txt', IC_index = (0, 0), a_inform = (0.15, 0.3, 0.01), w = 1.02, tau = 1):
-    start_a, stop_a, step_a = a_inform
+def omega_a_experiment_p(IC_fname = 'series_IC_1000_10(1).txt', IC_index = (0, 0), a_linspace_params = (0.15, 0.3, 0.01), w = 1.02, tau = 1):
+    start_a, stop_a, step_a = a_linspace_params
     a_arr = np.arange(start_a, stop_a + step_a, step_a)
     num_exps = len(a_arr)
 
@@ -414,6 +414,7 @@ def omega_a_experiment_p(IC_fname = 'series_IC_1000_10(1).txt', IC_index = (0, 0
     num_batches = - 1 * num_exps // n_streams * - 1 # число пачек экспериментов (число вызова existance)
     batch_step_a = step_a * n_streams
 
+    a_arr_new = []
     for exp in range(num_batches):
         a_arr_exp = None
         start = start_a + exp * batch_step_a
@@ -472,13 +473,19 @@ def omega_a_experiment_p(IC_fname = 'series_IC_1000_10(1).txt', IC_index = (0, 0
             plt.close()
 
             # Выкидываем первые 100 точек - считаем их переходным процессом
-            omega_mean_a.append(np.mean(omega[100:]))
+            start = np.searchsorted(ts, 100)
+            omega_mean_a.append(np.mean(omega[start:]))
+
+            a_arr_new.append(a)
+
+    with open(figs_dir + 'omegas.txt', 'w') as f:
+        print(omega_mean_a, file=f)
     
-    plt.plot(a_arr, omega_mean_a)
+    plt.plot(a_arr_new, omega_mean_a)
     plt.grid()
     plt.xlabel('a')
-    plt.ylabel('omega')
-    plt.title('Финальная зависимость omega(a)')
+    plt.ylabel(r'$\Omega$')
+    # plt.title('Финальная зависимость omega(a)')
     plt.savefig(figs_dir + '/omega_a.png')
     plt.close()
 
@@ -505,7 +512,7 @@ def omega_a_experiment_p(IC_fname = 'series_IC_1000_10(1).txt', IC_index = (0, 0
 #path = mem.generate_and_write_series_IC((5., 5., 1.), n_exps=1000, k_elements=k_elements)
 
 #Solo experiment
-def series_solo(a_arr = [0.16, 0.22, 0.28], range_ = range(1, 100), IC_path = 'series_IC_1000_10(1).txt'):
+def series_solo(a_arr = [0.162, 0.202, 0.224], range_ = range(1, 100), IC_path = 'series_IC_1000_10(1).txt'):
     IC_arr, w_arr = mem.read_series_IC(s.temporary_path + IC_path)
     for i in range_:
         print('Exp', i, '---------------------------------------------')
@@ -514,13 +521,13 @@ def series_solo(a_arr = [0.16, 0.22, 0.28], range_ = range(1, 100), IC_path = 's
             synchronization_time, _, fig = solo_experiment_depend_a_tau_p_2dim(s.a, w_arr, IC_arr, index=i, isSolo=True)
             print(' ', 'Sync time:', synchronization_time, f'a = {s.a}')
 
-# Parallel series
-def parallel_series(tau_arr, a_arr = [0.16, 0.22, 0.28], IC_file_name = 'series_IC_1000_10(1).txt'):
-    for a in a_arr:
-        for tau in tau_arr:
-            exp_series_dep_a_tau_p_2dim(s.a, 1000, IC_file_name, tau=tau)
+# # Parallel series
+# def parallel_series(tau_arr, a_arr = [0.16, 0.22, 0.28], IC_file_name = 'series_IC_1000_10(1).txt'):
+#     for a in a_arr:
+#         for tau in tau_arr:
+#             exp_series_dep_a_tau_p_2dim(s.a, 1000, IC_file_name, tau=tau)
 
 # print(np.arange(0.3, 0.30001, 0.0001)[0:-1])
-# omega_a_experiment_p(a_inform=(0.15, 0.3, 0.001))
+# omega_a_experiment_p(a_linspace_params=(0.15, 0.3, 0.001), IC_index = (0, 1))
 
-series_solo(a_arr=[0.22])
+series_solo()
