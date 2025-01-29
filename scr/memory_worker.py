@@ -4,6 +4,7 @@ import settings as s
 from matplotlib import pyplot as plt
 import numpy as np
 from random import uniform
+from collections import deque
 
 stopping_borded_work = s.stopping_borded_work
 stopping_border_radius  = s.stopping_border_radius
@@ -187,7 +188,7 @@ def make_dir_for_series_experiments(w, a, n_exps, IC_file_name, dop_names = {}, 
 
     return new_dir, figs_dir, times_dir
 
-def make_frames_grid_agents(xs_arr, ys_arr, plot_colors, _k_elements = k_elements, frames_step = 60, deleted_elems = [], lims = []):
+def make_frames_grid_agents(xs_arr, ys_arr, ts_arr, plot_colors, _k_elements = k_elements, frames_step = 60, deleted_elems = [], lims = []):
 
     fig = plt.figure(figsize=[12,12])
     ax = fig.add_subplot()
@@ -206,6 +207,9 @@ def make_frames_grid_agents(xs_arr, ys_arr, plot_colors, _k_elements = k_element
 
     for i in range(0, num_frames, frames_step):
         frame = []
+
+        title = ax.text(0.5, 1.05, f'Time: {ts_arr[i]:0.1f}', ha='center', va='center', transform=ax.transAxes)
+        frame.append(title)
 
         for agent in range(_k_elements):
             if deleted_elems.count(agent) > 0:
@@ -236,6 +240,62 @@ def make_frames_grid_agents(xs_arr, ys_arr, plot_colors, _k_elements = k_element
     
     return frames, fig
 
+def make_frames_n(xs_arr, ys_arr, ts_arr, plot_colors, _k_elements = k_elements, t_step = 0.1, num_prevs_elems = 10, deleted_elems = [], lims = []):
+    
+    fig = plt.figure(figsize=[12,12])
+    ax = fig.add_subplot()
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
+    ax.grid()
+    fig.suptitle('Сетка мобильных агентов')
+
+    if lims != []:
+        ax.set_xlim(lims[0], lims[1])
+        ax.set_ylim(lims[2], lims[3])
+
+    t_max = round(ts_arr[-1])
+    num_frames = int(t_max / t_step)
+
+    frames = []
+
+    # Заполняем очередь 
+    i_prevs = deque()
+    for i in range(num_prevs_elems):
+        i_prevs.append(0)
+
+    for ind in range(num_frames):
+        t_i = t_step * (ind + 1)
+        i = np.searchsorted(ts_arr, t_i)
+        i_prev = i_prevs.popleft()
+
+        frame = []
+        title = ax.text(0.5, 1.05, f'Time: {ts_arr[i]:0.1f} / {t_max}', ha='center', va='center', transform=ax.transAxes)
+        frame.append(title)
+
+        for agent in range(_k_elements):
+            if deleted_elems.count(agent) > 0:
+                continue
+            
+            line, = ax.plot(xs_arr[agent][i_prev:i+1], ys_arr[agent][i_prev:i+1], color=plot_colors[agent])
+            frame.append(line)
+            point = ax.scatter(xs_arr[agent][i], ys_arr[agent][i], color=plot_colors[agent])
+            frame.append(point)
+
+            # Border
+        if stopping_borded_work == True:
+            n_points_circle = 10000
+            x_circle = [ stopping_border_radius * np.cos(2 * np.pi * x / n_points_circle) for x in range(n_points_circle)]
+            y_circle = [ stopping_border_radius * np.sin(2 * np.pi * x / n_points_circle) for x in range(n_points_circle)]
+
+            circle, = ax.plot(x_circle, y_circle, color='gray')
+            frame.append(circle)
+    
+        frames.append(frame)
+        i_prevs.append(i)
+
+    print(f'Frames made, time: {hms_now()}')
+    
+    return frames, fig
 
 def make_colors(_k_elements):
     res_col_arr = []
@@ -249,7 +309,7 @@ def make_colors(_k_elements):
     return res_col_arr
 
 def draw_and_save_graphics_many_agents(xs_arr, ys_arr, ts_arr, path_save_graphs, plot_colors, _k_elements, 
-                                       step_graphs=50, undeleted_elems = [], inform_about_managing_agent = (), mashtab = [], grid=True):
+                                       t_step = 0.1, num_prevs_elems = 5, undeleted_elems = [], inform_about_managing_agent = (), mashtab = [], grid=True):
     # infotm_about_managing_agent
     if inform_about_managing_agent != ():
         xs_managing_agent_arr = xs_arr[-1]
@@ -261,25 +321,38 @@ def draw_and_save_graphics_many_agents(xs_arr, ys_arr, ts_arr, path_save_graphs,
     if undeleted_elems == []:
         undeleted_elems = range(_k_elements)
 
-    num_frames = len(xs_arr[0])
+    t_max = round(ts_arr[-1])
+    num_graphs = int(t_max / t_step)
 
-    for i in range(0+step_graphs, num_frames, step_graphs):
-        plt.figure(figsize=[8,8])
+    i_prevs = deque()
+    for i in range(num_prevs_elems):
+        i_prevs.append(0)
 
-        for agent in range(_k_elements):
+    for ind in range(num_graphs):
+        t_i = t_step * (ind + 1)
+        i = np.searchsorted(ts_arr, t_i)
+        i_prev = i_prevs.popleft()
 
-            if(i < 101):
-                plt.plot(xs_arr[agent][:i+1], ys_arr[agent][:i+1], color=plot_colors[agent])
+        plt.figure(figsize=[5,5])
+
+        try:
+            for agent in range(_k_elements):
+                plt.plot(xs_arr[agent][i_prev:i+1], ys_arr[agent][i_prev:i+1], color=plot_colors[agent])
                 plt.scatter(xs_arr[agent][i], ys_arr[agent][i], color=plot_colors[agent])
-            else:
-                plt.plot(xs_arr[agent][i-100:i+1], ys_arr[agent][i-100:i+1], color=plot_colors[agent])
-                plt.scatter(xs_arr[agent][i], ys_arr[agent][i], color=plot_colors[agent])
+        except Exception as e:
+            print('e:', e)
+            print('ind', ind)
+            print('t_i', t_i)
+            print('i', i)
+            print('last', ts_arr[-1])
+
 
         if mashtab != []:
             plt.xlim(mashtab[0], mashtab[1])
             plt.ylim(mashtab[2], mashtab[3])
         plt.xlabel('x')
         plt.ylabel('y')
+        plt.subplots_adjust(left=0.1, right=0.98, top=0.94, bottom=0.1)
         if grid: plt.grid()
         plt.suptitle(str(i) + ' time: ' + str(round(ts_arr[i], 5)))
 
@@ -300,6 +373,8 @@ def draw_and_save_graphics_many_agents(xs_arr, ys_arr, ts_arr, path_save_graphs,
 
         plt.savefig(path_save_graphs + '/' + '{:05}'.format(i) + '.png')
         plt.close()
+
+        i_prevs.append(i)
 
     return 0
 
@@ -382,7 +457,7 @@ def plot_some_graph_without_grid(dir_path):
 
     plot_colors = make_colors(len(xs))
     draw_and_save_graphics_many_agents(xs, ys, ts, new_dir,
-                                       plot_colors, len(xs), grid=False)
+                                       plot_colors, t_step=0.1, grid=False)
 
     return 0
 
@@ -645,3 +720,6 @@ def make_dirs_lorenz_exps(dir_name_suffix):
     os.mkdir(dists_dir)
 
     return new_dir, xt_dir, dists_dir
+
+def make_dir(path):
+    os.mkdir(path)

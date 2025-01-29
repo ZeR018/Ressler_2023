@@ -227,7 +227,7 @@ def make_experiment_delete_from_grid(k_deleted_elements, pick_type = 'rand', typ
 
     path_save, path_save_graphs = mem.save_data([xs, ys, zs, ts], IC, w, [fig, fig_last], ['fig_graphs', 'fig_last_state'], deleted_elems=deleted_elems)
 
-    mem.draw_and_save_graphics_many_agents(xs, ys, ts, path_save_graphs, plot_colors, k_elements, 100, undeleted_elems)
+    mem.draw_and_save_graphics_many_agents(xs, ys, ts, path_save_graphs, plot_colors, k_elements, 0.1, undeleted_elems)
 
     # Просто посмотреть первые 100 точек - как это работает
     # os.mkdir(path_save + '/first_100')
@@ -250,7 +250,7 @@ def make_experiment_delete_from_grid(k_deleted_elements, pick_type = 'rand', typ
 
     # Анимация y(x)
     if small_animation:
-        frames, fig_gif = mem.make_frames_grid_agents(xs, ys, plot_colors, frames_step=20)
+        frames, fig_gif = mem.make_frames_grid_agents(xs, ys, ts, plot_colors, frames_step=20)
         interval = 40
         blit = True
         repeat = False
@@ -336,7 +336,7 @@ def make_experiment_use_vanderpol():
     plot_colors = mem.make_colors(k_elements)
 
     path_save, path_save_graphs = mem.save_data([xs, ys, zs, ts], IC, w)
-    mem.draw_and_save_graphics_many_agents(xs, ys, ts, path_save_graphs, plot_colors, k_elements, 50, 
+    mem.draw_and_save_graphics_many_agents(xs, ys, ts, path_save_graphs, plot_colors, k_elements, 0.1, 
                                        infotm_about_managing_agent=('Van der Pol', 'red'), mashtab=[-3, 3, -3, 3], grid=False)
 
     
@@ -415,7 +415,7 @@ def make_grid_experiment():
 
     # Анимация y(x)
     if small_animation:
-        frames, fig_gif = mem.make_frames_grid_agents(xs, ys, plot_colors, frames_step=20)
+        frames, fig_gif = mem.make_frames_grid_agents(xs, ys, ts, plot_colors, frames_step=20)
         interval = 40
         blit = True
         repeat = False

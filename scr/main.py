@@ -180,7 +180,7 @@ def main(IC_range = [5, 5, 0]):
     plot_colors = mem.make_colors(k_elements)
     path_save, path_save_graphs = mem.save_data([xs, ys, zs, ts], rand_IC, w, k_elements=k_elements)
 
-    mem.draw_and_save_graphics_many_agents(xs, ys, ts, path_save_graphs, plot_colors, k_elements, 100)
+    mem.draw_and_save_graphics_many_agents(xs, ys, ts, path_save_graphs, plot_colors, k_elements, t_step=0.1)
 
     if s.look_at_infinity:
         for agent in range(k_elements):

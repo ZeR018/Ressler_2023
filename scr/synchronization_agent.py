@@ -161,7 +161,7 @@ def solo_experiment_depend_a_tau_p(a, w_arr, IC_arr, index = 0, isSolo = False, 
     if isSolo:
         path_save, path_save_graphs = mem.save_data([xs, ys, zs, ts], IC, w_arr, [fig_last], ['fig_last_state'], k_elements=k_elements, a=a, tau=tau)
         plt.close()
-        mem.draw_and_save_graphics_many_agents(xs, ys, ts, path_save_graphs, plot_colors, k_elements, 100)
+        mem.draw_and_save_graphics_many_agents(xs, ys, ts, path_save_graphs, plot_colors, k_elements, t_step=0.1)
 
         # Order params
         # find_frequency(xs, ys, zs, ts, w_arr, a)
@@ -288,7 +288,7 @@ def solo_experiment_depend_a_tau_p_2dim(a, w_arr, IC_arr, index = 0, isSolo = Fa
     if isSolo:
         path_save, path_save_graphs = mem.save_data([xs, ys, zs, ts], IC, w_arr, [fig_last], ['fig_last_state'], k_elements=k_elements, a=a, tau=tau)
         plt.close()
-        mem.draw_and_save_graphics_many_agents(xs, ys, ts, path_save_graphs, plot_colors, k_elements, 100)
+        mem.draw_and_save_graphics_many_agents(xs, ys, ts, path_save_graphs, plot_colors, k_elements, t_step=0.1)
         if not sync_last_time:
             print('Non sync last time')
 
