@@ -127,10 +127,6 @@ def func_rossler_3_dim(t, r, w_arr_, a_, tau_ = tau):
 def d(_T, _radius, x_i, x_j, y_i, y_j, min_radius = 0.):
     dist = (x_i - x_j)**2 + (y_i - y_j)**2
     if dist < _radius**2:
-        # if min_radius != 0.:
-        #     if dist < min_radius:
-        #         return 0
-            
         return _T
     else:
         return 0

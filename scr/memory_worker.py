@@ -131,12 +131,12 @@ def read_integration_data(path):
 
 # Сохраняет данные интегрирования, НУ, w, и все необходимые графики
 def save_data(integration_data, IC, w, figs_arr = [], fig_names_arr = [], deleted_elems = [], k_elements = k_elements, 
-              a = s.a, T = s.T, tau = s.tau, dir_name_suffix = '', k = s.k, save_int_data = True):
+              a = s.a, T = s.T, tau = s.tau, dir_name_suffix = '', k = s.k, save_int_data = True, path=s.grid_experiments_path):
     date = str(datetime.now().date())
     time = hms_now().replace(':', '.')
 
     suffix = ' ' + dir_name_suffix if dir_name_suffix != '' else ''
-    new_dir = s.grid_experiments_path + date + ' ' + time + suffix
+    new_dir = path + date + ' ' + time + suffix
     os.mkdir(new_dir)
 
     save_IC_and_w(IC, w,new_dir + '/IC.txt', _k_elements = k_elements, a=a, T = T, tau = s.tau, k = k)
@@ -723,3 +723,4 @@ def make_dirs_lorenz_exps(dir_name_suffix):
 
 def make_dir(path):
     os.mkdir(path)
+    return path

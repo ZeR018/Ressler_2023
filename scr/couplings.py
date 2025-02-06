@@ -9,7 +9,7 @@ import joblib
 from matplotlib.animation import ArtistAnimation
 
 def one_exp_couplings(IC, w_arr, a, isSolo = True, couplings = (False, True, False), couplings_rep = (False, False, False),
-                      k_elements = s.k_elements, t_max = s.t_max, tau = s.tau, T = s.T, small_animation = True, system = 'rossler'):
+                      k_elements = s.k_elements, t_max = s.t_max, tau = s.tau, T = s.T, small_animation = True, system = 'rossler', save_dir = s.grid_experiments_path, suffix=''):
     # Integrate
     start_solve_time = time.time()
     print('Start solve time:', mem.hms_now())
@@ -41,26 +41,29 @@ def one_exp_couplings(IC, w_arr, a, isSolo = True, couplings = (False, True, Fal
     plot_colors = mem.make_colors(k_elements)
 
     if isSolo:
-        suffix = ''
         if system == 'lorenz':
             suffix += 'lorenz_'
-        suffix += f"coup_{'x' if couplings[0] else ''}{'y' if couplings[1] else ''}{'z' if couplings[2] else ''}"
+        if T > 0:
+            suffix += f"coup_{'x' if couplings[0] else ''}{'y' if couplings[1] else ''}{'z' if couplings[2] else ''}"
+        elif T < 0:
+            suffix += f"coup_{'-x' if couplings[0] else ''}{'-y' if couplings[1] else ''}{'-z' if couplings[2] else ''}"
         if couplings_rep[0] + couplings_rep[1] + couplings_rep[2] > 0:
             suffix += f"_{'x' if couplings_rep[0] else ''}{'y' if couplings_rep[1] else ''}{'z' if couplings_rep[2] else ''}"
         if small_animation:
             suffix += ' A'
 
-        path_save, path_save_graphs = mem.save_data([xs, ys, zs, ts], IC, w_arr, [], [], T=T, k_elements=k_elements, a=a, tau=tau, dir_name_suffix=suffix)
+
+        path_save, path_save_graphs = mem.save_data([xs, ys, zs, ts], IC, w_arr, [], [], T=T, k_elements=k_elements, a=a, tau=tau, dir_name_suffix=suffix, path=save_dir)
         plt.close()
         lim_param = 20
         if system != 'lorenz':
-            mem.draw_and_save_graphics_many_agents(xs, ys, ts, path_save_graphs, plot_colors, k_elements, t_step=0.4, 
+            mem.draw_and_save_graphics_many_agents(xs, ys, ts, path_save_graphs, plot_colors, k_elements, t_step=0.5, 
                                                mashtab=[-lim_param, lim_param, -lim_param, lim_param] if couplings_rep[2] == 1 else [], num_prevs_elems=2)
 
         # Анимация y(x)
         if small_animation:
             # frames, fig_gif = mem.make_frames_grid_agents(xs, ys, ts, plot_colors, frames_step=20, _k_elements = k_elements, lims=[-lim_param, lim_param, -lim_param, lim_param])
-            frames, fig_gif = mem.make_frames_n(xs, ys, ts, plot_colors, t_step=0.2, _k_elements = k_elements, lims=[-lim_param, lim_param, -lim_param, lim_param])
+            frames, fig_gif = mem.make_frames_n(xs, ys, ts, plot_colors, t_step=0.4, _k_elements = k_elements, lims=[-lim_param, lim_param, -lim_param, lim_param])
             interval = 60
             blit = True
             repeat = False
@@ -130,18 +133,28 @@ def one_exp_couplings(IC, w_arr, a, isSolo = True, couplings = (False, True, Fal
             plt.savefig(path_save_time_series + f'/zt_{graph_ind}.png')
             plt.close()
 
-    # # Calc dists between agents
-    # dists_i = []
-    # dists_summ = 0
-    # for i in range(len(xs[0])):
-    #     in_sqrt = 0
-    #     for agent in range(k_elements):
-    #         for agent_j in range(k_elements):
-    #             if agent != agent_j:
-    #                 in_sqrt += (xs[agent][i] - xs[agent_j][i])**2 + (ys[agent][i] - ys[agent_j][i])**2 + (zs[agent][i] - zs[agent_j][i])**2
-    #     dists_i.append(np.sqrt(in_sqrt))
-    #     dists_summ += np.sqrt(in_sqrt)
-    # dists_summ /= len(xs[0])
+    # Calc dists between agents
+    dists = []
+    for i in range(len(xs[0])):
+        agents_mean_dists = []
+        for agent in range(k_elements):
+            one_agent_dists = []
+            for agent_j in range(k_elements):
+                sqrt = 0
+                if agent != agent_j:
+                    sqrt = np.sqrt((xs[agent][i] - xs[agent_j][i])**2 + (ys[agent][i] - ys[agent_j][i])**2)
+                one_agent_dists.append(sqrt)
+            agent_mean_dist = sum(one_agent_dists) / (k_elements - 1)
+            agents_mean_dists.append(agent_mean_dist)
+        dists.append(sum(agents_mean_dists) / k_elements)
+
+    plt.figure(figsize=[16, 4])
+    plt.plot(ts, dists)
+    plt.grid()
+    plt.xlabel('t')
+    plt.ylabel('d')
+    plt.savefig(path_save + '/dists.png')
+    plt.close()
 
     last_state = []
     for agent in range(k_elements):
@@ -255,7 +268,7 @@ def series_lorenz_dist_agents(IC, T_arr, couplings = (False, True, False),
     plt.close()
 
         
-k_elements = 10
+k_elements = 2
 a = 0.22
 # a_arr = [0.162, 0.202, 0.224]
 # a = a_arr[0]
@@ -264,9 +277,11 @@ a = 0.22
 
 ## берем из файла с готовыми НУ
 IC_fname = 'series_IC_20_20.txt'
-IC_index = 2
-IC_arr, w_arr = mem.read_series_IC(s.temporary_path + IC_fname)
+IC_index = 3
+IC_arr, w_arrs = mem.read_series_IC(s.temporary_path + IC_fname)
+w_arr = w_arrs[IC_index:IC_index+k_elements]
 IC = IC_arr[IC_index][:k_elements*s.k]
+
 
 ## берем случайные
 # IC = mem.generate_random_IC_ressler(5, 5, 1, k_elements)
@@ -282,8 +297,59 @@ IC = IC_arr[IC_index][:k_elements*s.k]
 
 ## Просто один эксперимент с какой-то связью
 T = 0.3
-s.toch = [1e-12, 1e-12]
-last_state = one_exp_couplings(IC, w_arr, a, couplings=(0, 0, 0), couplings_rep=(0, 0, 1), k_elements=k_elements, t_max=200, tau=1, T=T, small_animation=True, system = 'rossler')
+s.toch = [1e-10, 1e-10]
+date = mem.hms_now().replace(':', '-')
+path = mem.make_dir(s.grid_experiments_path + f'{date} 5 el couplings')
+path += '/'
+t_max = 1000
+
+print('Старт программы', f'Результаты в {path}')
+# # Связь 1
+# one_exp_couplings(IC, w_arr, a, couplings=(1, 0, 0), couplings_rep=(0, 0, 0), k_elements=k_elements, 
+#                                t_max=t_max, tau=1, T=T, small_animation=True, system = 'rossler', save_dir=path)
+# one_exp_couplings(IC, w_arr, a, couplings=(0, 1, 0), couplings_rep=(0, 0, 0), k_elements=k_elements, 
+#                                t_max=t_max, tau=1, T=T, small_animation=True, system = 'rossler', save_dir=path)
+# one_exp_couplings(IC, w_arr, a, couplings=(0, 0, 1), couplings_rep=(0, 0, 0), k_elements=k_elements, 
+#                                t_max=t_max, tau=1, T=T, small_animation=True, system = 'rossler', save_dir=path)
+# one_exp_couplings(IC, w_arr, a, couplings=(1, 1, 0), couplings_rep=(0, 0, 0), k_elements=k_elements, 
+#                                t_max=t_max, tau=1, T=T, small_animation=True, system = 'rossler', save_dir=path)
+
+# # Связь 2
+# print('2')
+# one_exp_couplings(IC, w_arr, a, couplings=(0, 0, 0), couplings_rep=(1, 0, 0), k_elements=k_elements, 
+#                                t_max=t_max, tau=1, T=T, small_animation=True, system = 'rossler', save_dir=path)
+# one_exp_couplings(IC, w_arr, a, couplings=(0, 0, 0), couplings_rep=(0, 1, 0), k_elements=k_elements, 
+#                                t_max=t_max, tau=1, T=T, small_animation=True, system = 'rossler', save_dir=path)
+# one_exp_couplings(IC, w_arr, a, couplings=(0, 0, 0), couplings_rep=(0, 0, 1), k_elements=k_elements, 
+#                                t_max=t_max, tau=1, T=T, small_animation=True, system = 'rossler', save_dir=path)
+# s.toch = [1e-07, 1e-07]
+# one_exp_couplings(IC, w_arr, a, couplings=(0, 0, 0), couplings_rep=(1, 1, 0), k_elements=k_elements, 
+#                                t_max=t_max, tau=1, T=T, small_animation=True, system = 'rossler', save_dir=path)
+# s.toch = [1e-12, 1e-12]
+
+# # Связь 3 
+# print('3')
+# T = -0.3
+# one_exp_couplings(IC, w_arr, a, couplings=(1, 0, 0), couplings_rep=(0, 0, 0), k_elements=k_elements, 
+#                                t_max=t_max, tau=1, T=T, small_animation=True, system = 'rossler', save_dir=path)
+# one_exp_couplings(IC, w_arr, a, couplings=(0, 1, 0), couplings_rep=(0, 0, 0), k_elements=k_elements, 
+#                                t_max=t_max, tau=1, T=T, small_animation=True, system = 'rossler', save_dir=path)
+# one_exp_couplings(IC, w_arr, a, couplings=(0, 0, 1), couplings_rep=(0, 0, 0), k_elements=k_elements, 
+#                                t_max=t_max, tau=1, T=T, small_animation=True, system = 'rossler', save_dir=path)
+# T = -0.3
+# s.toch = [1e-09, 1e-09]
+# one_exp_couplings(IC, w_arr, a, couplings=(1, 1, 0), couplings_rep=(0, 0, 0), k_elements=k_elements, 
+#                                t_max=t_max, tau=1, T=T, small_animation=True, system = 'rossler', save_dir=path)
+
+# далее
+print('last')
+k_elements = 3
+IC = IC_arr[IC_index][:k_elements*s.k]
+w_arr = w_arrs[IC_index:IC_index+k_elements]
+T = 0.3
+s.toch = [1e-07, 1e-07]
+one_exp_couplings(IC, w_arr, a, couplings=(0, 0, 0), couplings_rep=(1, 1, 0), k_elements=k_elements, 
+                               t_max=t_max, tau=1, T=T, small_animation=True, system = 'rossler', save_dir=path)
 
 ## Серия экспериментов со связью при разных T + график какой-то
 # T_arr = np.arange(20, 100, 10)
