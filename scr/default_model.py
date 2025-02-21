@@ -238,7 +238,18 @@ def func_rossler_2_dim(t, r, w_arr_, a_, tau_ = tau):
 #         return res_arr
 #     return func_rossler_2_dim_params
 
-def func_rossler_2_dim_params_maker(k_elements_, couplings = (False, True, False), T_ = T, couplings_rep = (False, False, False)):
+class Rossler_params:
+    def __init__(self, w_arr = s.w, k_elements = s.k_elements, a = s.a, T = s.T, tau = s.tau, radius = s.radius):
+        self.k_elements = k_elements
+        self.a = a
+        self.T = T
+        self.tau = tau
+        self.radius = radius
+        self.w_arr = w_arr
+
+def func_rossler_2_dim_params_maker(couplings = (False, True, False), 
+                                    couplings_rep = (False, False, False), 
+                                    params : Rossler_params = Rossler_params()):
     f_dx_coup = f_connect_st if couplings[0] else default_f
     f_dy_coup = f_connect_st if couplings[1] else default_f
     f_dz_coup = f_connect_st if couplings[2] else default_f
@@ -247,18 +258,19 @@ def func_rossler_2_dim_params_maker(k_elements_, couplings = (False, True, False
     f_dy_coup_rep = f_connect_rep if couplings_rep[1] else default_f
     f_dz_coup_rep = f_connect_rep if couplings_rep[2] else default_f
 
-    global T
-    T = T_
+    global k_elements, w_arr, a, T, tau, radius
+    k_elements = params.k_elements
+    w_arr = params.w_arr
+    a = params.a
+    T = params.T
+    tau = params.tau
+    radius = params.radius
 
-    def func_rossler_2_dim_params(t, r, w_arr_, a_, tau_ = tau):
+    def func_rossler_2_dim_params(t, r):
         # if round(t, 2) % 2 == 0:
         #     print(t)
-        global k_elements, w_arr, a
-        k_elements = k_elements_
-        w_arr = w_arr_
-        a = a_
-        res_arr = []
 
+        res_arr = []
         for i in range(k_elements):
             # x_i = r[i*k]
             # y_i = r[i*k + 1]
@@ -274,9 +286,9 @@ def func_rossler_2_dim_params_maker(k_elements_, couplings = (False, True, False
                     res_arr.append(0)
                     continue
 
-            dx = tau_ * func_dx(i, r, f_dx_coup, T, w_arr, connect_f_rep=f_dx_coup_rep)
-            dy = tau_ * func_dy(i, r, f_dy_coup, T, w_arr, connect_f_rep=f_dy_coup_rep)
-            dz = tau_ * func_dz(i, r, f_dz_coup, T, connect_f_rep=f_dz_coup_rep)
+            dx = tau * func_dx(i, r, f_dx_coup, T, w_arr, connect_f_rep=f_dx_coup_rep)
+            dy = tau * func_dy(i, r, f_dy_coup, T, w_arr, connect_f_rep=f_dy_coup_rep)
+            dz = tau * func_dz(i, r, f_dz_coup, T, connect_f_rep=f_dz_coup_rep)
 
             res_arr.append(dx)
             res_arr.append(dy)
