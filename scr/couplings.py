@@ -9,7 +9,6 @@ import joblib
 from matplotlib.animation import ArtistAnimation
 from typing import Union
 
-is_simple_arctg = False
 
 def calc_dist_between_agents(xs, ys, zs, ts):
     k_elements = len(xs)
@@ -33,7 +32,8 @@ def calc_phi_omega_amplitude_for_agent(xs, ys, zs, ts, w, a, system_params = {"b
     c = system_params["c"]
     
     size = len(ts)
-    phi = []
+    phi_yx = []
+    phi_dydx = []
     omega = []
     A = []
 
@@ -41,11 +41,10 @@ def calc_phi_omega_amplitude_for_agent(xs, ys, zs, ts, w, a, system_params = {"b
         x = xs[t]
         y = ys[t]
         z = zs[t]
-        if not is_simple_arctg:
-            phi_i = np.arctan2(( w * x + a * y), (- w * y - z))
-        else:
-            phi_i = np.arctan2(y, x)
-        phi.append(phi_i)
+        phi_i1 = np.arctan2(( w * x + a * y), (- w * y - z))
+        phi_i2 = np.arctan2(y, x)
+        phi_yx.append(phi_i2)
+        phi_dydx.append(phi_i1)
         
         omega_i_dyddx = - (w*x + a*y) * (-w**2*x-w*a*y-b-z*(x-c))
         omega_i_ddydx = (-w*y-z) * (-w**2*y-w*z+a*w*x+a**2*y)
@@ -55,7 +54,7 @@ def calc_phi_omega_amplitude_for_agent(xs, ys, zs, ts, w, a, system_params = {"b
 
         A.append(np.sqrt(x**2+y**2))
 
-    return phi, omega, A
+    return phi_yx, phi_dydx, omega, A
 
 def phase_converter(phase):
     if phase > 0:
@@ -93,7 +92,7 @@ def one_exp_couplings(IC, isSolo = True, couplings = (False, True, False), coupl
         sol = solve_ivp(func_rhs, [0, t_max], IC, rtol=s.toch[0], atol=s.toch[1], method=s.method)
     
     time_after_integrate = time.time()
-    print(f'Integrate time: {(time.time() - start_solve_time):0.2f}s', 'time:', mem.hms_now())
+    print(f'Integrate time: {(time.time() - start_solve_time):0.1f}s', 'time:', mem.hms_now())
 
     # Sort integration data 
     k = s.k
@@ -200,7 +199,7 @@ def one_exp_couplings(IC, isSolo = True, couplings = (False, True, False), coupl
             plt.close()
 
     time_after_save_data = time.time()
-    print(f'Start analysis {(time.time() - time_after_integrate):0.2f}s', 'time:', mem.hms_now())
+    print(f'Start analysis {(time.time() - time_after_integrate):0.1f}s', 'time:', mem.hms_now())
 
     # Calc dists between agents
     dists = calc_dist_between_agents(xs, ys, zs, ts)
@@ -222,12 +221,14 @@ def one_exp_couplings(IC, isSolo = True, couplings = (False, True, False), coupl
     zs_short = [z[index_time_skip:] for z in zs]
 
     # Calc phase and omega
-    phases = []
+    phases_yx = []
+    phases_dydx = []
     omegas = []
     As = []
     for agent in range(k_elements):
-        phases_agent, omegas_agent, As_agent = calc_phi_omega_amplitude_for_agent(xs_short[agent], ys_short[agent], zs_short[agent], ts_short, sys_params.w_arr[agent], sys_params.a)
-        phases.append(phases_agent)
+        phases_agent_yx, phases_agent_dydx, omegas_agent, As_agent = calc_phi_omega_amplitude_for_agent(xs_short[agent], ys_short[agent], zs_short[agent], ts_short, sys_params.w_arr[agent], sys_params.a)
+        phases_yx.append(phases_agent_yx)
+        phases_dydx.append(phases_agent_dydx)
         omegas.append(omegas_agent)
         As.append(As_agent)
 
@@ -235,14 +236,16 @@ def one_exp_couplings(IC, isSolo = True, couplings = (False, True, False), coupl
 
         # усредняем фазы, омеги и амплитуды и находим разность
         num_t = int((t_max - time_skip) / step_t_for_avg)
-        phases_avg = [[] for i in range(k_elements)]
+        phases_avg_yx = [[] for i in range(k_elements)]
+        phases_avg_dydx = [[] for i in range(k_elements)]
         omegas_avg = [[] for i in range(k_elements)]
         As_avg = [[] for i in range(k_elements)]
         zs_avg = [[] for i in range(k_elements)]
         ts_avg = []
         i_prev = 0
         
-        phases_diff = []
+        phases_diff_yx = []
+        phases_diff_dydx = []
         omegas_diff = []
         As_diff = []
         zs_diff = []
@@ -253,22 +256,25 @@ def one_exp_couplings(IC, isSolo = True, couplings = (False, True, False), coupl
             # усредняем
             ts_avg.append(t_i)
             for agent in range(k_elements):
-                phases_avg[agent].append(np.mean(phases[agent][i_prev:i]))
+                phases_avg_yx[agent].append(np.mean(phases_yx[agent][i_prev:i]))
+                phases_avg_dydx[agent].append(np.mean(phases_dydx[agent][i_prev:i]))
                 omegas_avg[agent].append(np.mean(omegas[agent][i_prev:i]))
                 As_avg[agent].append(np.mean(As[agent][i_prev:i]))
                 zs_avg[agent].append(np.mean(zs_short[agent][i_prev:i]))
             
             # находим разности
-            phases_diff.append(phase_converter(phases_avg[0][ind] - phases_avg[1][ind]))
+            phases_diff_yx.append(phase_converter(phases_avg_yx[0][ind] - phases_avg_yx[1][ind]))
+            phases_diff_dydx.append(phase_converter(phases_avg_dydx[0][ind] - phases_avg_dydx[1][ind]))
             omegas_diff.append(omegas_avg[0][ind] - omegas_avg[1][ind])
-            As_diff.append(As_avg[0][ind] - As_avg[1][ind])
+            As_diff.append(abs(As_avg[0][ind] - As_avg[1][ind]))
             zs_diff.append(zs_avg[0][ind] - zs_avg[1][ind])
 
             i_prev = i
 
         def plot_timeline_graph(x : list, t : list, ylabel : str, save_name : str, 
                               figsize_ : list=[12, 3], xlabel : list='t', 
-                              subplots_adjust : list=[0.075, 0.98, 0.175, 0.95], path_save=path_save, format : str='.png', x2 : list=[]) -> None:
+                              subplots_adjust : list=[0.11, 0.97, 0.225, 0.97], path_save=path_save, 
+                              format : str='.png', x2 : list=[], font_size : int = 18) -> None:
             plt.figure(figsize=figsize_)
             plt.subplots_adjust(left=subplots_adjust[0], right=subplots_adjust[1], bottom=subplots_adjust[2], top=subplots_adjust[3])
             if x2 == []:
@@ -278,24 +284,35 @@ def one_exp_couplings(IC, isSolo = True, couplings = (False, True, False), coupl
                 plt.plot(t, x2, label='2')
                 plt.legend()
             plt.grid()
-            plt.xlabel(xlabel)
-            plt.ylabel(ylabel)
+            plt.xlabel(xlabel, fontsize=font_size)
+            plt.ylabel(ylabel, fontsize=font_size)
+            plt.xticks(fontsize=font_size)
+            plt.yticks(fontsize=font_size)
             plt.savefig(path_save + '/' + save_name + '.png')
             plt.close()
 
-        phases_diff_without_avg = []
+        phases_diff_without_avg_yx = []
+        phases_diff_without_avg_dydx = []
         omegas_diff_without_avg = []
         for i in range(len(ts_short)):
-            phases_diff_without_avg.append(phase_converter(phases[0][i] - phases[1][i]))
+            phases_diff_without_avg_yx.append(phase_converter(phases_yx[0][i] - phases_yx[1][i]))
+            phases_diff_without_avg_dydx.append(phase_converter(phases_dydx[0][i] - phases_dydx[1][i]))
             omegas_diff_without_avg.append(omegas[0][i] - omegas[1][i])
 
-        plot_timeline_graph(phases_diff, ts_avg, r'$<\phi_1> - <\phi_2>$', 'phases_avg')
-        plot_timeline_graph(phases_diff_without_avg, ts_short, r'$\phi_1 - \phi_2$', 'phases_diff_avg')
+        print("Phases diff average arctg(y/x): ", np.mean(phases_diff_without_avg_yx))
+        print("Phases diff average arctg(y'/x'): ", np.mean(phases_diff_without_avg_dydx))
+        print('Amplitudes diff average: ', np.mean(As_diff))
+
+        plot_timeline_graph(phases_diff_yx, ts_avg, r'$<\phi_1> - <\phi_2>$', 'phases_avg_diff_yx')
+        plot_timeline_graph(phases_diff_dydx, ts_avg, r'$<\phi_1> - <\phi_2>$', 'phases_avg_diff_dydx')
+        plot_timeline_graph(phases_diff_without_avg_yx, ts_short, r'$\phi_1 - \phi_2$', 'phases_diff_yx')
+        plot_timeline_graph(phases_diff_without_avg_dydx, ts_short, r'$\phi_1 - \phi_2$', 'phases_diff_dydx')
+
         plot_timeline_graph(zs_diff, ts_avg, r'$<z_1> - <z_2>$', 'zs_diff_avg')
-        plot_timeline_graph(omegas_diff, ts_avg, r'$<\omega_1> - <\omega_2>$', 'omegas_diff_avg')
-        plot_timeline_graph(omegas_diff_without_avg, ts_short, r'$\omega_1 - \omega_2$', 'omegas_avg')
-        plot_timeline_graph(As_diff, ts_avg, r'$<A_1> - <A_2>$', 'As_diff_avg')
-        plot_timeline_graph(As[0], ts_short, r'A_1, A_2', 'As', x2=As[1])
+        plot_timeline_graph(omegas_diff, ts_avg, r'$<\omega_1> - <\omega_2>$', 'omegas_avg_diff')
+        plot_timeline_graph(omegas_diff_without_avg, ts_short, r'$\omega_1 - \omega_2$', 'omegas_diff')
+        plot_timeline_graph(As_diff, ts_avg, r'|$<A_1> - <A_2>$|', 'As_avg_diff')
+        plot_timeline_graph(As[0], ts_short, r'$A_1, A_2$', 'As', x2=As[1])
 
     # last state
     last_state = []
@@ -435,38 +452,48 @@ step_t_for_avg = 1
 # p.w_arr = []
 
 
-# ## Просто один эксперимент с какой-то связью
-# date = mem.hms_now().replace(':', '-')
-# # path = s.grid_experiments_path
-# path = mem.make_dir(s.grid_experiments_path + f"{date} {p.k_elements}el a {p.a} avg {step_t_for_avg} T {p.T} {'arctg' if is_simple_arctg else ''}")
-# path += '/'
+## Просто один эксперимент с какой-то связью
+date = mem.hms_now().replace(':', '-')
+# path = s.grid_experiments_path
+path = mem.make_dir(s.grid_experiments_path + f"{date} {p.k_elements}el a {p.a} avg {step_t_for_avg} another T")
+path += '/'
 
-# print('Старт программы', f'Результаты в {path}')
-# s.toch = [1e-12, 1e-12]
-# p.radius = 5.
-# one_exp_couplings(IC, couplings=(0, 0, 0), couplings_rep=(1, 1, 0), sys_params=p,
-#                                t_max=t_max, small_animation=False, system = 'rossler', save_dir=path, 
-#                                step_t_for_avg=step_t_for_avg, suffix=f'avg {step_t_for_avg}', time_skip=50)
-# p.radius = 4.
-# one_exp_couplings(IC,  couplings=(1, 1, 0), couplings_rep=(0, 0, 0), sys_params=p,
-#                                t_max=t_max, small_animation=False, system = 'rossler', save_dir=path, 
-#                                step_t_for_avg=step_t_for_avg, suffix=f'avg {step_t_for_avg}', time_skip=50)
+print('Старт программы', f'Результаты в {path}')
+s.toch = [1e-12, 1e-12]
 
 for i in range(10):
-    p.T = 0.1 + i * 0.1
-    date = mem.hms_now().replace(':', '-')
-    path = mem.make_dir(s.grid_experiments_path + f"{date} {p.k_elements}el a {p.a} avg {step_t_for_avg} T {p.T:0.2f}{' arctg' if is_simple_arctg else ''}")
-    path += '/'
+    p.T = 0.1 + round(i / 10. ,1)
+    print('T: ', p.T, '------------------')
 
-    print('Старт программы', f'Результаты в {path}')
-    s.toch = [1e-12, 1e-12]
-    p.radius = 5.
+    p.radius = 10.
     one_exp_couplings(IC, couplings=(0, 0, 0), couplings_rep=(1, 1, 0), sys_params=p,
                                 t_max=t_max, small_animation=True, system = 'rossler', save_dir=path, 
-                                step_t_for_avg=step_t_for_avg, suffix=f'avg {step_t_for_avg}', time_skip=300)
+                                step_t_for_avg=step_t_for_avg, time_skip=300, 
+                                suffix=f"avg {step_t_for_avg} T {p.T} ")
+
     p.radius = 4.
-    one_exp_couplings(IC,  couplings=(1, 1, 0), couplings_rep=(0, 0, 0), sys_params=p,
+    one_exp_couplings(IC, couplings=(1, 1, 0), couplings_rep=(0, 0, 0), sys_params=p,
                                 t_max=t_max, small_animation=True, system = 'rossler', save_dir=path, 
-                                step_t_for_avg=step_t_for_avg, suffix=f'avg {step_t_for_avg}', time_skip=300)
+                                step_t_for_avg=step_t_for_avg, time_skip=300, 
+                                suffix=f"avg {step_t_for_avg} T {p.T} ")
+
+
+
+# for i in range(10):
+#     p.T = 0.1 + i * 0.1
+#     date = mem.hms_now().replace(':', '-')
+#     path = mem.make_dir(s.grid_experiments_path + f"{date} {p.k_elements}el a {p.a} avg {step_t_for_avg} T {p.T:0.2f}{' arctg' if is_simple_arctg else ''}")
+#     path += '/'
+
+#     print('Старт программы', f'Результаты в {path}')
+#     s.toch = [1e-12, 1e-12]
+#     p.radius = 5.
+#     one_exp_couplings(IC, couplings=(0, 0, 0), couplings_rep=(1, 1, 0), sys_params=p,
+#                                 t_max=t_max, small_animation=True, system = 'rossler', save_dir=path, 
+#                                 step_t_for_avg=step_t_for_avg, suffix=f'avg {step_t_for_avg}', time_skip=300)
+#     p.radius = 4.
+#     one_exp_couplings(IC,  couplings=(1, 1, 0), couplings_rep=(0, 0, 0), sys_params=p,
+#                                 t_max=t_max, small_animation=True, system = 'rossler', save_dir=path, 
+#                                 step_t_for_avg=step_t_for_avg, suffix=f'avg {step_t_for_avg}', time_skip=300)
 
 

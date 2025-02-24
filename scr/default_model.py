@@ -4,7 +4,7 @@ import colorama
 import memory_worker as mem
 import numpy as np
 
-colorama.init()
+# colorama.init()
 
 ####################################################### Params ##################################################################
 
