@@ -5,6 +5,8 @@ import memory_worker as mem
 import colorama
 import settings as s
 import time
+import joblib
+import itertools
 
 colorama.init()
 
@@ -19,15 +21,17 @@ def phase_converter(phase):
             phase = phase + 2 * np.pi
             phase_converter(phase)
         return phase
+    
+class vdp_params():
+    def __init__(self, mu = 0.001, beta = 0.5, gamma = 0., delta = 0.1, l = 0.02):
+        self.mu = mu
+        self.delta = delta
+        self.beta = beta
+        self.gamma = gamma
+        self.l = l
 
-def solver(IC = [1.9, -1.9, 2.1, 2.1], t_max = 40000):
-    class vdp_params():
-        def __init__(self, mu = 0.001, beta = 0.5, gamma = 0., delta = 0.1, l = 0.02):
-            self.mu = mu
-            self.delta = delta
-            self.beta = beta
-            self.gamma = gamma
-            self.l = l
+def solver(params : vdp_params, IC = [1.9, -1.9, 2.1, 2.1], t_max = 40000, default_path = s.grid_experiments_path):
+    prints = True if default_path == s.grid_experiments_path else False
 
     def func_vdp_2_maker(p : vdp_params):
 
@@ -44,7 +48,8 @@ def solver(IC = [1.9, -1.9, 2.1, 2.1], t_max = 40000):
         divide_coup = divide_coup2
 
         def func_vdp_2(t, r):
-            print(f'\033[F\033[KCurrent integrate time: {round(t, 1)};')
+            if prints:
+                print(f'\033[F\033[KCurrent integrate time: {round(t, 1)};')
             x1, y1, x2, y2 = r
             
             dx1 = y1
@@ -58,16 +63,17 @@ def solver(IC = [1.9, -1.9, 2.1, 2.1], t_max = 40000):
     
     # Integrate
     start_solve_time = time.time()
-    print('Start solve time:', mem.hms_now())
+    print('Start solve time:', mem.hms_now(), 'l', params.l, 'beta', params.beta)
 
-    print('Start')
-    params = vdp_params()
+    # print('Start')
     rhs = func_vdp_2_maker(params)
     sol = solve_ivp(rhs, [0, t_max], IC, method='RK45', rtol=1e-4, atol=1e-4, max_step=0.05)
-    print('Integrate status:', sol.status)
+    if prints:
+        print('Integrate status:', sol.status)
 
     time_after_integrate = time.time()
-    print(f'Integrate time: {(time.time() - start_solve_time):0.1f}s', 'time:', mem.hms_now())
+    if prints:
+        print(f'Integrate time: {(time.time() - start_solve_time):0.1f}s', 'time:', mem.hms_now())
 
     xs = [sol.y[0], sol.y[2]]
     ys = [sol.y[1], sol.y[3]]
@@ -75,7 +81,7 @@ def solver(IC = [1.9, -1.9, 2.1, 2.1], t_max = 40000):
     
     size = len(ts)
 
-    dir_path = s.grid_experiments_path + f'vdp_b_{params.beta}_l_{params.l}_{t_max}'
+    dir_path = default_path + f'vdp_b_{params.beta}_l_{params.l}_{t_max}'
     try:
         mem.make_dir(dir_path)
     except Exception:
@@ -143,10 +149,13 @@ def solver(IC = [1.9, -1.9, 2.1, 2.1], t_max = 40000):
     # Считаем метрики
     # transition_process = int(t_max / 2)
     transition_process = 10000
-    if t_max >= 25000:
+    if t_max < 10000:
+        transition_process = int(t_max / 2)
+    elif t_max >= 25000:
         transition_process = 15000
-    if t_max > 30000:
+    elif t_max > 30000:
         transition_process = 20000
+
     transition_process_time = np.searchsorted(ts, transition_process)
     diff_phases_average = np.mean(phases_diff[transition_process_time:])
     diff_As_average = np.mean(As_diff[transition_process_time:])
@@ -155,5 +164,33 @@ def solver(IC = [1.9, -1.9, 2.1, 2.1], t_max = 40000):
         print('transition process:', transition_process, file=f)
         print('diff phases avg:', diff_phases_average, file=f)
         print('diff As avg:', diff_As_average, file=f)
-solver()
 
+    return diff_phases_average, diff_As_average
+
+def solver_joblib(l, beta, t_max, default_path):
+    beta = round(beta, 3)
+    l = round(l, 3)
+    params = vdp_params(beta=beta, l=l)
+    res = solver(params, t_max = t_max, default_path=default_path)
+    return res
+
+def main():
+    # betas = np.arange(0.1, 1.05, 0.05)
+    # ls = np.arange(0.01, 0.51, 0.01)
+    betas = np.arange(0.1, 1.5, 0.5)
+    ls = np.arange(0.01, 0.55, 0.05)
+    print(betas, ls)
+    n_streams = 112
+    t_max = 40000
+
+    time = mem.hms_now().replace(':', '-')
+    path = mem.make_dir(s.grid_experiments_path + f'vdp_{time}/')
+
+    existance = joblib.Parallel(n_jobs=n_streams)(joblib.delayed(solver_joblib)(l, beta, t_max, path) for l, beta in itertools.product(ls, betas))
+
+    with open(path + 'res.txt', 'w') as f:
+        for ex in existance:
+            print(ex[0], ex[1], file=f)
+
+if __name__ == '__main__':
+    main()
