@@ -455,29 +455,33 @@ step_t_for_avg = 1
 ## Просто один эксперимент с какой-то связью
 date = mem.hms_now().replace(':', '-')
 # path = s.grid_experiments_path
-path = mem.make_dir(s.grid_experiments_path + f"{date} {p.k_elements}el a {p.a} avg {step_t_for_avg} another T")
-path += '/'
+# path = mem.make_dir(s.grid_experiments_path + f"{date} {p.k_elements}el a {p.a} avg {step_t_for_avg} another T")
+# path += '/'
 
-print('Старт программы', f'Результаты в {path}')
-s.toch = [1e-12, 1e-12]
+# print('Старт программы', f'Результаты в {path}')
+# s.toch = [1e-12, 1e-12]
 
-for i in range(10):
-    p.T = 0.1 + round(i / 10. ,1)
-    print('T: ', p.T, '------------------')
+# for i in range(10):
+#     p.T = 0.1 + round(i / 10. ,1)
+#     print('T: ', p.T, '------------------')
 
-    p.radius = 10.
-    one_exp_couplings(IC, couplings=(0, 0, 0), couplings_rep=(1, 1, 0), sys_params=p,
-                                t_max=t_max, small_animation=True, system = 'rossler', save_dir=path, 
-                                step_t_for_avg=step_t_for_avg, time_skip=300, 
+#     p.radius = 10.
+#     one_exp_couplings(IC, couplings=(0, 0, 0), couplings_rep=(1, 1, 0), sys_params=p,
+#                                 t_max=t_max, small_animation=True, system = 'rossler', save_dir=path, 
+#                                 step_t_for_avg=step_t_for_avg, time_skip=300, 
+#                                 suffix=f"avg {step_t_for_avg} T {p.T} ")
+
+#     p.radius = 4.
+#     one_exp_couplings(IC, couplings=(1, 1, 0), couplings_rep=(0, 0, 0), sys_params=p,
+#                                 t_max=t_max, small_animation=True, system = 'rossler', save_dir=path, 
+#                                 step_t_for_avg=step_t_for_avg, time_skip=300, 
+#                                 suffix=f"avg {step_t_for_avg} T {p.T} ")
+
+path = s.grid_experiments_path
+one_exp_couplings(IC, couplings=(0, 0, 0), couplings_rep=(0, 1, 0), sys_params=p,
+                                t_max=t_max, small_animation=False, system = 'rossler', save_dir=path, 
+                                step_t_for_avg=step_t_for_avg, time_skip=000, 
                                 suffix=f"avg {step_t_for_avg} T {p.T} ")
-
-    p.radius = 4.
-    one_exp_couplings(IC, couplings=(1, 1, 0), couplings_rep=(0, 0, 0), sys_params=p,
-                                t_max=t_max, small_animation=True, system = 'rossler', save_dir=path, 
-                                step_t_for_avg=step_t_for_avg, time_skip=300, 
-                                suffix=f"avg {step_t_for_avg} T {p.T} ")
-
-
 
 # for i in range(10):
 #     p.T = 0.1 + i * 0.1

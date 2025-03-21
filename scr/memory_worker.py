@@ -5,6 +5,8 @@ from matplotlib import pyplot as plt
 import numpy as np
 from random import uniform
 from collections import deque
+import pandas as pd
+import seaborn as sns
 
 stopping_borded_work = s.stopping_borded_work
 stopping_border_radius  = s.stopping_border_radius
@@ -724,3 +726,138 @@ def make_dirs_lorenz_exps(dir_name_suffix):
 def make_dir(path):
     os.mkdir(path)
     return path
+
+def read_vdp_l_beta(path, type='default'):
+    with open(path, 'r') as f:
+        f_data = f.readlines()
+    
+    ls = []
+    betas = []
+    As = []
+    phases = []
+    phases_max = []
+    As_max = []
+
+    for line in f_data:
+        line_split = line.split(' ')
+        ls.append(float(line_split[0]))
+        betas.append(float(line_split[1]))
+        if type != 'max_avg':
+            phases.append(float(line_split[2]))
+            phases_max.append(float(line_split[3]))
+            As.append(float(line_split[4]))
+            As_max.append(float(line_split[5]))
+        else:
+            phases.append(float(line_split[2]))
+            As.append(float(line_split[3]))
+
+    return ls, betas, phases, phases_max, As, As_max
+
+def analyse_vdp_params_l_beta(path = s.grid_experiments_path + 'vdp_13-56/res.txt', style='default'):
+    # смотрим максимальные
+    if style=='max':
+        ls, betas, phases, phases_max, As, As_max = read_vdp_l_beta(s.grid_experiments_path + 'vdp_13-56/res_max_avg.txt', type='max_avg')
+    else:
+        ls, betas, phases, phases_max, As, As_max = read_vdp_l_beta(s.grid_experiments_path + 'vdp_13-56/res.txt')
+    # old_path = s.grid_experiments_path + 'vdp_12-33/res.txt'
+    # new_path = s.grid_experiments_path + 'vdp_13-56/res.txt'
+
+    # модуль
+    print(len(ls), len(betas), len(phases), len(As))
+    for i in range(len(ls)):
+        As[i] = abs(As[i])
+        phases[i] = abs(phases[i])
+
+    if style != 'max':
+        # пробуем укоротить бету
+        betas_arr = np.arange(0.1, 1.11, 0.01)
+        ls_arr = np.arange(0.01, 0.51, 0.01)
+        indexes_to_remove = []
+        for i in range(len(betas)):
+            if betas[i] < 0.3:
+                indexes_to_remove.append(i)
+        
+        print(max(As))
+
+        for index in sorted(indexes_to_remove, reverse=True):
+            del betas[index]
+            del ls[index]
+            del phases[index]
+            del As[index]
+            del phases_max[index]
+            del As_max[index]
+
+    while max(As) > 2:
+        max_val, idx = max((v, i) for i, v in enumerate(As))
+        print(As[idx], ls[idx], betas[idx])
+        As[idx] = 0
+
+    min_phase_val, min_phase_idx = min((v, i) for i, v in enumerate(phases))
+    print('min\t', 'phase:', min_phase_val, 'ampl:', As[min_phase_idx], '|', 'l:', ls[min_phase_idx], 'beta:', betas[min_phase_idx])
+    
+    
+    df_phases = pd.DataFrame({
+        'beta': betas,
+        'l': ls,
+        'phase': phases
+    })
+
+    df_As = pd.DataFrame({
+        'beta': betas,
+        'l': ls,
+        'A': As
+    })
+    pivot_phases = df_phases.pivot_table(index='l', columns='beta', values='phase')
+    pivot_As = df_As.pivot_table(index='l', columns='beta', values='A')
+
+    if style != 'max':
+        df_phases_max = pd.DataFrame({
+            'beta': betas,
+            'l': ls,
+            'phase': phases_max
+        })
+
+        df_As_max = pd.DataFrame({
+            'beta': betas,
+            'l': ls,
+            'A': As_max
+        })
+        pivot_phases_max = df_phases_max.pivot_table(index='l', columns='beta', values='phase')
+        pivot_As_max = df_As_max.pivot_table(index='l', columns='beta', values='A')
+
+
+    def plot_heatmap(pivot, title, path_save, xlabel=r'$\beta$', ylabel=r'$l$', 
+                     figsize=(14,8), subplots_adjust=[0.1, 0.1, 0.99, 0.99], fontsize=18, show=True):
+        plt.figure(figsize=figsize)
+        sns.heatmap(pivot, cmap='crest', square=True)
+        plt.title(title, fontsize=fontsize)
+        plt.ylabel(ylabel, fontsize=fontsize)
+        plt.xlabel(xlabel, fontsize=fontsize)
+        plt.gca().invert_yaxis()  # Инвертируем ось Y
+        plt.subplots_adjust(subplots_adjust[0], subplots_adjust[1], subplots_adjust[2], subplots_adjust[3])
+        plt.xticks(fontsize=fontsize)
+        plt.yticks(fontsize=fontsize)
+        plt.savefig(path_save)
+        if show:
+            plt.show()
+        plt.close()
+
+    if style != 'max':
+        plot_heatmap(pivot_phases, r'Зависимость средней разницы фаз от параметров $l$, $\beta$', 
+                    s.grid_experiments_path + 'vdp_13-56/' + 'vdp_heatmap_phase.png')
+        plot_heatmap(pivot_As, r'Зависимость средней разницы амплитуд от параметров $l$, $\beta$',
+                    s.grid_experiments_path + 'vdp_13-56/' + 'vdp_heatmap_ampl.png')
+
+        # max phases amplitudes
+        plot_heatmap(pivot_phases_max, r'Зависимость максимальной разницы фаз от параметров $l$, $\beta$', 
+                    s.grid_experiments_path + 'vdp_13-56/' + 'vdp_heatmap_max_phase.png')
+        plot_heatmap(pivot_As_max, r'Зависимость максимальной  разницы амплитуд от параметров $l$, $\beta$',
+                    s.grid_experiments_path + 'vdp_13-56/' + 'vdp_heatmap_max_ampl.png')
+    else:
+        plot_heatmap(pivot_phases, r'Зависимость средней максимальной разницы фаз от параметров $l$, $\beta$', 
+                    s.grid_experiments_path + 'vdp_13-56/' + 'vdp_heatmap_avg_max_phase.png')
+        plot_heatmap(pivot_As, r'Зависимость средней максимальной разницы амплитуд от параметров $l$, $\beta$',
+                    s.grid_experiments_path + 'vdp_13-56/' + 'vdp_heatmap_avg_max_ampl.png')
+
+if __name__ == "__main__":
+    analyse_vdp_params_l_beta() 
