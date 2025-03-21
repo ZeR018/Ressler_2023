@@ -727,6 +727,10 @@ def make_dir(path):
     os.mkdir(path)
     return path
 
+def rename_dir(path, new_path):
+    os.rename(path, new_path)
+    return new_path
+
 def read_vdp_l_beta(path, type='default'):
     with open(path, 'r') as f:
         f_data = f.readlines()

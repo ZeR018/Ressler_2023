@@ -10,18 +10,26 @@ import itertools
 from my_solve_ivp import my_solve
 
 colorama.init()
+default_solve_step = 0.001
 
-def phase_converter(phase):
-    if phase > 0:
-        if phase > np.pi:
-            phase = phase - 2 * np.pi
-            phase_converter(phase)
-        return phase
-    else:
-        if phase < - np.pi:
-            phase = phase + 2 * np.pi
-            phase_converter(phase)
-        return phase
+def phase_converter(phase, type = 1):
+    if type == 1:
+        if phase > 0:
+            if phase > np.pi:
+                phase = phase - 2 * np.pi
+                phase_converter(phase)
+            return phase
+        else:
+            if phase < - np.pi:
+                phase = phase + 2 * np.pi
+                phase_converter(phase)
+            return phase
+    if type == 2:
+        if phase < 0:
+            phase += 2 * np.pi
+        if phase > 2 * np.pi:
+            phase -= 2 * np.pi
+        return phase_converter(phase)
     
 class vdp_params():
     def __init__(self, mu = 0.02, beta = 0.5, gamma = 0., delta = 0.1, l = 0.02, alpha = None):
@@ -34,7 +42,7 @@ class vdp_params():
             alpha = beta # в таком случае получится последняя параллельная связь
         self.alpha = alpha
 
-def solver(params : vdp_params, IC = [1.9, -1.9, 2.1, 2.1], t_max = 40000, default_path = s.grid_experiments_path, solver='solve_ivp'):
+def solver(params : vdp_params, IC = [1.9, -1.9, 2.1, 2.1], t_max = 40000, default_path = s.grid_experiments_path, solver='solve_ivp', solve_step=default_solve_step):
     prints = True if default_path == s.grid_experiments_path else False
 
     print('l',params.l, 'b', params.beta, 'a', params.alpha, 'd', params.delta)
@@ -79,7 +87,7 @@ def solver(params : vdp_params, IC = [1.9, -1.9, 2.1, 2.1], t_max = 40000, defau
     print('Start solve time:', mem.hms_now(), 'l', params.l, 'beta', params.beta)
 
     rhs = func_vdp_2_maker(params)
-    solve_step = 0.001
+    solve_step = 0.0005
     # using solve_ivp
     if solver == 'solve_ivp':
         print('Solve function: solve_ivp')
@@ -106,11 +114,15 @@ def solver(params : vdp_params, IC = [1.9, -1.9, 2.1, 2.1], t_max = 40000, defau
     
     size = len(ts)
 
-    dir_path = default_path + f"vdp_b_{params.beta}_l_{params.l}_d_{params.delta}_{t_max}_{'s' if solver == 'solve_ivp' else 'm'}"
+    dir_path = default_path + f"vdp_b_{params.beta}_l_{params.l}_d_{params.delta}_{t_max}_"
+    dir_path += f"{'s' if solver == 'solve_ivp' else 'm'}{f'_solve_step' if solve_step !=  default_solve_step else ''}"
     try:
         mem.make_dir(dir_path)
     except Exception:
         print('Dir is already exists') 
+        tmp_dir_name = dir_path + '-'
+        mem.rename_dir(dir_path, tmp_dir_name)
+        mem.rename_dir(tmp_dir_name, dir_path)
 
     def plot_timeline_graph(x : list, t : list, ylabel : str, save_name : str = '', path_save : str = dir_path, 
                               figsize_ : list=[12, 3], xlabel : list='t', xlims : list = [0, t_max],
@@ -162,7 +174,23 @@ def solver(params : vdp_params, IC = [1.9, -1.9, 2.1, 2.1], t_max = 40000, defau
     plt.xticks(fontsize=18)
     plt.yticks(fontsize=18)
     plt.savefig(dir_path + '/' + f'xy_last_{t_last}.png')
-    plt.show()
+    # plt.show()
+    plt.close()
+
+    plt.figure(figsize=[5,5])
+    plt.subplots_adjust(0.2, 0.2, 0.925, 0.925)
+    plt.plot(xs[0], ys[0], label='1')
+    plt.plot(xs[1], ys[1], label='2')
+    plt.scatter(xs[0][-1], ys[0][-1])
+    plt.scatter(xs[1][-1], ys[1][-1])
+    plt.legend()
+    plt.grid()
+    plt.xlabel('x', fontsize=18)
+    plt.ylabel('y', fontsize=18)
+    plt.xticks(fontsize=18)
+    plt.yticks(fontsize=18)
+    plt.savefig(dir_path + '/' + f'xy_last_full.png')
+    plt.close()
 
     try:
         plot_timeline_graph(ksi, ts[1:], r'$\xi(t)$', 'xi_t')
@@ -180,7 +208,7 @@ def solver(params : vdp_params, IC = [1.9, -1.9, 2.1, 2.1], t_max = 40000, defau
     for i in range(size):
         phase1 = np.arctan2(ys[0][i], xs[0][i])
         phase2 = np.arctan2(ys[1][i], xs[1][i])
-        phases_diff.append(phase_converter(phase2 - phase1))
+        phases_diff.append(phase_converter(phase2 - phase1, type=2))
     plot_timeline_graph(phases_diff, ts, r'$\phi_2 - \phi_1$', 'vdp_phases_diff')
 
     # amplitudes diff
@@ -215,6 +243,8 @@ def solver(params : vdp_params, IC = [1.9, -1.9, 2.1, 2.1], t_max = 40000, defau
         print('l', params.l, file=f)
         print('alpha', params.alpha, file=f)
 
+    
+
     return params.l, params.beta, diff_phases_average, diff_phases_max, diff_As_average, diff_As_max
 
 def solver_joblib(l, beta, t_max, default_path):
@@ -246,8 +276,8 @@ def dep_of_l_beta():
 
 def main():
     # params = vdp_params(l=0.1, beta=.0, alpha=.0, delta=0.02, mu=0.02)
-    params = vdp_params(l=0.1, beta=0., alpha=.0, delta=0.1, mu=0.02)
-    solver(params, t_max=20000, solver='solve_ivp')
+    params = vdp_params(l=0.1, beta=0., alpha=.0, delta=0.02, mu=0.02)
+    solver(params, t_max=20000, solver='my')
 
 
 if __name__ == '__main__':
