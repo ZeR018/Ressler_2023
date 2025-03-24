@@ -45,8 +45,6 @@ class vdp_params():
 def solver(params : vdp_params, IC = [1.9, -1.9, 2.1, 2.1], t_max = 40000, default_path = s.grid_experiments_path, solver='solve_ivp', solve_step=default_solve_step):
     prints = True if default_path == s.grid_experiments_path else False
 
-    print('l',params.l, 'b', params.beta, 'a', params.alpha, 'd', params.delta)
-
     def func_vdp_2_maker(p : vdp_params):
 
         def dissipative_coup(mu, beta, y_this, y_other):
@@ -65,8 +63,6 @@ def solver(params : vdp_params, IC = [1.9, -1.9, 2.1, 2.1], t_max = 40000, defau
         divide_coup = divide_coup2
 
         def func_vdp_2(t, r):
-            # if prints:
-            #     print(f'\033[F\033[KCurrent integrate time: {round(t, 1)};')
             x1, y1, x2, y2 = r
 
             coups_1 = conservative_coup(p.mu, p.alpha, x1, x2) + divide_coup(p.mu, p.l, y1, y2) + dissipative_coup(p.mu, p.beta, y1, y2) + \
@@ -77,9 +73,21 @@ def solver(params : vdp_params, IC = [1.9, -1.9, 2.1, 2.1], t_max = 40000, defau
             dx1 = y1
             dy1 = p.mu * (1. - x1**2) * y1 - x1 + coups_1
             dx2 = y2
-            dy2 = p.mu * (1 + p.gamma - x2**2) * y2 - (1 + p.mu * p.delta) * x2 + coups_2
+            dy2 = p.mu * (1 + p.gamma - x2**2) * y2 - x2 + coups_2
+
+            # dx1 = y1
+            # dy1 = p.mu * (1. - x1**2) * y1 - x1 - p.mu*p.l / (y2-y1)
+            # dx2 = y2
+            # dy2 = p.mu * (1 + p.gamma - x2**2) * y2 - x2 - p.mu*p.l / (y1-y2)
             
             return [dx1, dy1, dx2, dy2]
+        
+        def func_vdp_1_test(t, r):
+            x, y = r
+            dx = y
+            dy = p.mu * (1. - x**2) * y - x
+            return [ dx, dy]
+
         return func_vdp_2
     
     # Integrate
@@ -87,7 +95,6 @@ def solver(params : vdp_params, IC = [1.9, -1.9, 2.1, 2.1], t_max = 40000, defau
     print('Start solve time:', mem.hms_now(), 'l', params.l, 'beta', params.beta)
 
     rhs = func_vdp_2_maker(params)
-    solve_step = 0.0005
     # using solve_ivp
     if solver == 'solve_ivp':
         print('Solve function: solve_ivp')
@@ -114,15 +121,24 @@ def solver(params : vdp_params, IC = [1.9, -1.9, 2.1, 2.1], t_max = 40000, defau
     
     size = len(ts)
 
-    dir_path = default_path + f"vdp_b_{params.beta}_l_{params.l}_d_{params.delta}_{t_max}_"
-    dir_path += f"{'s' if solver == 'solve_ivp' else 'm'}{f'_solve_step' if solve_step !=  default_solve_step else ''}"
-    try:
-        mem.make_dir(dir_path)
-    except Exception:
-        print('Dir is already exists') 
-        tmp_dir_name = dir_path + '-'
-        mem.rename_dir(dir_path, tmp_dir_name)
-        mem.rename_dir(tmp_dir_name, dir_path)
+    def create_and_mk_dir(dir):
+        counter = 1
+        new_dir = dir
+
+        import os
+        while os.path.exists(new_dir):
+            new_dir = f'{dir}({counter})'
+            counter += 1
+
+        mem.make_dir(new_dir)
+        return new_dir
+
+    dir_name = f"vdp_b_{params.beta}_l_{params.l}_d_{params.delta}_{t_max}_"
+    dir_name += f"{'s' if solver == 'solve_ivp' else 'm'}{f'_{solve_step}' if solve_step !=  default_solve_step else ''}"
+    print('Dir name:', dir_name)
+    dir_path = default_path + dir_name
+    
+    dir_path = create_and_mk_dir(dir_path)
 
     def plot_timeline_graph(x : list, t : list, ylabel : str, save_name : str = '', path_save : str = dir_path, 
                               figsize_ : list=[12, 3], xlabel : list='t', xlims : list = [0, t_max],
@@ -148,18 +164,26 @@ def solver(params : vdp_params, IC = [1.9, -1.9, 2.1, 2.1], t_max = 40000, defau
                 plt.savefig(path_save + '/' + save_name + '.png')
             plt.close()
 
-    t_100 = np.searchsorted(ts, 100)
-    plot_timeline_graph(xs[0][:t_100], ts[:t_100], 'x', 'vdp_xt_first_100', x2=xs[1][:t_100], xlims=[0, 100])
-    plot_timeline_graph(ys[0][:t_100], ts[:t_100], 'y', 'vdp_yt_first_100', x2=ys[1][:t_100], xlims=[0, 100])
+    # t_100 = np.searchsorted(ts, 100)
+    # plot_timeline_graph(xs[0][:t_100], ts[:t_100], 'x', 'vdp_xt_first_100', x2=xs[1][:t_100], xlims=[0, 100])
+    # plot_timeline_graph(ys[0][:t_100], ts[:t_100], 'y', 'vdp_yt_first_100', x2=ys[1][:t_100], xlims=[0, 100])
 
 
-    t_min_100 = np.searchsorted(ts, t_max-100)
-    plot_timeline_graph(xs[0][t_min_100:], ts[t_min_100:], 'x', 'vdp_xt_last_100', x2=xs[1][t_min_100:], xlims=[t_max-100, t_max])
-    plot_timeline_graph(ys[0][t_min_100:], ts[t_min_100:], 'y', 'vdp_yt_last_100', x2=ys[1][t_min_100:], xlims=[t_max-100, t_max])
+    # t_min_100 = np.searchsorted(ts, t_max-100)
+    # plot_timeline_graph(xs[0][t_min_100:], ts[t_min_100:], 'x', 'vdp_xt_last_100', x2=xs[1][t_min_100:], xlims=[t_max-100, t_max])
+    # plot_timeline_graph(ys[0][t_min_100:], ts[t_min_100:], 'y', 'vdp_yt_last_100', x2=ys[1][t_min_100:], xlims=[t_max-100, t_max])
+
+    t_last = 200
+    t_last_200 = np.searchsorted(ts, t_max-t_last)
+    plot_timeline_graph(xs[0][t_last_200:], ts[t_last_200:], 'x', f'vdp_xt_last_{t_last}', x2=xs[1][t_last_200:], xlims=[t_max-t_last, t_max])
+    plot_timeline_graph(ys[0][t_last_200:], ts[t_last_200:], 'y', f'vdp_yt_last_{t_last}', x2=ys[1][t_last_200:], xlims=[t_max-t_last, t_max])
+    t_200 = np.searchsorted(ts, t_last)
+    plot_timeline_graph(xs[0][:t_200], ts[:t_200], 'x', f'vdp_xt_first_{t_last}', x2=xs[1][:t_200], xlims=[0, t_last])
+    plot_timeline_graph(ys[0][:t_200], ts[:t_200], 'y', f'vdp_yt_first_{t_last}', x2=ys[1][:t_200], xlims=[0, t_last])
 
     plt.figure(figsize=[5,5])
     plt.subplots_adjust(0.2, 0.2, 0.925, 0.925)
-    t_last = 100
+    
     ind_last = np.searchsorted(ts, t_max - t_last)
     plt.plot(xs[0][ind_last:], ys[0][ind_last:], label='1')
     plt.plot(xs[1][ind_last:], ys[1][ind_last:], label='2')
@@ -210,6 +234,7 @@ def solver(params : vdp_params, IC = [1.9, -1.9, 2.1, 2.1], t_max = 40000, defau
         phase2 = np.arctan2(ys[1][i], xs[1][i])
         phases_diff.append(phase_converter(phase2 - phase1, type=2))
     plot_timeline_graph(phases_diff, ts, r'$\phi_2 - \phi_1$', 'vdp_phases_diff')
+    plot_timeline_graph(phases_diff[t_last_200:], ts[t_last_200:], r'$\phi_2 - \phi_1$', f'vdp_phases_diff_last_{t_last}', xlims=[t_max-t_last, t_max])
 
     # amplitudes diff
     As_diff = []
@@ -222,6 +247,8 @@ def solver(params : vdp_params, IC = [1.9, -1.9, 2.1, 2.1], t_max = 40000, defau
         As_diff.append(A1 - A2)
     plot_timeline_graph(As_diff, ts, r'$A_1 - A_2$', 'vdp_As_diff')
     plot_timeline_graph(As[0], ts, r'$A_1, A_2$', 'vdp_As', x2=As[1])
+    plot_timeline_graph(As_diff[t_last_200:], ts[t_last_200:], r'$A_1 - A_2$', f'vdp_As_diff_last_{t_last}', xlims=[t_max-t_last, t_max])
+    plot_timeline_graph(As[0][t_last_200:], ts[t_last_200:], r'$A_1, A_2$', f'vdp_As_last_{t_last}', x2=As[1][t_last_200:], xlims=[t_max-t_last, t_max])
 
     # Считаем метрики
     transition_process = t_max * 0.9
@@ -273,18 +300,29 @@ def dep_of_l_beta():
                 print(e, file=f, end=' ')
             print('', file=f)
 
+def series_experiments_dep_delta_l():
+    l_arr = np.arange(0.02, 0.21, 0.01)
+    delta_arr = np.arange(0., 0.006, 0.001)
+    print(l_arr, delta_arr)
 
-def main():
+    time = mem.hms_now().replace(':', '-')
+    path = mem.make_dir(s.grid_experiments_path + f'vdp_l_delta{time}')
+    path += '/'
+    for l in l_arr:
+        for delta in delta_arr:
+            l = round(l, 4)
+            delta = round(delta, 4)
+            print('l', l, 'delta', delta)
+            params = vdp_params(l=l, beta=0., alpha=0., delta=delta, mu=0.02)
+            solver(params, t_max=4000, solver='my', solve_step=0.01, IC=[2.1, 0.1, 1.5, 0.], default_path=path)
+
+def solo():
     # params = vdp_params(l=0.1, beta=.0, alpha=.0, delta=0.02, mu=0.02)
-    params = vdp_params(l=0.1, beta=0., alpha=.0, delta=0.02, mu=0.02)
-    solver(params, t_max=20000, solver='my')
+    params = vdp_params(l=.5, beta=0., alpha=.0, delta=0.001, mu=0.02)
+    solver(params, t_max=4000, solver='my', solve_step=0.01, IC=[2.0, 0.1, 1.5, 0.])
 
 
 if __name__ == '__main__':
-    main()
+    # solo()
+    series_experiments_dep_delta_l()
 
-# Посчитать все случаи из отчета с новыми mu, delta
-# Аналитический прикол сделать
-# Посчитать мгновенные и средние частоты
-# Написать свой численный метод
-# Посмотреть зависимость от дельты при связи в знаменателе
