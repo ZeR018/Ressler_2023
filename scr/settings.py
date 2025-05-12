@@ -1,7 +1,7 @@
 w = [0.98, 1.0, 0.94, 1.07, 1.02]
 a = 0.22        # Параметры
 b = 0.1         # системы
-c = 8.5         #
+c = [8.5, 9.0]  #
 
 exps_type = 'posl' # 'posl'/'parall'/'grid' 
 k_elements = 10  # Число агентов (не для 'grid')
@@ -22,7 +22,7 @@ k_col = 5                   # Число агентов в одном столб
 stopping_border_radius = 20
 stopping_border_center = [0.0 ,0.0]
 
-toch = [1e-7, 1e-7]
+toch = [1e-12, 1e-12]
 n_streams = 10
 
 small_animation = True

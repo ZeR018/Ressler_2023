@@ -133,7 +133,7 @@ def read_integration_data(path):
 
 # Сохраняет данные интегрирования, НУ, w, и все необходимые графики
 def save_data(integration_data, IC, w, figs_arr = [], fig_names_arr = [], deleted_elems = [], k_elements = k_elements, 
-              a = s.a, T = s.T, tau = s.tau, dir_name_suffix = '', k = s.k, save_int_data = True, path=s.grid_experiments_path):
+              a = s.a, T = s.T, tau = s.tau, radius = s.radius, dir_name_suffix = '', k = s.k, save_int_data = True, path=s.grid_experiments_path):
     date = str(datetime.now().date())
     time = hms_now().replace(':', '.')
 
@@ -141,7 +141,7 @@ def save_data(integration_data, IC, w, figs_arr = [], fig_names_arr = [], delete
     new_dir = path + date + ' ' + time + suffix
     os.mkdir(new_dir)
 
-    save_IC_and_w(IC, w,new_dir + '/IC.txt', _k_elements = k_elements, a=a, T = T, tau = s.tau, k = k)
+    save_IC_and_w(IC, w,new_dir + '/IC.txt', _k_elements = k_elements, a=a, T = T, tau = s.tau, k = k, _radius = radius)
 
     if save_int_data:
         save_integration_data(integration_data, new_dir + '/integration_data.txt', _k_elements = k_elements)

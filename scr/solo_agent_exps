@@ -1,0 +1,237 @@
+from default_model import func_rossler_2_dim_params_maker, func_lorenz_params, Lorenz_params, Coup_params, Rossler_params
+from scipy.integrate import solve_ivp
+import settings as s
+from matplotlib import pyplot as plt
+import memory_worker as mem
+import numpy as np
+import time
+import joblib
+from matplotlib.animation import ArtistAnimation
+from typing import Union
+
+def calc_phi_omega_amplitude_for_agent(xs, ys, zs, ts, p : Rossler_params):
+    b = p.b
+    c = p.c
+    a = p.a
+    w = p.w_arr
+    
+    size = len(ts)
+    phi_yx = []
+    phi_dydx = []
+    omega = []
+    A = []
+
+    for t in range(size):
+        x = xs[t]
+        y = ys[t]
+        z = zs[t]
+        phi_i1 = np.arctan2(( w * x + a * y), (- w * y - z))
+        phi_i2 = np.arctan2(y, x)
+        phi_yx.append(phi_i2)
+        phi_dydx.append(phi_i1)
+        
+        omega_i_dyddx = - (w*x + a*y) * (-w**2*x-w*a*y-b-z*(x-c))
+        omega_i_ddydx = (-w*y-z) * (-w**2*y-w*z+a*w*x+a**2*y)
+
+        omega_i_zn = (w*y+z)**2 + (w*x + a*y)**2
+        omega.append((omega_i_ddydx + omega_i_dyddx)/omega_i_zn)
+
+        A.append(np.sqrt(x**2+y**2))
+
+    return phi_yx, phi_dydx, omega, A
+
+def phase_converter(phase):
+    if phase > 0:
+        if phase > np.pi:
+            phase = phase - 2 * np.pi
+            phase_converter(phase)
+        return phase
+    else:
+        if phase < - np.pi:
+            phase = phase + 2 * np.pi
+            phase_converter(phase)
+        return phase
+
+def plot_timeline_graph(x : list, t : list, ylabel : str, save_name : str, path_save: str,
+                                figsize_ : list=[12, 3], xlabel : list='t', title : str='',
+                                subplots_adjust : list=[0.11, 0.97, 0.225, 0.97], 
+                                format : str='.png', x2 : list=[], font_size : int = 18, graph_type : str = 'plot', grid=True) -> None:
+    plt.figure(figsize=figsize_)
+    plt.subplots_adjust(left=subplots_adjust[0], right=subplots_adjust[1], bottom=subplots_adjust[2], top=subplots_adjust[3])
+    if graph_type == 'step':
+        if x2 == []:
+            plt.step(t, x, where='post')
+        else:
+            plt.step(t, x, label='1', where='post')
+            plt.step(t, x2, label='2', where='post')
+            plt.legend()
+    else:
+        if x2 == []:
+            plt.plot(t, x)
+        else:
+            plt.plot(t, x, label='1')
+            plt.plot(t, x2, label='2')
+            plt.legend()
+    if grid:
+        plt.grid()
+
+    if title != '':
+        plt.title(title)
+    plt.xlabel(xlabel, fontsize=font_size)
+    plt.ylabel(ylabel, fontsize=font_size)
+    plt.xticks(fontsize=font_size)
+    plt.yticks(fontsize=font_size)
+    plt.savefig(path_save + '/' + save_name + '.png')
+    plt.close()
+
+# integrate function
+def func_rossler_1_maker(p: Rossler_params):
+    a = p.a
+    b = p.b
+    c = p.c
+    def func_rossler_1(t, r):
+        x,y,z = r
+
+        dx = -y - z
+        dy = x + a * y
+        dz = b + z * (x - c)
+        return [dx, dy, dz]
+    return func_rossler_1
+
+def omega_c_or_a_exp(IC: list, sys_params: Rossler_params = Rossler_params(), 
+                     t_max = s.t_max, save_dir = s.grid_experiments_path, time_skip = 0):
+    C_arr = sys_params.c
+    A_arr = sys_params.a
+    
+    k_elements = sys_params.k_elements = 1
+
+    if len(C_arr) > 1 and len(A_arr) == 1:
+        perem_sym = 'c'
+        perem_arr = C_arr
+        sys_params.a = sys_params.a[0]
+    else:
+        perem_sym = 'a'
+        perem_arr = A_arr
+        sys_params.c = sys_params.c[0]
+
+    # make dirs
+    def create_and_mk_dir(dir):
+        counter = 1
+        new_dir = dir
+
+        import os
+        while os.path.exists(new_dir):
+            new_dir = f'{dir}({counter})'
+            counter += 1
+
+        mem.make_dir(new_dir)
+        return new_dir
+    dir_name = 'series_solo_omega_dep'
+    dir_name += f"_{perem_sym}"
+    path = save_dir + dir_name
+    path = create_and_mk_dir(path)
+    path_omega = mem.make_dir(f"{path}/omega")
+    path_a = mem.make_dir(f"{path}/a")
+    path_graphs = mem.make_dir(f"{path}/graphs")
+
+    A_avg_arr = []
+    Omega_avg_arr = []
+    for perem in perem_arr:
+        perem = round(perem, 3)
+        if perem_sym == "c":
+            sys_params.c = perem
+        else:
+            sys_params.a = perem
+
+        # Integrate
+        start_solve_time = time.time()
+        print('Start solve time:', mem.hms_now(), '\t', f"{perem_sym}={perem}")
+
+        rhs = func_rossler_1_maker(sys_params)
+        sol = solve_ivp(rhs, [0, t_max], IC, method=s.method, rtol=s.toch[0], atol=s.toch[1])
+        time_after_integrate = time.time()
+        print(f'Integrate time: {(time.time() - start_solve_time):0.1f}s', 'time:', mem.hms_now(), '\tsize: ', len(sol.t))
+
+        xs = sol.y[0]
+        ys = sol.y[1]
+        zs = sol.y[2]
+        ts = sol.t
+
+        phi_yx, phi_dydx, omega, A = calc_phi_omega_amplitude_for_agent(xs, ys, zs, ts, p=sys_params)
+
+        plot_timeline_graph(omega, ts, r"$\omega$", f"omega_{perem_sym}_{perem}", path_save=path_omega, title=f"{perem_sym} = {perem:0.3f}")
+        plot_timeline_graph(A, ts, r"$A$", f"a_{perem_sym}_{perem}", path_save=path_a,  title=f"{perem_sym} = {perem:0.3f}")
+        
+        index_time_skip = np.searchsorted(ts, time_skip)
+        A_avg_arr.append(np.mean(A[index_time_skip:]))
+        Omega_avg_arr.append(np.mean(omega[index_time_skip:]))
+
+        # plot xy graphs
+        plt.figure(figsize=[8,8])
+        plt.plot(xs[index_time_skip:], ys[index_time_skip:])
+        plt.grid()
+        plt.xlabel('x')
+        plt.ylabel('y')
+        plt.title(f"{perem_sym}={perem}")
+        plt.savefig(f"{path_graphs}/{perem_sym}_{perem:0.3f}.png")
+        plt.close()
+    
+    plot_timeline_graph(A_avg_arr, perem_arr, r"$<A>$", f"a_avg_dep_{perem_sym}", path_save=path, 
+                        xlabel=f"{perem_sym}")
+    plot_timeline_graph(Omega_avg_arr, perem_arr, r"$<\omega>$", f"omega_avg_dep_{perem_sym}", path_save=path, 
+                        xlabel=f"{perem_sym}")
+
+def solo_exp_graphs(IC: list, sys_params: Rossler_params = Rossler_params(), 
+                     t_max = s.t_max, save_dir = s.grid_experiments_path, time_skip = 0):
+    a = sys_params.a
+    c = sys_params.c
+    # Integrate
+    start_solve_time = time.time()
+    print('Start solve time:', mem.hms_now(), '\t', f"a={a}, c={c}")
+
+    rhs = func_rossler_1_maker(sys_params)
+    sol = solve_ivp(rhs, [0, t_max], IC, method=s.method, rtol=s.toch[0], atol=s.toch[1])
+    time_after_integrate = time.time()
+    print(f'Integrate time: {(time.time() - start_solve_time):0.1f}s', 'time:', mem.hms_now(), '\tsize: ', len(sol.t))
+
+    xs = sol.y[0]
+    ys = sol.y[1]
+    zs = sol.y[2]
+    ts = sol.t
+
+    path_save, path_save_graphs = mem.save_data([[xs], [ys], [zs], ts], IC, sys_params.w_arr, [], [], T=sys_params.T, k_elements=1, a=sys_params.a, tau=sys_params.tau, dir_name_suffix=f"solo_a_{a}_c_{c}", path=save_dir)
+    plt.close() 
+    mem.draw_and_save_graphics_many_agents([xs], [ys], ts, path_save_graphs, ["blue"], 1, t_step=1, 
+                                            num_prevs_elems=2)
+
+    phi_yx, phi_dydx, omega, A = calc_phi_omega_amplitude_for_agent(xs, ys, zs, ts, p=sys_params)
+
+    plot_timeline_graph(omega, ts, r"$\omega$", f"omega_{a}_{c}", path_save=path_save)
+    plot_timeline_graph(A, ts, r"$A$", f"a_{a}_{c}", path_save=path_save)
+
+    plt.figure(figsize=[8, 8])
+    last_100_ind = np.searchsorted(ts, t_max-200)
+    plt.plot(xs[last_100_ind:], ys[last_100_ind:])
+    plt.grid()
+    plt.xlabel('x')
+    plt.ylabel('y')
+    plt.savefig(f'{path_save}/xy_last_100.png')
+
+
+IC = [1, 1, 0.1]
+time_skip = 100
+t_max = 3500
+
+# Series Omega and A dep a or c
+C_arr = np.arange(5, 9.51, 0.01)
+A_arr = [0.16]
+
+# C_arr = [8.5]
+# A_arr = np.arange(0.15, 0.301, 0.001)
+p = Rossler_params(1, C_arr, 1, A_arr)
+omega_c_or_a_exp(IC, sys_params=p, t_max=t_max, time_skip=time_skip)
+
+
+# solo exp
+# p = Rossler_params(w_arr=1, c=16, k_elements=1, a=0.16)
+# solo_exp_graphs(IC, p, t_max, time_skip=time_skip)

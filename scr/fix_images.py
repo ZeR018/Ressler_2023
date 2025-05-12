@@ -53,10 +53,62 @@ font_name = "./data/temp/times-new-roman-italic.ttf"
 
 ################################# two lorenz ################################
 
-img_name = 'two_lorenz_sync'
+# img_name = 'two_lorenz_sync'
 
-img = Image.open(f'./data/saved_graphs/{img_name}.png')
+# img = Image.open(f'./data/saved_graphs/{img_name}.png')
 
+# # Создаем объект для рисования
+# draw = ImageDraw.Draw(img)
+
+# # Указываем шрифт и размер (по умолчанию используется стандартный шрифт)
+# font = ImageFont.truetype(font_name, size=48)
+
+# # Добавляем текст на изображение
+# # draw.text((115, 180), "(a)", fill="black", font=font)
+# # draw.text((750, 180), "(b)", fill="black", font=font)
+
+# draw.text((20, 240), "a", fill="black", font=font)
+# draw.text((620, 240), "b", fill="black", font=font)
+
+# # Сохраняем измененное изображение
+
+# img.show()  # Показываем изображение
+# img.save(f'./data/saved_graphs/new/{img_name}_new2.png')
+
+################################# timeline graphs ################################
+
+# img_names = ['As_avg_diff_11', 'phases_avg_diff_yx_11']
+# # img_names = ['parall_As_diff', 'parall_phases_diff_yx_1']
+# # img_names = ['As_diff', 'phases_diff_yx_1']
+# index = 0
+
+# img = Image.open(f'./data/saved_graphs/{img_names[index]}.png')
+
+# # Создаем объект для рисования
+# draw = ImageDraw.Draw(img)
+
+# # Указываем шрифт и размер (по умолчанию используется стандартный шрифт)
+# font = ImageFont.truetype(font_name, size=48)
+
+# # Добавляем текст на изображение
+# # draw.text((115, 180), "(a)", fill="black", font=font)
+# # draw.text((750, 180), "(b)", fill="black", font=font)
+
+# draw.text((25, 235), symbols[index], fill="black", font=font)
+# # draw.text((10, 100), symbols[index], fill="black", font=font)
+
+
+# # Сохраняем измененное изображение
+
+# img.show()  # Показываем изображение
+# img.save(f'./data/saved_graphs/new/{img_names[index]}_new.png')
+
+
+################################# xy graphs ################################
+
+img_names = ['posl_xy', 'parallel_xy_c']
+index = 0
+img = Image.open(f'./data/saved_graphs/{img_names[index]}.png')
 # Создаем объект для рисования
 draw = ImageDraw.Draw(img)
 
@@ -64,14 +116,9 @@ draw = ImageDraw.Draw(img)
 font = ImageFont.truetype(font_name, size=48)
 
 # Добавляем текст на изображение
-# draw.text((115, 180), "(a)", fill="black", font=font)
-# draw.text((750, 180), "(b)", fill="black", font=font)
+draw.text((20, 425), symbols[index], fill="black", font=font)
 
-draw.text((20, 240), "a", fill="black", font=font)
-draw.text((620, 240), "b", fill="black", font=font)
 
 # Сохраняем измененное изображение
-
 img.show()  # Показываем изображение
-img.save(f'./data/saved_graphs/new/{img_name}_new2.png')
-
+img.save(f'./data/saved_graphs/new/{img_names[index]}_new.png')

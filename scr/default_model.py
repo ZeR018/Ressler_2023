@@ -11,7 +11,7 @@ import numpy as np
 w_arr = []                      #
 a = s.a                     # Параметры
 b = s.b                     # системы
-c = s.c                     #
+c = s.c                    #
 t_max = s.t_max             # Время интегрирования
 
 k_str = s.k_str             # Число агентов в одной строке
@@ -86,17 +86,17 @@ def d_3dim(_T, _radius, x_i, x_j, y_i, y_j, z_i, z_j):
 # Функции правой части
 # По x
 def func_dx(i, r, connect_f=default_f, _T=s.T, w_arr = w_arr, connect_f_rep = default_f):
-    return - w_arr[i] * r[i*k + 1] - r[i*k + 2] + connect_f(i, r, _T, perem='x', k_elements=k_elements) + connect_f_rep(i, r, _T, 'x')
+    return - w_arr[i] * r[i*k + 1] - r[i*k + 2] + connect_f(i, r, _T, perem='x', k_elements=k_elements, radius = radius) + connect_f_rep(i, r, _T, 'x')
 
 
 # По y.
 def func_dy(i, r, connect_f=default_f, _T=s.T, w_arr = w_arr, connect_f_rep = default_f):
-    return w_arr[i] * r[i*k] + a * r[i*k + 1] + connect_f(i, r, _T, perem='y', k_elements=k_elements) + connect_f_rep(i, r, _T, 'y')
+    return w_arr[i] * r[i*k] + a * r[i*k + 1] + connect_f(i, r, _T, perem='y', k_elements=k_elements, radius = radius) + connect_f_rep(i, r, _T, 'y')
 
 
 # По z
 def func_dz(i, r, connect_f=default_f, _T = s.T, connect_f_rep = default_f):
-    return b + r[i*k + 2] * (r[i*k] - c) + connect_f(i, r, _T, perem='z', k_elements=k_elements) + connect_f_rep(i, r, _T, 'z')
+    return b + r[i*k + 2] * (r[i*k] - c[i]) + connect_f(i, r, _T, perem='z', k_elements=k_elements, radius = radius) + connect_f_rep(i, r, _T, 'z')
 
 def func_rossler_3_dim(t, r, w_arr_, a_, tau_ = tau):
     # print(f'\033[F\033[KCurrent integrate time: {round(t, 1)};', f'last update time: {mem.hms_now()}')
@@ -141,7 +141,7 @@ def f_connect_x_repulsive(i, r, _T, perem = 'x'):
             
     return summ1 + summ2
 
-def f_connect_st(i, r, _T, perem = 'y', k=s.k, k_elements=k_elements, radius = s.radius):
+def f_connect_st(i, r, _T, perem = 'y', k=s.k, k_elements=k_elements, radius = radius):
     if perem == 'z':
         p_shift = 2
     elif perem == 'x':
@@ -194,58 +194,16 @@ def func_rossler_2_dim(t, r, w_arr_, a_, tau_ = tau):
 
     return res_arr
 
-# def func_rossler_2_dim_params_maker(k_elements_, couplings = (False, True, False), couplings_inh = (False, False, False)):
-#     f_dx_coup = f_connect_st if couplings[0] else default_f
-#     f_dy_coup = f_connect_st if couplings[1] else default_f
-#     f_dz_coup = f_connect_st if couplings[2] else default_f
-#     f_dx_coup_inh = f_connect_inh if couplings_inh[0] else default_f
-#     f_dy_coup_inh = f_connect_inh if couplings_inh[1] else default_f
-#     f_dz_coup_inh = f_connect_inh if couplings_inh[2] else default_f
-
-#     def func_rossler_2_dim_params(t, r, w_arr_, a_, tau_ = tau):
-#         # if round(t, 3) % 2 == 0:
-#         #     print(t)
-#         global k_elements, w_arr, a
-#         k_elements = k_elements_
-#         w_arr = w_arr_
-#         a = a_
-#         res_arr = []
-
-#         for i in range(k_elements):
-#             # x_i = r[i*k]
-#             # y_i = r[i*k + 1]
-#             # z_i = r[i*k + 2]
-
-#             # Связь по z
-#             if couplings[2]:
-#                 if calc_norm_inf(i, r) > 10000:
-#                     # elements.remove(i)
-#                     # print('remove', i)
-#                     # continue
-#                     res_arr.append(0)
-#                     res_arr.append(0)
-#                     res_arr.append(0)
-#                     continue
-
-#             dx = tau_ * func_dx(i, r, f_dx_coup, T, w_arr, connect_f_inh=f_dx_coup_inh)
-#             dy = tau_ * func_dy(i, r, f_dy_coup, T, w_arr, connect_f_inh=f_dy_coup_inh)
-#             dz = tau_ * func_dz(i, r, f_dz_coup, T, connect_f_inh=f_dz_coup_inh)
-
-#             res_arr.append(dx)
-#             res_arr.append(dy)
-#             res_arr.append(dz)
-
-#         return res_arr
-#     return func_rossler_2_dim_params
-
 class Rossler_params:
-    def __init__(self, w_arr = s.w, k_elements = s.k_elements, a = s.a, T = s.T, tau = s.tau, radius = s.radius):
+    def __init__(self, w_arr = s.w, c = s.c, k_elements = s.k_elements, a = s.a, T = s.T, tau = s.tau, radius = s.radius, b = s.b):
         self.k_elements = k_elements
         self.a = a
         self.T = T
         self.tau = tau
         self.radius = radius
         self.w_arr = w_arr
+        self.c = c
+        self.b = b
 
 def func_rossler_2_dim_params_maker(couplings = (False, True, False), 
                                     couplings_rep = (False, False, False), 
@@ -258,13 +216,15 @@ def func_rossler_2_dim_params_maker(couplings = (False, True, False),
     f_dy_coup_rep = f_connect_rep if couplings_rep[1] else default_f
     f_dz_coup_rep = f_connect_rep if couplings_rep[2] else default_f
 
-    global k_elements, w_arr, a, T, tau, radius
+    global k_elements, w_arr, a, T, tau, radius, c, b
     k_elements = params.k_elements
     w_arr = params.w_arr
     a = params.a
     T = params.T
     tau = params.tau
     radius = params.radius
+    c = params.c
+    b = params.b
 
     def func_rossler_2_dim_params(t, r):
         # if round(t, 2) % 2 == 0:

@@ -2,15 +2,16 @@ from scipy.integrate import solve_ivp
 import matplotlib.pyplot as plt
 import numpy as np
 import memory_worker as mem
-import colorama
 import settings as s
 import time
 import joblib
 import itertools
 from my_solve_ivp import my_solve
 
-colorama.init()
 default_solve_step = 0.001
+# method = "Radau"
+method = "LSODA"
+toch = [1e-12, 1e-12]
 
 def phase_converter(phase, type = 1):
     if type == 1:
@@ -56,40 +57,28 @@ def solver(params : vdp_params, IC = [1.9, -1.9, 2.1, 2.1], t_max = 40000, defau
         def divide_coup2(mu, l, y_this, y_other):
             return mu * l / (y_this - y_other)
         
-        def conservative_coup(mu, alpha, x_this, x_other):
-            return mu * alpha * (x_other - x_this)
-        
 
         divide_coup = divide_coup2
 
         def func_vdp_2(t, r):
             x1, y1, x2, y2 = r
-
-            coups_1 = conservative_coup(p.mu, p.alpha, x1, x2) + divide_coup(p.mu, p.l, y1, y2) + dissipative_coup(p.mu, p.beta, y1, y2) + \
-                conservative_coup(p.mu, p.alpha, x1, x2)
-            coups_2 = conservative_coup(p.mu, p.alpha, x2, x1) + divide_coup(p.mu, p.l, y2, y1) + dissipative_coup(p.mu, p.beta, y2, y1) + \
-                conservative_coup(p.mu, p.alpha, x2, x1)
-            
             dx1 = y1
-            dy1 = p.mu * (1. - x1**2) * y1 - x1 + coups_1
+            dy1 = p.mu * (1. - x1**2) * y1 - x1 + divide_coup(p.mu, p.l, y1, y2) + dissipative_coup(p.mu, p.beta, y1, y2)
             dx2 = y2
-            dy2 = p.mu * (1 + p.gamma - x2**2) * y2 - x2 + coups_2
+            dy2 = p.mu * (1 + p.gamma - x2**2) * y2 - (1 + p.mu * p.delta) * x2 + divide_coup(p.mu, p.l, y2, y1) + dissipative_coup(p.mu, p.beta, y2, y1)
 
-            # dx1 = y1
-            # dy1 = p.mu * (1. - x1**2) * y1 - x1 - p.mu*p.l / (y2-y1)
-            # dx2 = y2
-            # dy2 = p.mu * (1 + p.gamma - x2**2) * y2 - x2 - p.mu*p.l / (y1-y2)
-            
             return [dx1, dy1, dx2, dy2]
         
-        def func_vdp_1_test(t, r):
-            x, y = r
-            dx = y
-            dy = p.mu * (1. - x**2) * y - x
-            return [ dx, dy]
+        # def func_vdp_parallel(t, r):
+        #     x1, y1, x2, y2 = r
+        #     dx1 = y1
+        #     dy1 = p.mu * (1 - x1**2) * y1 - x1 + dissipative_coup(p.mu, p.beta, y1, y2)
+        #     dx2 = y2
+        #     dy2 = p.mu * (1 + p.gamma - x2**2) * y2 - x2 + dissipative_coup(p.mu, p.beta, y2, y1)
 
         return func_vdp_2
     
+
     # Integrate
     start_solve_time = time.time()
     print('Start solve time:', mem.hms_now(), 'l', params.l, 'beta', params.beta)
@@ -98,10 +87,14 @@ def solver(params : vdp_params, IC = [1.9, -1.9, 2.1, 2.1], t_max = 40000, defau
     # using solve_ivp
     if solver == 'solve_ivp':
         print('Solve function: solve_ivp')
-        sol = solve_ivp(rhs, [0, t_max], IC, method='RK45', rtol=1e-4, atol=1e-4, max_step=solve_step)
+        if solve_step:
+            sol = solve_ivp(rhs, [0, t_max], IC, method=method, rtol=toch[0], atol=toch[1], max_step=solve_step)
+        else:
+            sol = solve_ivp(rhs, [0, t_max], IC, method=method, rtol=toch[0], atol=toch[1])
         xs = [sol.y[0], sol.y[2]]
         ys = [sol.y[1], sol.y[3]]
         ts = sol.t
+        print(sol.status)
 
     # using my solve_ivp
     else:
@@ -135,6 +128,7 @@ def solver(params : vdp_params, IC = [1.9, -1.9, 2.1, 2.1], t_max = 40000, defau
 
     dir_name = f"vdp_b_{params.beta}_l_{params.l}_d_{params.delta}_{t_max}_"
     dir_name += f"{'s' if solver == 'solve_ivp' else 'm'}{f'_{solve_step}' if solve_step !=  default_solve_step else ''}"
+    dir_name += f"{f'_{method}' if method != 'RK45' else ''}"
     print('Dir name:', dir_name)
     dir_path = default_path + dir_name
     
@@ -232,7 +226,7 @@ def solver(params : vdp_params, IC = [1.9, -1.9, 2.1, 2.1], t_max = 40000, defau
     for i in range(size):
         phase1 = np.arctan2(ys[0][i], xs[0][i])
         phase2 = np.arctan2(ys[1][i], xs[1][i])
-        phases_diff.append(phase_converter(phase2 - phase1, type=2))
+        phases_diff.append(phase_converter(phase2 - phase1, type=1))
     plot_timeline_graph(phases_diff, ts, r'$\phi_2 - \phi_1$', 'vdp_phases_diff')
     plot_timeline_graph(phases_diff[t_last_200:], ts[t_last_200:], r'$\phi_2 - \phi_1$', f'vdp_phases_diff_last_{t_last}', xlims=[t_max-t_last, t_max])
 
@@ -269,6 +263,9 @@ def solver(params : vdp_params, IC = [1.9, -1.9, 2.1, 2.1], t_max = 40000, defau
         print('gamma', params.gamma, file=f)
         print('l', params.l, file=f)
         print('alpha', params.alpha, file=f)
+        print('IC', IC, file=f)
+        print('method', method, file=f)
+        print('toch', toch, file=f)
 
     
 
@@ -318,11 +315,20 @@ def series_experiments_dep_delta_l():
 
 def solo():
     # params = vdp_params(l=0.1, beta=.0, alpha=.0, delta=0.02, mu=0.02)
-    params = vdp_params(l=.5, beta=0., alpha=.0, delta=0.001, mu=0.02)
-    solver(params, t_max=4000, solver='my', solve_step=0.01, IC=[2.0, 0.1, 1.5, 0.])
+
+    # l_arr = np.arange(0.01, 0.21, 0.01)
+    # print(l_arr)
+    # for l in l_arr:
+    #     l = round(l, 5)
+    #     params = vdp_params(l=l, beta=0.5, alpha=0.0, delta=0.1, mu=0.001)
+    #     solver(params, t_max=40000, solver='solve_ivp', solve_step=0.05, IC=[0, 1.9, 0, 2.1])
+
+    params = vdp_params(l=0., beta=0.1, alpha=0.0, delta=0.0, mu=0.001, gamma=0.1)
+    solver(params, t_max=6000, solver='solve_ivp', solve_step=None, IC=[0.1, 1.8, 0, 2.2])
 
 
 if __name__ == '__main__':
-    # solo()
-    series_experiments_dep_delta_l()
+    solo()
+    # series_experiments_dep_delta_l()
 
+# Получить результаты параллельного движения при двух связях (а не при трех как было раньше)
