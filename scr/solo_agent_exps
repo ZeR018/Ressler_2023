@@ -8,6 +8,7 @@ import time
 import joblib
 from matplotlib.animation import ArtistAnimation
 from typing import Union
+import pandas as pd
 
 def calc_phi_omega_amplitude_for_agent(xs, ys, zs, ts, p : Rossler_params):
     b = p.b
@@ -163,8 +164,10 @@ def omega_c_or_a_exp(IC: list, sys_params: Rossler_params = Rossler_params(),
         plot_timeline_graph(A, ts, r"$A$", f"a_{perem_sym}_{perem}", path_save=path_a,  title=f"{perem_sym} = {perem:0.3f}")
         
         index_time_skip = np.searchsorted(ts, time_skip)
-        A_avg_arr.append(np.mean(A[index_time_skip:]))
-        Omega_avg_arr.append(np.mean(omega[index_time_skip:]))
+        A_avg_i = np.mean(A[index_time_skip:])
+        Omega_avg_i = np.mean(omega[index_time_skip:])
+        A_avg_arr.append(A_avg_i)
+        Omega_avg_arr.append(Omega_avg_i)
 
         # plot xy graphs
         plt.figure(figsize=[8,8])
@@ -175,6 +178,9 @@ def omega_c_or_a_exp(IC: list, sys_params: Rossler_params = Rossler_params(),
         plt.title(f"{perem_sym}={perem}")
         plt.savefig(f"{path_graphs}/{perem_sym}_{perem:0.3f}.png")
         plt.close()
+
+        with open(f"{path}/metrix.txt", "a") as f:
+            print(perem, A_avg_i, Omega_avg_i, file=f)
     
     plot_timeline_graph(A_avg_arr, perem_arr, r"$<A>$", f"a_avg_dep_{perem_sym}", path_save=path, 
                         xlabel=f"{perem_sym}")
@@ -220,10 +226,11 @@ def solo_exp_graphs(IC: list, sys_params: Rossler_params = Rossler_params(),
 
 IC = [1, 1, 0.1]
 time_skip = 100
-t_max = 3500
+t_max = 3000
 
 # Series Omega and A dep a or c
-C_arr = np.arange(5, 9.51, 0.01)
+# C_arr = np.arange(5, 9.55, 0.05)
+C_arr = [8.5, 8.505, 8.51, 8.515, 8.52]
 A_arr = [0.16]
 
 # C_arr = [8.5]

@@ -8,6 +8,7 @@ import time
 import joblib
 from matplotlib.animation import ArtistAnimation
 from typing import Union
+from itertools import product
 
 
 def calc_dist_between_agents(xs, ys, zs, ts):
@@ -58,6 +59,35 @@ def calc_phi_omega_amplitude_for_agent(xs, ys, zs, ts, w, a, system_params = {"b
 
     return phi_yx, phi_dydx, omega, A
 
+def calc_omegas_avg_mean(omega, ts, t_max, time_skip, first_step_t = 400, step_t = 400):
+    omega_avg_arr = []
+    times_arr = []
+    t_curr = first_step_t + time_skip
+    while(t_curr <= t_max):
+        i_curr = np.searchsorted(ts, t_curr)
+        t_prev = t_curr - first_step_t
+        i_prev = np.searchsorted(ts, t_prev)
+        omega_i = np.mean(omega[:i_curr])
+        omega_avg_arr.append(omega_i)
+        times_arr.append(t_curr)
+        
+        t_curr += step_t
+
+    return omega_avg_arr, times_arr
+
+def plot_omegas(omegas, ts, k_elements, path_save, save_name = "graph_omegas_mean"):
+    plt.close()
+    plt.figure()
+    plot_colors = mem.make_colors(k_elements)
+    for agent in range(k_elements):
+        plt.plot(ts, omegas[agent], color=plot_colors[agent])
+    plt.xlabel(r"$t$")
+    plt.ylabel(r"$\omega$")
+    plt.grid()
+    plt.savefig(f"{path_save}/{save_name}.png")
+    plt.show()
+    plt.close()
+
 def phase_converter(phase):
     if phase > 0:
         if phase > np.pi:
@@ -69,14 +99,11 @@ def phase_converter(phase):
             phase = phase + 2 * np.pi
             phase_converter(phase)
         return phase
-
-def one_exp_couplings(IC, isSolo = True, couplings = (False, True, False), couplings_rep = (False, False, False), 
-                      sys_params : Union[Rossler_params, Lorenz_params] = Rossler_params() , 
-                      t_max = s.t_max, small_animation = True, system = 'rossler', save_dir = s.grid_experiments_path, 
-                      suffix='', step_t_for_avg = 1, time_skip = 0):
+    
+def rossler_lorenz_solver(system, sys_params, t_max, IC, couplings, couplings_rep):
     # Для системы Лоренца пока нерабочая версия - нужно изменить код для sys_params
     k_elements = sys_params.k_elements
-    
+        
     # Integrate
     start_solve_time = time.time()
     print('Start solve time:', mem.hms_now(), '\tmethod: ', s.method)
@@ -104,10 +131,20 @@ def one_exp_couplings(IC, isSolo = True, couplings = (False, True, False), coupl
         ys.append(sol.y[i*k+1])
         zs.append(sol.y[i*k+2])
     ts = sol.t
+    return xs, ys, zs, ts, time_after_integrate
 
-    for agent in range(k_elements):
-        print('maximums:', 'x', max(xs[agent]), 'y', max(ys[agent]), 'z', max(zs[agent]))
-
+def one_exp_couplings(IC, isSolo = True, couplings = (False, True, False), couplings_rep = (False, False, False), 
+                      sys_params : Union[Rossler_params, Lorenz_params] = Rossler_params() , 
+                      t_max = s.t_max, small_animation = True, system = 'rossler', save_dir = s.grid_experiments_path, 
+                      suffix='', step_t_for_avg = 1, time_skip = 0, integrate_data_path = None):
+    
+    k_elements = sys_params.k_elements
+    if not integrate_data_path:
+        xs, ys, zs, ts, time_after_integrate = rossler_lorenz_solver(system, sys_params, t_max, IC, couplings, couplings_rep)
+    else: 
+        xs, ys, zs, ts = mem.read_integration_data(integrate_data_path)
+        time_after_integrate = time.time()
+        
     plot_colors = mem.make_colors(k_elements)
 
     if isSolo:
@@ -123,13 +160,17 @@ def one_exp_couplings(IC, isSolo = True, couplings = (False, True, False), coupl
         if small_animation:
             suffix += ' A'
 
-
         path_save, path_save_graphs = mem.save_data([xs, ys, zs, ts], IC, sys_params.w_arr, [], [], T=sys_params.T, k_elements=k_elements, a=sys_params.a, tau=sys_params.tau, dir_name_suffix=suffix, path=save_dir)
         plt.close()
         lim_param = 20
         if system != 'lorenz':
-            mem.draw_and_save_graphics_many_agents(xs, ys, ts, path_save_graphs, plot_colors, k_elements, t_step=t_step_xy_graphs, 
+            if not integrate_data_path:
+                mem.draw_and_save_graphics_many_agents(xs, ys, ts, path_save_graphs, plot_colors, k_elements, t_step=t_step_xy_graphs, 
                                                mashtab=[-lim_param, lim_param, -lim_param, lim_param] if couplings_rep[2] == 1 else [], num_prevs_elems=2)
+            else:
+                with open(f"{path_save}/data.txt", 'w') as f:
+                    print("Original figs on path:", file=f)
+                    print(integrate_data_path, file=f)
 
         # Анимация y(x)
         if small_animation:
@@ -151,58 +192,59 @@ def one_exp_couplings(IC, isSolo = True, couplings = (False, True, False), coupl
         path_save_time_series = path_save + '/time_series'
         mem.make_dir(path_save_time_series)
 
-        # Graphs xt
-        size_xt_graph = 30
-        num_graphs = int(t_max / size_xt_graph)
-        for graph_ind in range(0, num_graphs):
-            plt.figure(figsize=[16, 4])
-            start = np.searchsorted(ts, size_xt_graph * graph_ind, side='left')
-            end = np.searchsorted(ts, size_xt_graph * (graph_ind + 1), side="left")
-            for agent in range(k_elements):
-                plt.plot(ts[start:end], xs[agent][start:end], color=plot_colors[agent], label=f'agent {agent+1}')
-            plt.grid()
-            plt.ylim(-20, 20)
-            plt.xlabel('t', fontsize=20)
-            plt.ylabel('x', fontsize=20)
-            plt.legend()
-            plt.subplots_adjust(left=0.05, right=0.985, top=0.98, bottom=0.15)
-            plt.savefig(path_save_time_series + f'/xt_{graph_ind}.png')
-            plt.close()
+        if not integrate_data_path:
+            # Graphs xt
+            size_xt_graph = 30
+            num_graphs = int(t_max / size_xt_graph)
+            for graph_ind in range(0, num_graphs):
+                plt.figure(figsize=[16, 4])
+                start = np.searchsorted(ts, size_xt_graph * graph_ind, side='left')
+                end = np.searchsorted(ts, size_xt_graph * (graph_ind + 1), side="left")
+                for agent in range(k_elements):
+                    plt.plot(ts[start:end], xs[agent][start:end], color=plot_colors[agent], label=f'agent {agent+1}')
+                plt.grid()
+                plt.ylim(-20, 20)
+                plt.xlabel('t', fontsize=20)
+                plt.ylabel('x', fontsize=20)
+                plt.legend()
+                plt.subplots_adjust(left=0.05, right=0.985, top=0.98, bottom=0.15)
+                plt.savefig(path_save_time_series + f'/xt_{graph_ind}.png')
+                plt.close()
 
-        # Graph yt
-        size_yt_graph = 30
-        num_graphs = int(t_max / size_yt_graph)
-        for graph_ind in range(0, num_graphs):
-            plt.figure(figsize=[16, 4])
-            start = np.searchsorted(ts, size_yt_graph * graph_ind, side='left')
-            end = np.searchsorted(ts, size_yt_graph * (graph_ind + 1), side="left")
-            for agent in range(k_elements):
-                plt.plot(ts[start:end], ys[agent][start:end], color=plot_colors[agent], label=f'agent {agent+1}')
-            plt.xlabel('t', fontsize=15)
-            plt.ylabel('y', fontsize=15)
-            plt.grid()
-            plt.legend()
-            plt.subplots_adjust(left=0.05, right=0.985, top=0.98, bottom=0.15)
-            plt.savefig(path_save_time_series + f'/yt_{graph_ind}.png')
-            plt.close()
+            # Graph yt
+            size_yt_graph = 30
+            num_graphs = int(t_max / size_yt_graph)
+            for graph_ind in range(0, num_graphs):
+                plt.figure(figsize=[16, 4])
+                start = np.searchsorted(ts, size_yt_graph * graph_ind, side='left')
+                end = np.searchsorted(ts, size_yt_graph * (graph_ind + 1), side="left")
+                for agent in range(k_elements):
+                    plt.plot(ts[start:end], ys[agent][start:end], color=plot_colors[agent], label=f'agent {agent+1}')
+                plt.xlabel('t', fontsize=15)
+                plt.ylabel('y', fontsize=15)
+                plt.grid()
+                plt.legend()
+                plt.subplots_adjust(left=0.05, right=0.985, top=0.98, bottom=0.15)
+                plt.savefig(path_save_time_series + f'/yt_{graph_ind}.png')
+                plt.close()
 
-        # Graph zt
-        size_zt_graph = 30
-        num_graphs = int(t_max / size_zt_graph)
-        for graph_ind in range(0, num_graphs):
-            plt.figure(figsize=[16, 4])
-            start = np.searchsorted(ts, size_zt_graph * graph_ind, side='left')
-            end = np.searchsorted(ts, size_zt_graph * (graph_ind + 1), side="left")
-            for agent in range(k_elements):
-                plt.plot(ts[start:end], zs[agent][start:end], color=plot_colors[agent], label=f'agent {agent+1}')
-            plt.xlabel('t', fontsize=20)
-            plt.ylabel('z', fontsize=20)
-            plt.ylim(bottom=-2)
-            plt.grid()
-            plt.legend()
-            plt.subplots_adjust(left=0.05, right=0.985, top=0.98, bottom=0.15)
-            plt.savefig(path_save_time_series + f'/zt_{graph_ind}.png')
-            plt.close()
+            # Graph zt
+            size_zt_graph = 30
+            num_graphs = int(t_max / size_zt_graph)
+            for graph_ind in range(0, num_graphs):
+                plt.figure(figsize=[16, 4])
+                start = np.searchsorted(ts, size_zt_graph * graph_ind, side='left')
+                end = np.searchsorted(ts, size_zt_graph * (graph_ind + 1), side="left")
+                for agent in range(k_elements):
+                    plt.plot(ts[start:end], zs[agent][start:end], color=plot_colors[agent], label=f'agent {agent+1}')
+                plt.xlabel('t', fontsize=20)
+                plt.ylabel('z', fontsize=20)
+                plt.ylim(bottom=-2)
+                plt.grid()
+                plt.legend()
+                plt.subplots_adjust(left=0.05, right=0.985, top=0.98, bottom=0.15)
+                plt.savefig(path_save_time_series + f'/zt_{graph_ind}.png')
+                plt.close()
 
     time_after_save_data = time.time()
     print(f'Start analysis {(time.time() - time_after_integrate):0.1f}s', 'time:', mem.hms_now())
@@ -229,14 +271,22 @@ def one_exp_couplings(IC, isSolo = True, couplings = (False, True, False), coupl
     # Calc phase and omega
     phases_yx = []
     phases_dydx = []
-    omegas = []
-    As = []
+    omegas_short = []
+    As_short = []
+    omegas_avg_short = []
+    times_for_omegas_avg_short= []
     for agent in range(k_elements):
         phases_agent_yx, phases_agent_dydx, omegas_agent, As_agent = calc_phi_omega_amplitude_for_agent(xs_short[agent], ys_short[agent], zs_short[agent], ts_short, sys_params.w_arr[agent], sys_params.a)
         phases_yx.append(phases_agent_yx)
         phases_dydx.append(phases_agent_dydx)
-        omegas.append(omegas_agent)
-        As.append(As_agent)
+        omegas_short.append(omegas_agent)
+        As_short.append(As_agent)
+
+        omega_mean_agent, t_omega_mean_agent = calc_omegas_avg_mean(omegas_agent, ts, t_max, time_skip)
+        omegas_avg_short.append(omega_mean_agent)
+        times_for_omegas_avg_short = t_omega_mean_agent
+    plot_omegas(omegas_avg_short, times_for_omegas_avg_short, k_elements, path_save)
+    plot_omegas(omegas_short, ts_short, k_elements, path_save, "omegas")
 
     if k_elements == 2:
         for step_t_for_avg in range(1, 2):
@@ -265,7 +315,7 @@ def one_exp_couplings(IC, isSolo = True, couplings = (False, True, False), coupl
                 for agent in range(k_elements):
                     phases_avg_yx[agent].append(np.mean(phases_yx[agent][i_prev:i]))
                     phases_avg_dydx[agent].append(np.mean(phases_dydx[agent][i_prev:i]))
-                    omegas_avg[agent].append(np.mean(omegas[agent][i_prev:i]))
+                    omegas_avg[agent].append(np.mean(omegas_short[agent][i_prev:i]))
                     As_avg[agent].append(np.mean(As[agent][i_prev:i]))
                     zs_avg[agent].append(np.mean(zs_short[agent][i_prev:i]))
                 
@@ -312,10 +362,10 @@ def one_exp_couplings(IC, isSolo = True, couplings = (False, True, False), coupl
             omegas_diff_without_avg = []
             As_diff_without_avg = []
             for i in range(len(ts_short)):
-                As_diff_without_avg.append(abs(As[0][i] - As[1][i]))
+                As_diff_without_avg.append(abs(As_short[0][i] - As_short[1][i]))
                 phases_diff_without_avg_yx.append(phase_converter(phases_yx[0][i] - phases_yx[1][i]))
                 phases_diff_without_avg_dydx.append(phase_converter(phases_dydx[0][i] - phases_dydx[1][i]))
-                omegas_diff_without_avg.append(omegas[0][i] - omegas[1][i])
+                omegas_diff_without_avg.append(omegas_short[0][i] - omegas_short[1][i])
 
             print("Phases diff average arctg(y/x): ", np.mean(phases_diff_without_avg_yx))
             print("Phases diff average arctg(y'/x'): ", np.mean(phases_diff_without_avg_dydx))
@@ -445,85 +495,135 @@ def series_lorenz_dist_agents(IC, T_arr, couplings = (False, True, False),
     plt.savefig(dir + f'/dist_t.png')
     plt.close()
 
-p = Rossler_params()
-p.k_elements = 2
-t_max = 400
-p.a = 0.16
-p.T = 0.3
-s.toch = [1e-11, 1e-11]
-# p.c = [8.5+0.2*i for i in range(p.k_elements)]
-p.c = [8.5, 9.0]
-# a_arr = [0.162, 0.202, 0.224]
-# a = a_arr[0]
+def experiments():
+    p = Rossler_params()
+    p.k_elements = 10
+    t_max = 6000
+    p.a = 0.16
+    p.T = 0.3
+    s.toch = [1e-11, 1e-11]
+    # a_arr = [0.162, 0.202, 0.224]
+    # a = a_arr[0]
 
-### Способ взятия начальных условий
+    ### Способ взятия начальных условий
 
-## берем из файла с готовыми НУ
-IC_fname = 'series_IC_20_20.txt'
-IC_index = 4
-IC_arr, w_arrs = mem.read_series_IC(s.temporary_path + IC_fname)
-# p.w_arr = w_arrs[IC_index:IC_index+p.k_elements]
-p.w_arr = [1. for i in range(p.k_elements)]
-print('w:', p.w_arr)
-# p.w_arr = [1., 1.]
-IC = IC_arr[IC_index][:p.k_elements*s.k]
-
-step_t_for_avg = 1
-
-## берем случайные
-# IC = mem.generate_random_IC_ressler(5, 5, 1, k_elements)
-# p.w_arr = []
+    ## берем из файла с готовыми НУ
+    IC_fname = 'series_IC_20_20.txt'
+    IC_index = 5
+    IC_arr, w_arrs = mem.read_series_IC(s.temporary_path + IC_fname)
 
 
-## Просто один эксперимент с какой-то связью
-date = mem.hms_now().replace(':', '-')
-# path = s.grid_experiments_path
-# path = mem.make_dir(s.grid_experiments_path + f"{date} {p.k_elements}el a {p.a} avg {step_t_for_avg} another T")
-# path += '/'
+    p.c = [8.5 + 0.005*i for i in range(p.k_elements)]
+    # p.c = [8.5, 9.0]
+    # p.c = [8.5 for i in range(p.k_elements)]
 
-# print('Старт программы', f'Результаты в {path}')
-# s.toch = [1e-12, 1e-12]
+    # p.w_arr = w_arrs[IC_index:IC_index+p.k_elements]
+    p.w_arr = [1. for i in range(p.k_elements)]
+    print('w:', p.w_arr)
+    IC = IC_arr[IC_index][:p.k_elements*s.k]
 
-# for i in range(10):
-#     p.T = 0.1 + round(i / 10. ,1)
-#     print('T: ', p.T, '------------------')
+    step_t_for_avg = 1
 
-#     p.radius = 10.
-#     one_exp_couplings(IC, couplings=(0, 0, 0), couplings_rep=(1, 1, 0), sys_params=p,
-#                                 t_max=t_max, small_animation=True, system = 'rossler', save_dir=path, 
-#                                 step_t_for_avg=step_t_for_avg, time_skip=300, 
-#                                 suffix=f"avg {step_t_for_avg} T {p.T} ")
-
-#     p.radius = 4.
-#     one_exp_couplings(IC, couplings=(1, 1, 0), couplings_rep=(0, 0, 0), sys_params=p,
-#                                 t_max=t_max, small_animation=True, system = 'rossler', save_dir=path, 
-#                                 step_t_for_avg=step_t_for_avg, time_skip=300, 
-#                                 suffix=f"avg {step_t_for_avg} T {p.T} ")
-
-# s.method = "LSODA"
-s.method = "RK45"
-p.radius = 6.
-path = s.grid_experiments_path
-one_exp_couplings(IC, couplings=(1, 0, 0), couplings_rep=(0, 0, 0), sys_params=p,
-                                t_max=t_max, small_animation=False, system = 'rossler', save_dir=path, 
-                                step_t_for_avg=step_t_for_avg, time_skip=300, 
-                                suffix=f"avg {step_t_for_avg} T {p.T} ")
-
-# for i in range(10):
-#     p.T = 0.1 + i * 0.1
-#     date = mem.hms_now().replace(':', '-')
-#     path = mem.make_dir(s.grid_experiments_path + f"{date} {p.k_elements}el a {p.a} avg {step_t_for_avg} T {p.T:0.2f}{' arctg' if is_simple_arctg else ''}")
-#     path += '/'
-
-#     print('Старт программы', f'Результаты в {path}')
-#     s.toch = [1e-12, 1e-12]
-#     p.radius = 5.
-#     one_exp_couplings(IC, couplings=(0, 0, 0), couplings_rep=(1, 1, 0), sys_params=p,
-#                                 t_max=t_max, small_animation=True, system = 'rossler', save_dir=path, 
-#                                 step_t_for_avg=step_t_for_avg, suffix=f'avg {step_t_for_avg}', time_skip=300)
-#     p.radius = 4.
-#     one_exp_couplings(IC,  couplings=(1, 1, 0), couplings_rep=(0, 0, 0), sys_params=p,
-#                                 t_max=t_max, small_animation=True, system = 'rossler', save_dir=path, 
-#                                 step_t_for_avg=step_t_for_avg, suffix=f'avg {step_t_for_avg}', time_skip=300)
+    ## берем случайные
+    # IC = mem.generate_random_IC_ressler(5, 5, 1, k_elements)
+    # p.w_arr = []
 
 
+    ## Просто один эксперимент с какой-то связью
+    # date = mem.hms_now().replace(':', '-')
+    # path = s.grid_experiments_path
+    # path = mem.make_dir(s.grid_experiments_path + f"{date} {p.k_elements}el a {p.a} avg {step_t_for_avg} another T")
+    # path += '/'
+
+    # print('Старт программы', f'Результаты в {path}')
+    # s.toch = [1e-12, 1e-12]
+
+    # for i in range(10):
+    #     p.T = 0.1 + round(i / 10. ,1)
+    #     print('T: ', p.T, '------------------')
+
+    #     p.radius = 10.
+    #     one_exp_couplings(IC, couplings=(0, 0, 0), couplings_rep=(1, 1, 0), sys_params=p,
+    #                                 t_max=t_max, small_animation=True, system = 'rossler', save_dir=path, 
+    #                                 step_t_for_avg=step_t_for_avg, time_skip=300, 
+    #                                 suffix=f"avg {step_t_for_avg} T {p.T} ")
+
+    #     p.radius = 4.
+    #     one_exp_couplings(IC, couplings=(1, 1, 0), couplings_rep=(0, 0, 0), sys_params=p,
+    #                                 t_max=t_max, small_animation=True, system = 'rossler', save_dir=path, 
+    #                                 step_t_for_avg=step_t_for_avg, time_skip=300, 
+    #                                 suffix=f"avg {step_t_for_avg} T {p.T} ")
+
+    # s.method = "LSODA"
+    s.method = "RK45"
+    p.radius = 4.
+    path = s.grid_experiments_path
+    global t_step_xy_graphs 
+    t_step_xy_graphs = 2
+    one_exp_couplings(IC, couplings=(0, 1, 0), couplings_rep=(0, 0, 0), sys_params=p,
+                                    t_max=t_max, small_animation=False, system = 'rossler', save_dir=path, 
+                                    step_t_for_avg=step_t_for_avg, time_skip=0, 
+                                    suffix=f"avg omega")
+
+    # for i in range(10):
+    #     p.T = 0.1 + i * 0.1
+    #     date = mem.hms_now().replace(':', '-')
+    #     path = mem.make_dir(s.grid_experiments_path + f"{date} {p.k_elements}el a {p.a} avg {step_t_for_avg} T {p.T:0.2f}{' arctg' if is_simple_arctg else ''}")
+    #     path += '/'
+
+    #     print('Старт программы', f'Результаты в {path}')
+    #     s.toch = [1e-12, 1e-12]
+    #     p.radius = 5.
+    #     one_exp_couplings(IC, couplings=(0, 0, 0), couplings_rep=(1, 1, 0), sys_params=p,
+    #                                 t_max=t_max, small_animation=True, system = 'rossler', save_dir=path, 
+    #                                 step_t_for_avg=step_t_for_avg, suffix=f'avg {step_t_for_avg}', time_skip=300)
+    #     p.radius = 4.
+    #     one_exp_couplings(IC,  couplings=(1, 1, 0), couplings_rep=(0, 0, 0), sys_params=p,
+    #                                 t_max=t_max, small_animation=True, system = 'rossler', save_dir=path, 
+    #                                 step_t_for_avg=step_t_for_avg, suffix=f'avg {step_t_for_avg}', time_skip=300)
+
+def experiments2():
+    p = Rossler_params()
+    p.k_elements = 16
+    t_max = 300
+    p.a = 0.16
+    p.T = 0.3
+    s.toch = [1e-11, 1e-11]
+    step_t_for_avg = 1
+
+    ## берем из файла с готовыми НУ
+    IC_fname = 'series_IC_20_20.txt'
+    IC_index = 1
+    IC_arr, w_arrs = mem.read_series_IC(s.temporary_path + IC_fname)
+    IC = IC_arr[IC_index][:p.k_elements*s.k]
+
+    s.method = "RK45"
+    p.radius = 4.
+    path = s.grid_experiments_path
+
+    C_arr_default = [8.5, 8.7, 8.9, 9.1]
+    w_arr_default = [0.9, 0.95, 1, 1.05]
+    decart = list(product(C_arr_default, w_arr_default))
+    c_arr = []
+    w_arr = []
+    for elem in decart:
+        c_arr.append(elem[0])
+        w_arr.append(elem[1])
+    p.c = c_arr
+    p.w_arr = w_arr
+
+    # C_arr_default = [8.5, 8.7, 8.9, 9.1, 9.3, 9.5, 9.7, 9.9, 10.1, 10.3]
+    # w_arr_default = [0.9, 0.92, 0.94, 0.96, 0.98, 1, 1.02, 1.04, 1.06, 1.08]
+    # C_arr_default_2 = [9.5 for i in range(10)]
+    # w_arr_default_2 = [1 for i in range(10)]
+    # c_arr = C_arr_default_2 + C_arr_default
+    # w_arr = w_arr_default + w_arr_default_2
+    # p.c = c_arr
+    # p.w_arr = w_arr
+
+    one_exp_couplings(IC, couplings=(1, 1, 0), couplings_rep=(0, 0, 0), sys_params=p,
+                                    t_max=t_max, small_animation=False, system = 'rossler', save_dir=path, 
+                                    step_t_for_avg=step_t_for_avg, time_skip=0, 
+                                    suffix=f"avg {step_t_for_avg} T {p.T} ")
+
+experiments()

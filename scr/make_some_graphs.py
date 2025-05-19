@@ -2,7 +2,7 @@ import memory_worker as mem
 import matplotlib.pyplot as plt
 import numpy as np
 import settings as s
-
+import pandas as pd
 
 k_elements = 5
 end_t = 3
@@ -88,49 +88,103 @@ end_t = 3
 ########### parallel
 # path = '2025-04-16 16.42.04 avg 1 T 0.3 coup__xy'
 # time_moment_t = 183.00124
-path = '2025-04-23 17.34.00 avg 1 T 0.3 10_coup_xy'
-time_moment_t = 236.01912
-tail_t = 1
+# path = '2025-05-14 12.01.09 avg 1 T 0.3 10_coup_xy'
+# time_moment_t = 247.52166
+path = '2025-05-16 12.34.12 avg 1 T 0.3 16_coup_y'
+time_moment_t = 167.00125
+tail_t = 0.1
 fontsize = 20
 colors=['green', 'blue']
 xs, ys, zs, ts = mem.read_integration_data(s.grid_experiments_path + path + '/integration_data.txt')
 
 time_moment_ind = np.searchsorted(ts, time_moment_t)
 tail_ind = np.searchsorted(ts, time_moment_t - tail_t)
-plt.plot(xs[0][tail_ind:time_moment_ind], ys[0][tail_ind:time_moment_ind], label='1', color=colors[0])
-plt.plot(xs[1][tail_ind:time_moment_ind], ys[1][tail_ind:time_moment_ind], label='2', color=colors[1])
-plt.scatter(xs[0][time_moment_ind], ys[0][time_moment_ind], color=colors[0])
-plt.scatter(xs[1][time_moment_ind], ys[1][time_moment_ind], color=colors[1])
+plot_colors = mem.make_colors(len(xs))
+for agent in range(len(xs)):
+    plt.plot(xs[agent][tail_ind:time_moment_ind+1], ys[agent][tail_ind:time_moment_ind+1], color=plot_colors[agent], zorder=1)
+for agent in range(len(xs)):
+    plt.scatter(xs[agent][time_moment_ind], ys[agent][time_moment_ind], color=plot_colors[agent], zorder=2)
 # plt.scatter(0, 0, color='black', marker='+')
-plt.legend(loc='lower right')
+# plt.legend()
 plt.xticks(fontsize=fontsize)
 plt.yticks(fontsize=fontsize)
-plt.subplots_adjust(0.12, 0.12, 0.88, 0.88)
-plt.axis('equal')
-plt.show()
-
-########## posl
-path = '2025-04-23 15.45.37 avg 1 T 0.3 2_coup_xy'
-time_moment_t = 320.0065
-tail_t = 0.7
-fontsize = 20
-colors=['green', 'blue']
-xs, ys, zs, ts = mem.read_integration_data(s.grid_experiments_path + path + '/integration_data.txt')
-
-time_moment_ind = np.searchsorted(ts, time_moment_t)
-tail_ind = np.searchsorted(ts, time_moment_t - tail_t)
-plt.plot(xs[0][tail_ind:time_moment_ind+1], ys[0][tail_ind:time_moment_ind+1], label='1', color=colors[0])
-plt.plot(xs[1][tail_ind:time_moment_ind+1], ys[1][tail_ind:time_moment_ind+1], label='2', color=colors[1])
-plt.scatter(xs[0][time_moment_ind], ys[0][time_moment_ind], color=colors[0])
-plt.scatter(xs[1][time_moment_ind], ys[1][time_moment_ind], color=colors[1])
-# plt.scatter(0, 0, color='black', marker='+')
-plt.legend(loc='upper right')
+plt.subplots_adjust(0.18, 0.18, 0.94, 0.94)
+plt.xlabel('x', fontsize=fontsize)
+plt.ylabel('y', fontsize=fontsize)
 plt.xticks(fontsize=fontsize)
 plt.yticks(fontsize=fontsize)
-plt.subplots_adjust(0.12, 0.12, 0.88, 0.88)
 # plt.axis('equal')
 plt.show()
 
+########### posl
+# path = '2025-05-14 17.13.29 avg 1 T 0.3 2_coup_xy'
+# time_moment_t = 180.00403
+########## parall
+# path = '2025-04-23 15.45.37 avg 1 T 0.3 2_coup_xy'
+# time_moment_t = 320.0065
+# tail_t = 0.7
+# fontsize = 20
+# colors=['green', 'blue']
+# xs, ys, zs, ts = mem.read_integration_data(s.grid_experiments_path + path + '/integration_data.txt')
+
+# time_moment_ind = np.searchsorted(ts, time_moment_t)
+# tail_ind = np.searchsorted(ts, time_moment_t - tail_t)
+# plt.plot(xs[0][tail_ind:time_moment_ind+1], ys[0][tail_ind:time_moment_ind+1], label='1', color=colors[0])
+# plt.plot(xs[1][tail_ind:time_moment_ind+1], ys[1][tail_ind:time_moment_ind+1], label='2', color=colors[1])
+# plt.scatter(xs[0][time_moment_ind], ys[0][time_moment_ind], color=colors[0])
+# plt.scatter(xs[1][time_moment_ind], ys[1][time_moment_ind], color=colors[1])
+# # plt.scatter(0, 0, color='black', marker='+')
+# plt.legend(loc='upper right')
+# plt.xticks(fontsize=fontsize)
+# plt.yticks(fontsize=fontsize)
+# plt.subplots_adjust(0.18, 0.18, 0.94, 0.94)
+# plt.xlabel('x', fontsize=fontsize)
+# # plt.ylabel('y', fontsize=fontsize)
+# # plt.axis('equal')
+# plt.show()
+
+################################## Зависимость амплитуды и частоты от параметров a и c
+
+fontsize = 20
+default_path = f"{s.grid_experiments_path}/Неоднородность по параметру С"
+path_name_a = "series_solo_omega_dep_a"
+path_name_c = "series_solo_omega_dep_c"
+
+path = default_path + '/' + path_name_a
+data = pd.read_table(f"{path}/metrix.txt", sep=' ', header=None)
+# c_arr = data[0]
+a_arr = data[0]
+A_arr = data[1]
+omega_arr = data[2]
+size = len(a_arr)
+
+# # plt.plot(c_arr, omega_arr)
+# plt.plot(c_arr, A_arr)
+
+# plt.xlim(c_arr[0], c_arr[size-1])
+# plt.xlabel(r'$c$', fontsize=fontsize)
+
+# # plt.ylabel(r'$\omega$', fontsize=fontsize)
+# plt.ylabel(r'$A$', fontsize=fontsize)
+
+# plt.xticks(fontsize=fontsize)
+# plt.yticks([10, 9, 8, 7], fontsize=fontsize)
+# plt.subplots_adjust(0.18, 0.18, 0.94, 0.94)
+# plt.show()
+
+plt.plot(a_arr, omega_arr)
+# plt.plot(a_arr, A_arr)
+
+plt.xlim(a_arr[0], a_arr[size-1])
+plt.xlabel(r'$a$', fontsize=fontsize)
+
+plt.ylabel(r'$\omega$', fontsize=fontsize)
+# plt.ylabel(r'$A$', fontsize=fontsize)
+
+plt.xticks([0.16, 0.2, 0.24, 0.28], fontsize=fontsize)
+plt.yticks([2.4, 2.0, 1.6, 1.2], fontsize=fontsize)
+plt.subplots_adjust(0.18, 0.18, 0.94, 0.94)
+plt.show()
 
 ################################## последовательное и параллельное движение в зависимости от T
 # T_arr = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7]

@@ -106,8 +106,10 @@ font_name = "./data/temp/times-new-roman-italic.ttf"
 
 ################################# xy graphs ################################
 
-img_names = ['posl_xy', 'parallel_xy_c']
-index = 0
+# img_names = ['posl_xy', 'parallel_xy_c']
+# img_names = ['posl_xy_c_10', 'parallel_xy_c_10']
+img_names = ['a_dep_a', 'a_dep_c', 'omega_dep_a', 'omega_dep_c']
+index = 3
 img = Image.open(f'./data/saved_graphs/{img_names[index]}.png')
 # Создаем объект для рисования
 draw = ImageDraw.Draw(img)
@@ -116,7 +118,7 @@ draw = ImageDraw.Draw(img)
 font = ImageFont.truetype(font_name, size=48)
 
 # Добавляем текст на изображение
-draw.text((20, 425), symbols[index], fill="black", font=font)
+draw.text((30, 415), symbols[index], fill="black", font=font)
 
 
 # Сохраняем измененное изображение
