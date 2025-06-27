@@ -40,7 +40,7 @@ def hms_now(type = '0'):
         return datetime.now().minute
 
 # Сохраняет начальные условия и массив частот(w) в указанный файл
-def save_IC_and_w(IC, w, path, _k_elements = k_elements, _radius = s.radius, T = s.T, a = s.a, tau = s.tau, k = s.k):
+def save_IC_and_w(IC, w, path, _k_elements = k_elements, _radius = s.radius, T = s.T, a = s.a, tau = s.tau, k = s.k, c = s.c):
     with open(path, 'w') as f:
         print(_k_elements, file=f)
         for i in range(_k_elements):
@@ -54,6 +54,7 @@ def save_IC_and_w(IC, w, path, _k_elements = k_elements, _radius = s.radius, T =
         print('k_col:', k_col, 'k_str:', k_str, file=f)
         print('r:', _radius, file=f)
         print('tau:', tau, file=f)
+        print('c:', c, file=f)
 
 
 # Считывает сохраненные НУ и w из указанного файла
@@ -133,7 +134,7 @@ def read_integration_data(path):
 
 # Сохраняет данные интегрирования, НУ, w, и все необходимые графики
 def save_data(integration_data, IC, w, figs_arr = [], fig_names_arr = [], deleted_elems = [], k_elements = k_elements, 
-              a = s.a, T = s.T, tau = s.tau, radius = s.radius, dir_name_suffix = '', k = s.k, save_int_data = True, path=s.grid_experiments_path):
+              a = s.a, T = s.T, tau = s.tau, radius = s.radius, dir_name_suffix = '', k = s.k, c = s.c, save_int_data = True, path=s.grid_experiments_path):
     date = str(datetime.now().date())
     time = hms_now().replace(':', '.')
 
@@ -141,7 +142,7 @@ def save_data(integration_data, IC, w, figs_arr = [], fig_names_arr = [], delete
     new_dir = path + date + ' ' + time + suffix
     os.mkdir(new_dir)
 
-    save_IC_and_w(IC, w,new_dir + '/IC.txt', _k_elements = k_elements, a=a, T = T, tau = s.tau, k = k, _radius = radius)
+    save_IC_and_w(IC, w,new_dir + '/IC.txt', _k_elements = k_elements, a=a, T = T, tau = s.tau, k = k, _radius = radius, c=c)
 
     if save_int_data:
         save_integration_data(integration_data, new_dir + '/integration_data.txt', _k_elements = k_elements)
@@ -347,6 +348,7 @@ def draw_and_save_graphics_many_agents(xs_arr, ys_arr, ts_arr, path_save_graphs,
             print('t_i', t_i)
             print('i', i)
             print('last', ts_arr[-1])
+            print(xs_arr[agent], xs_arr[agent][i_prev:i+1], plot_colors)
 
 
         if mashtab != []:

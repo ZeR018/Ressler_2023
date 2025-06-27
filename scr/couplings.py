@@ -1,4 +1,4 @@
-from default_model import func_rossler_2_dim_params_maker, func_lorenz_params, Lorenz_params, Coup_params, Rossler_params
+from default_model import func_rossler_2_dim_params_maker, func_lorenz_params, function_rossler_2dim_vdp, Lorenz_params, Coup_params, Rossler_params
 from scipy.integrate import solve_ivp
 import settings as s
 from matplotlib import pyplot as plt
@@ -9,7 +9,8 @@ import joblib
 from matplotlib.animation import ArtistAnimation
 from typing import Union
 from itertools import product
-
+import pandas as pd
+from datetime import datetime
 
 def calc_dist_between_agents(xs, ys, zs, ts):
     k_elements = len(xs)
@@ -29,15 +30,14 @@ def calc_dist_between_agents(xs, ys, zs, ts):
     return dists
 
 t_step_xy_graphs = 0.5
+size_time_graph = 30
 
-def calc_phi_omega_amplitude_for_agent(xs, ys, zs, ts, w, a, system_params = {"b": s.b, "c": s.c}):
-    b = system_params["b"]
-    c = system_params["c"]
-    
+def calc_phi_omega_amplitude_for_agent(xs, ys, zs, ts, w, a, c, b = s.b):
     size = len(ts)
     phi_yx = []
     phi_dydx = []
     omega = []
+    omega_yx = []
     A = []
 
     for t in range(size):
@@ -55,9 +55,14 @@ def calc_phi_omega_amplitude_for_agent(xs, ys, zs, ts, w, a, system_params = {"b
         omega_i_zn = (w*y+z)**2 + (w*x + a*y)**2
         omega.append((omega_i_ddydx + omega_i_dyddx)/omega_i_zn)
 
+        dx = - w * y - z
+        dy = w * x + a * y
+        omega_yx_i = (dy * x - y * dx) / (x**2 + y**2)
+        omega_yx.append(omega_yx_i)
+
         A.append(np.sqrt(x**2+y**2))
 
-    return phi_yx, phi_dydx, omega, A
+    return phi_yx, phi_dydx, omega, omega_yx, A
 
 def calc_omegas_avg_mean(omega, ts, t_max, time_skip, first_step_t = 400, step_t = 400):
     omega_avg_arr = []
@@ -116,6 +121,9 @@ def rossler_lorenz_solver(system, sys_params, t_max, IC, couplings, couplings_re
         func_rhs = func_lorenz_params(l, c)
         sol = solve_ivp(func_rhs, [0, t_max], IC, 
                     rtol=s.toch[0], atol=s.toch[1], method=s.method)
+    elif system == 'rossler_vdp':
+        func_rhs = function_rossler_2dim_vdp(couplings, couplings_rep=couplings_rep, params=sys_params)
+        sol = solve_ivp(func_rhs, [0, t_max], IC, rtol=s.toch[0], atol=s.toch[1], method=s.method)
     else:
         func_rhs = func_rossler_2_dim_params_maker(couplings, couplings_rep=couplings_rep, params=sys_params)
         sol = solve_ivp(func_rhs, [0, t_max], IC, rtol=s.toch[0], atol=s.toch[1], method=s.method)
@@ -137,6 +145,8 @@ def one_exp_couplings(IC, isSolo = True, couplings = (False, True, False), coupl
                       sys_params : Union[Rossler_params, Lorenz_params] = Rossler_params() , 
                       t_max = s.t_max, small_animation = True, system = 'rossler', save_dir = s.grid_experiments_path, 
                       suffix='', step_t_for_avg = 1, time_skip = 0, integrate_data_path = None):
+    
+    print('w', sys_params.w_arr, 'c', sys_params.c)
     
     k_elements = sys_params.k_elements
     if not integrate_data_path:
@@ -160,7 +170,7 @@ def one_exp_couplings(IC, isSolo = True, couplings = (False, True, False), coupl
         if small_animation:
             suffix += ' A'
 
-        path_save, path_save_graphs = mem.save_data([xs, ys, zs, ts], IC, sys_params.w_arr, [], [], T=sys_params.T, k_elements=k_elements, a=sys_params.a, tau=sys_params.tau, dir_name_suffix=suffix, path=save_dir)
+        path_save, path_save_graphs = mem.save_data([xs, ys, zs, ts], IC, sys_params.w_arr, [], [], T=sys_params.T, k_elements=k_elements, a=sys_params.a, tau=sys_params.tau, c=sys_params.c, dir_name_suffix=suffix, path=save_dir)
         plt.close()
         lim_param = 20
         if system != 'lorenz':
@@ -194,7 +204,7 @@ def one_exp_couplings(IC, isSolo = True, couplings = (False, True, False), coupl
 
         if not integrate_data_path:
             # Graphs xt
-            size_xt_graph = 30
+            size_xt_graph = size_time_graph
             num_graphs = int(t_max / size_xt_graph)
             for graph_ind in range(0, num_graphs):
                 plt.figure(figsize=[16, 4])
@@ -212,7 +222,7 @@ def one_exp_couplings(IC, isSolo = True, couplings = (False, True, False), coupl
                 plt.close()
 
             # Graph yt
-            size_yt_graph = 30
+            size_yt_graph = size_time_graph
             num_graphs = int(t_max / size_yt_graph)
             for graph_ind in range(0, num_graphs):
                 plt.figure(figsize=[16, 4])
@@ -229,7 +239,7 @@ def one_exp_couplings(IC, isSolo = True, couplings = (False, True, False), coupl
                 plt.close()
 
             # Graph zt
-            size_zt_graph = 30
+            size_zt_graph = size_time_graph
             num_graphs = int(t_max / size_zt_graph)
             for graph_ind in range(0, num_graphs):
                 plt.figure(figsize=[16, 4])
@@ -272,21 +282,40 @@ def one_exp_couplings(IC, isSolo = True, couplings = (False, True, False), coupl
     phases_yx = []
     phases_dydx = []
     omegas_short = []
+    omegas_yx_short = []
     As_short = []
     omegas_avg_short = []
+    omegas_yx_avg_short = []
     times_for_omegas_avg_short= []
     for agent in range(k_elements):
-        phases_agent_yx, phases_agent_dydx, omegas_agent, As_agent = calc_phi_omega_amplitude_for_agent(xs_short[agent], ys_short[agent], zs_short[agent], ts_short, sys_params.w_arr[agent], sys_params.a)
+        phases_agent_yx, phases_agent_dydx, omegas_agent, omegas_yx_agent, As_agent = calc_phi_omega_amplitude_for_agent(xs_short[agent], ys_short[agent], zs_short[agent], ts_short, sys_params.w_arr[agent], sys_params.a, c=sys_params.c[agent])
         phases_yx.append(phases_agent_yx)
         phases_dydx.append(phases_agent_dydx)
         omegas_short.append(omegas_agent)
+        omegas_yx_short.append(omegas_yx_agent)
         As_short.append(As_agent)
 
         omega_mean_agent, t_omega_mean_agent = calc_omegas_avg_mean(omegas_agent, ts, t_max, time_skip)
         omegas_avg_short.append(omega_mean_agent)
         times_for_omegas_avg_short = t_omega_mean_agent
+
+        omegas_mean_yx_agent, t_omega_mean_yx_agent = calc_omegas_avg_mean(omegas_yx_agent, ts, t_max, time_skip)
+        omegas_yx_avg_short.append(omegas_mean_yx_agent)
     plot_omegas(omegas_avg_short, times_for_omegas_avg_short, k_elements, path_save)
     plot_omegas(omegas_short, ts_short, k_elements, path_save, "omegas")
+    plot_omegas(omegas_yx_avg_short, times_for_omegas_avg_short, k_elements, path_save, 'omegas_mean_yx' )
+    plot_omegas(omegas_yx_short, ts_short, k_elements, path_save, "omegas_yx")
+    
+    omegas_short_df = pd.DataFrame(omegas_short)
+    omegas_short_df.to_csv(f"{path_save}/omegas_data.txt", sep=' ', header=False, index=False)
+    with open(f"{path_save}/omegas_metrix.txt", 'w') as f:
+        print('avg', file=f)
+        for agent in range(k_elements):
+            print(agent, np.mean(omegas_short[agent]), file=f)
+        print('last', file=f)
+        for agent in range(k_elements):
+            print(agent, omegas_short[agent][-1], file=f)
+
 
     if k_elements == 2:
         for step_t_for_avg in range(1, 2):
@@ -316,7 +345,7 @@ def one_exp_couplings(IC, isSolo = True, couplings = (False, True, False), coupl
                     phases_avg_yx[agent].append(np.mean(phases_yx[agent][i_prev:i]))
                     phases_avg_dydx[agent].append(np.mean(phases_dydx[agent][i_prev:i]))
                     omegas_avg[agent].append(np.mean(omegas_short[agent][i_prev:i]))
-                    As_avg[agent].append(np.mean(As[agent][i_prev:i]))
+                    As_avg[agent].append(np.mean(As_short[agent][i_prev:i]))
                     zs_avg[agent].append(np.mean(zs_short[agent][i_prev:i]))
                 
                 # находим разности
@@ -380,7 +409,7 @@ def one_exp_couplings(IC, isSolo = True, couplings = (False, True, False), coupl
             plot_timeline_graph(omegas_diff, ts_avg, r'$<\omega_2> - <\omega_1>$', f'omegas_avg_diff_{step_t_for_avg}', graph_type='step', grid=False)
             plot_timeline_graph(omegas_diff_without_avg, ts_short, r'$\omega_2 - \omega_1$', f'omegas_diff_{step_t_for_avg}', grid=False)
             plot_timeline_graph(As_diff, ts_avg, r'|$<A_2> - <A_1>$|', f'As_avg_diff_{step_t_for_avg}', graph_type='step', grid=False)
-            plot_timeline_graph(As[0], ts_short, r'$A_2, A_1$', 'As', x2=As[1], grid=False)
+            plot_timeline_graph(As_short[0], ts_short, r'$A_2, A_1$', 'As', x2=As_short[1], grid=False)
             plot_timeline_graph(As_diff_without_avg, ts_short, r'$|A_2-A_1|$', 'As_diff', grid=False)
 
     # last state
@@ -495,10 +524,155 @@ def series_lorenz_dist_agents(IC, T_arr, couplings = (False, True, False),
     plt.savefig(dir + f'/dist_t.png')
     plt.close()
 
-def experiments():
+def exp_omega_dep_T(IC, T_arr, couplings = (False, True, False), couplings_rep = (False, False, False), 
+                      sys_params: Rossler_params = Rossler_params(), t_max = s.t_max, save_dir=s.grid_experiments_path):
+    k_elements = sys_params.k_elements
+
+    date = str(datetime.now().date())
+    time = mem.hms_now().replace(':', '.')
+    path_save = f"{save_dir}{date} {time} series_omega_dep_T_{T_arr[0]}_{T_arr[-1]}"
+    mem.make_dir(path_save)
+
+    omega_experiments = []
+    omegas_ratios = []
+    path_save_omegas_data = mem.make_dir(f"{path_save}/omegas")
+    path_save_omegas_meta = f"{path_save}/omega_meta.txt"
+    path_save_xyzt = mem.make_dir(f"{path_save}/time_series")
+    for T in T_arr:
+        T = round(T, 3)
+        print('T', T)
+        sys_params.T = T
+        xs, ys, zs, ts, time_after_integrate = rossler_lorenz_solver("rossler", sys_params, t_max, IC, couplings, couplings_rep)
+
+        omegas = []
+        A = []
+        for agent in range(k_elements):
+            phi_yx_agent, phi_dydx_agent, omega_agent, omega_yx_agent, A_agent = calc_phi_omega_amplitude_for_agent(xs[agent], 
+                                                            ys[agent], zs[agent], ts, sys_params.w_arr[agent], sys_params.a, sys_params.c[agent])
+            omegas.append(omega_agent)
+            A.append(A_agent)
+        omega_experiments.append(omegas)
+
+        if k_elements == 2:
+            mean_omega_0 = np.mean(omegas[0])
+            mean_omega_1 = np.mean(omegas[1])
+            if mean_omega_0 < mean_omega_1:
+                omegas_ratio = mean_omega_1/mean_omega_0
+            else:
+                omegas_ratio = mean_omega_0/mean_omega_1
+            omegas_ratios.append(omegas_ratio)
+
+        omegas_df = pd.DataFrame(omegas)
+        omegas_df.to_csv(f"{path_save_omegas_data}/omegas_{T}.txt",sep=' ', header=False, index=False)
+        with open(path_save_omegas_meta, 'a') as f:
+            print(T, omegas_ratio, file=f)
+
+        t_last_50 = np.searchsorted(ts, t_max-50)
+        plt.plot(ts[t_last_50:], xs[0][t_last_50:])
+        plt.plot(ts[t_last_50:], xs[1][t_last_50:])
+        plt.xlabel('t')
+        plt.ylabel('x')
+        plt.grid()
+        plt.savefig(f"{path_save_xyzt}/xt_{T}_last50.png")
+        plt.close()
+
+        plt.plot(ts[t_last_50:], ys[0][t_last_50:])
+        plt.plot(ts[t_last_50:], ys[1][t_last_50:])
+        plt.xlabel('t')
+        plt.ylabel('y')
+        plt.grid()
+        plt.savefig(f"{path_save_xyzt}/yt_{T}_last50.png")
+        plt.close()
+
+        plt.plot(ts[t_last_50:], zs[0][t_last_50:])
+        plt.plot(ts[t_last_50:], zs[1][t_last_50:])
+        plt.xlabel('t')
+        plt.ylabel('z')
+        plt.grid()
+        plt.savefig(f"{path_save_xyzt}/zt_{T}_last50.png")
+        plt.close()
+
+    plt.figure()
+    plt.plot(T_arr, omegas_ratios)
+    plt.xlabel(r"$d'$")
+    plt.ylabel(r"$\Omega_2/\Omega_1$")
+    plt.grid()
+    plt.savefig(f"{path_save}/omegas_ratio_dep_d.png")
+    plt.show()
+    plt.close()
+
+def one_exp_couplings_wdp(IC, couplings = (False, True, False), sys_params : Union[Rossler_params, Lorenz_params] = Rossler_params(), 
+                      k_elements = s.k_elements, t_max = s.t_max):
+    xs, ys, zs, ts, time_after_integrate = rossler_lorenz_solver("rossler_vdp", sys_params, t_max, IC, couplings, (0, 0, 0))
+    path_save, path_save_graphs = mem.save_data([xs, ys, zs, ts], IC, sys_params.w_arr, [], [], T=sys_params.T, k_elements=k_elements, 
+                                                a=sys_params.a, tau=sys_params.tau, c=sys_params.c, dir_name_suffix=f"vdp_{k_elements}", path=s.grid_experiments_path)
+    plot_colors = mem.make_colors(16)
+    plot_colors.append('red')
+    mem.draw_and_save_graphics_many_agents(xs, ys, ts, path_save_graphs, plot_colors, sys_params.k_elements, t_step=t_step_xy_graphs, 
+                                               num_prevs_elems=2)
+
+
+def experiment_vdp():
+    path = '2025-05-19 16.22.30 avg 1 T 0.3 16_coup_xy'
+    xs, ys, zs, ts = mem.read_integration_data(s.grid_experiments_path + path + '/integration_data.txt')
+
+    p = Rossler_params()
+    p.k_elements = 17
+    IC = []
+    time_moment_t = 45.6013
+    time_moment_ind = np.searchsorted(ts, time_moment_t)
+    for i in range(p.k_elements-1):
+        IC.append(xs[i][time_moment_ind])
+        IC.append(ys[i][time_moment_ind])
+        IC.append(zs[i][time_moment_ind])
+
+    # vdp
+    IC.append(0.0)
+    IC.append(1.4)
+    IC.append(0)
+
+    C_arr_default = [8.50, 8.501, 8.502, 8.503]
+    w_arr_default = [0.9, 0.95, 1, 1.05]
+    decart = list(product(C_arr_default, w_arr_default))
+    c_arr = []
+    w_arr = []
+    for elem in decart:
+        c_arr.append(elem[0])
+        w_arr.append(elem[1])
+    p.c = c_arr
+    p.w_arr = w_arr
+
+    p.a = 0.16
+    p.radius = 10
+    t_max = 400
+    one_exp_couplings_wdp(IC, (0, 1, 0), sys_params=p, k_elements=p.k_elements, t_max=t_max)
+
+def calc_amplityde_for_vdp(path = '2025-05-27 14.51.14 vdp_17'):
+    full_path = s.grid_experiments_path + path
+    xs, ys, zs, ts = mem.read_integration_data(s.grid_experiments_path + path + '/integration_data.txt')
+    k_elements = 17
+    plot_colors = mem.make_colors(16)
+    As = []
+    fontsize = 20
+    t_300 = np.searchsorted(ts, 300)
+    for agent in range(16):
+        # Сразу векторно
+        As.append(np.sqrt(np.square(xs[agent][:t_300]) + np.square(ys[agent][:t_300])))
+    
+        plt.plot(ts[:t_300], As[agent], color = plot_colors[agent])
+    plt.xlabel(r'$t$', fontsize=fontsize)
+    plt.ylabel(r'$A$', fontsize=fontsize)
+    plt.xticks([0, 100, 200, 300], fontsize=fontsize)
+    plt.yticks([4, 3 ,2, 1, 0], fontsize=fontsize)
+    plt.subplots_adjust(0.18, 0.18, 0.94, 0.94)
+
+    plt.show()
+
+
+def experiments1():
     p = Rossler_params()
     p.k_elements = 10
-    t_max = 6000
+    t_max = 4000
     p.a = 0.16
     p.T = 0.3
     s.toch = [1e-11, 1e-11]
@@ -509,18 +683,24 @@ def experiments():
 
     ## берем из файла с готовыми НУ
     IC_fname = 'series_IC_20_20.txt'
-    IC_index = 5
+    IC_index = 1
     IC_arr, w_arrs = mem.read_series_IC(s.temporary_path + IC_fname)
 
 
-    p.c = [8.5 + 0.005*i for i in range(p.k_elements)]
+    # p.c = [8.5 + 0.001*i for i in range(p.k_elements)]
     # p.c = [8.5, 9.0]
     # p.c = [8.5 for i in range(p.k_elements)]
+    p.c = [8.5 + 1*i for i in range(p.k_elements)]
 
     # p.w_arr = w_arrs[IC_index:IC_index+p.k_elements]
+    # p.w_arr = [round(1.0 + 0.2*i, 3) for i in range(p.k_elements)]
     p.w_arr = [1. for i in range(p.k_elements)]
-    print('w:', p.w_arr)
     IC = IC_arr[IC_index][:p.k_elements*s.k]
+    # IC = []
+    # for i in range(p.k_elements):
+    #     IC.append(2)
+    #     IC.append(2)
+    #     IC.append(0)
 
     step_t_for_avg = 1
 
@@ -554,12 +734,13 @@ def experiments():
     #                                 step_t_for_avg=step_t_for_avg, time_skip=300, 
     #                                 suffix=f"avg {step_t_for_avg} T {p.T} ")
 
-    # s.method = "LSODA"
-    s.method = "RK45"
+    s.method = "LSODA"
+    # s.method = "RK45"
     p.radius = 4.
     path = s.grid_experiments_path
-    global t_step_xy_graphs 
-    t_step_xy_graphs = 2
+    global t_step_xy_graphs, size_time_graph
+    t_step_xy_graphs = 50
+    size_time_graph = 200
     one_exp_couplings(IC, couplings=(0, 1, 0), couplings_rep=(0, 0, 0), sys_params=p,
                                     t_max=t_max, small_animation=False, system = 'rossler', save_dir=path, 
                                     step_t_for_avg=step_t_for_avg, time_skip=0, 
@@ -593,7 +774,7 @@ def experiments2():
 
     ## берем из файла с готовыми НУ
     IC_fname = 'series_IC_20_20.txt'
-    IC_index = 1
+    IC_index = 7
     IC_arr, w_arrs = mem.read_series_IC(s.temporary_path + IC_fname)
     IC = IC_arr[IC_index][:p.k_elements*s.k]
 
@@ -601,7 +782,7 @@ def experiments2():
     p.radius = 4.
     path = s.grid_experiments_path
 
-    C_arr_default = [8.5, 8.7, 8.9, 9.1]
+    C_arr_default = [8.50, 8.501, 8.502, 8.503]
     w_arr_default = [0.9, 0.95, 1, 1.05]
     decart = list(product(C_arr_default, w_arr_default))
     c_arr = []
@@ -620,10 +801,41 @@ def experiments2():
     # w_arr = w_arr_default + w_arr_default_2
     # p.c = c_arr
     # p.w_arr = w_arr
+    global t_step_xy_graphs
+    t_step_xy_graphs = 0.1
 
-    one_exp_couplings(IC, couplings=(1, 1, 0), couplings_rep=(0, 0, 0), sys_params=p,
+    one_exp_couplings(IC, couplings=(0, 1, 0), couplings_rep=(0, 0, 0), sys_params=p,
                                     t_max=t_max, small_animation=False, system = 'rossler', save_dir=path, 
                                     step_t_for_avg=step_t_for_avg, time_skip=0, 
                                     suffix=f"avg {step_t_for_avg} T {p.T} ")
 
-experiments()
+def experiment_omega_ratio_dep_T():
+    p = Rossler_params()
+    p.k_elements = 2
+    p.a = 0.16
+    s.toch = [1e-11, 1e-11]
+    s.method = "LSODA"
+    p.radius = 4
+    t_max = 1000
+    p.w_arr = [1 for i in range(p.k_elements)]
+    # p.w_arr = [1.01, 1.011]
+    p.c = [8.5, 8.501]
+    # p.c = [8.5 for i in range(p.k_elements)]
+
+    T_arr = np.arange(0, 0.201, 0.001)
+
+    IC = []
+    for i in range(p.k_elements):
+        IC.append(5)
+        IC.append(5)
+        IC.append(0)
+    
+    exp_omega_dep_T(IC, T_arr, couplings=(0, 1, 0), sys_params=p, t_max=t_max)
+
+if __name__ == "__main__":
+    # experiments1()
+    experiment_vdp()
+    # calc_amplityde_for_vdp()
+
+    # experiment_omega_ratio_dep_T()
+

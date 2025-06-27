@@ -1,4 +1,4 @@
-from default_model import func_rossler_2_dim_params_maker, func_lorenz_params, Lorenz_params, Coup_params, Rossler_params
+from default_model import Rossler_params
 from scipy.integrate import solve_ivp
 import settings as s
 from matplotlib import pyplot as plt
@@ -90,11 +90,12 @@ def func_rossler_1_maker(p: Rossler_params):
     a = p.a
     b = p.b
     c = p.c
+    w = p.w_arr
     def func_rossler_1(t, r):
         x,y,z = r
 
-        dx = -y - z
-        dy = x + a * y
+        dx = -w*y - z
+        dy = w*x + a * y
         dz = b + z * (x - c)
         return [dx, dy, dz]
     return func_rossler_1
@@ -103,17 +104,25 @@ def omega_c_or_a_exp(IC: list, sys_params: Rossler_params = Rossler_params(),
                      t_max = s.t_max, save_dir = s.grid_experiments_path, time_skip = 0):
     C_arr = sys_params.c
     A_arr = sys_params.a
+    w_arr = sys_params.w_arr
     
     k_elements = sys_params.k_elements = 1
 
-    if len(C_arr) > 1 and len(A_arr) == 1:
+    if len(C_arr) > 1:
         perem_sym = 'c'
         perem_arr = C_arr
         sys_params.a = sys_params.a[0]
+        sys_params.w_arr = 1
+    if len(w_arr) > 1:
+        perem_sym = 'w'
+        perem_arr = w_arr
+        sys_params.a = sys_params.a[0]
+        sys_params.c = sys_params.c[0]
     else:
         perem_sym = 'a'
         perem_arr = A_arr
         sys_params.c = sys_params.c[0]
+        sys_params.w_arr = 1
 
     # make dirs
     def create_and_mk_dir(dir):
@@ -141,6 +150,8 @@ def omega_c_or_a_exp(IC: list, sys_params: Rossler_params = Rossler_params(),
         perem = round(perem, 3)
         if perem_sym == "c":
             sys_params.c = perem
+        elif perem_sym == "w":
+            sys_params.w_arr = perem
         else:
             sys_params.a = perem
 
@@ -230,12 +241,17 @@ t_max = 3000
 
 # Series Omega and A dep a or c
 # C_arr = np.arange(5, 9.55, 0.05)
-C_arr = [8.5, 8.505, 8.51, 8.515, 8.52]
-A_arr = [0.16]
+# C_arr = [8.5, 8.505, 8.51, 8.515, 8.52]
+# A_arr = [0.16]
 
 # C_arr = [8.5]
 # A_arr = np.arange(0.15, 0.301, 0.001)
-p = Rossler_params(1, C_arr, 1, A_arr)
+
+C_arr = [8.5]
+A_arr = [0.16]
+w_arr = np.arange(0.9, 1.11, 0.01)
+
+p = Rossler_params(w_arr, C_arr, 1, A_arr)
 omega_c_or_a_exp(IC, sys_params=p, t_max=t_max, time_skip=time_skip)
 
 

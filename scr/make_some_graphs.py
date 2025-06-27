@@ -90,30 +90,96 @@ end_t = 3
 # time_moment_t = 183.00124
 # path = '2025-05-14 12.01.09 avg 1 T 0.3 10_coup_xy'
 # time_moment_t = 247.52166
-path = '2025-05-16 12.34.12 avg 1 T 0.3 16_coup_y'
-time_moment_t = 167.00125
-tail_t = 0.1
-fontsize = 20
-colors=['green', 'blue']
-xs, ys, zs, ts = mem.read_integration_data(s.grid_experiments_path + path + '/integration_data.txt')
+# path = '2025-05-16 12.34.12 avg 1 T 0.3 16_coup_y'
+# time_moment_t = 167.00125
+# grid c_dep_omega xy
+# path = '2025-05-19 16.22.30 avg 1 T 0.3 16_coup_xy'
+# time_moment_t = 45.6013
+# time_moment_t = 70.4004
+# grid c_dep_omega y
+# path = '2025-05-20 10.09.54 avg 1 T 0.3 16_coup_y'
+# time_moment_t = 65.30331
+# parallel c y
+# path = '2025-05-20 11.40.09 avg omega10_coup_y'
+# time_moment_t = 378.00314
+# path = '2025-05-20 12.15.44 avg omega10_coup_y'
+# time_moment_t = 50.01777
+# posl omega y
+# path = '2025-05-20 12.22.20 avg omega10_coup_y'
+# time_moment_t = 28.00242
+# time_moment_t = 53.01605
+# tail_t = 0.07
+# fontsize = 20
+# colors=['green', 'blue']
+# xs, ys, zs, ts = mem.read_integration_data(s.grid_experiments_path + path + '/integration_data.txt')
 
-time_moment_ind = np.searchsorted(ts, time_moment_t)
-tail_ind = np.searchsorted(ts, time_moment_t - tail_t)
-plot_colors = mem.make_colors(len(xs))
-for agent in range(len(xs)):
-    plt.plot(xs[agent][tail_ind:time_moment_ind+1], ys[agent][tail_ind:time_moment_ind+1], color=plot_colors[agent], zorder=1)
-for agent in range(len(xs)):
-    plt.scatter(xs[agent][time_moment_ind], ys[agent][time_moment_ind], color=plot_colors[agent], zorder=2)
-# plt.scatter(0, 0, color='black', marker='+')
+# time_moment_ind = np.searchsorted(ts, time_moment_t)
+# tail_ind = np.searchsorted(ts, time_moment_t - tail_t)
+# plot_colors = mem.make_colors(len(xs))
+# for agent in range(len(xs)):
+#     plt.plot(xs[agent][tail_ind:time_moment_ind+1], ys[agent][tail_ind:time_moment_ind+1], color=plot_colors[agent], zorder=1)
+# for agent in range(len(xs)):
+#     plt.scatter(xs[agent][time_moment_ind], ys[agent][time_moment_ind], color=plot_colors[agent], zorder=2)
+# # plt.scatter(0, 0, color='black', marker='+')
+# # plt.legend()
+# plt.xticks(fontsize=fontsize)
+# plt.yticks(fontsize=fontsize)
+# plt.subplots_adjust(0.18, 0.18, 0.94, 0.94)
+# plt.xlabel('x', fontsize=fontsize)
+# plt.ylabel('y', fontsize=fontsize)
+# plt.xticks([-0.2, 0, 0.2, 0.4, -0.4], fontsize=fontsize)
+# plt.yticks([3.38, 3.34, 3.3], fontsize=fontsize)
+# # plt.axis('equal')
+# plt.show()
+
+################################################### vdp
+# # path = '2025-05-27 13.59.28 vdp_17'
+# # time_moment_t = 8.00906
+# # time_moment_t = 114.50583
+# path = '2025-05-27 14.51.14 vdp_17'
+# # time_moment_t = 2.00698
+# time_moment_t = 119.00244
+# tail_t = 0.7
+# fontsize = 20
+# xs, ys, zs, ts = mem.read_integration_data(s.grid_experiments_path + path + '/integration_data.txt')
+# time_moment_ind = np.searchsorted(ts, time_moment_t)
+# tail_ind = np.searchsorted(ts, time_moment_t - tail_t)
+
+# plot_colors = mem.make_colors(len(xs)-1)
+# for agent in range(len(xs) - 1):
+#     plt.plot(xs[agent][tail_ind:time_moment_ind+1], ys[agent][tail_ind:time_moment_ind+1], color=plot_colors[agent], zorder=1)
+# for agent in range(len(xs) - 1):
+#     plt.scatter(xs[agent][time_moment_ind], ys[agent][time_moment_ind], color=plot_colors[agent], zorder=2)
+# # vdp
+# plt.plot(xs[-1][tail_ind:time_moment_ind+1], ys[-1][tail_ind:time_moment_ind+1], color='red', label='VDP', zorder=1)
+# plt.scatter(xs[-1][time_moment_ind], ys[-1][time_moment_ind], color='red', zorder=2)
+
+# plt.xticks(fontsize=fontsize)
+# plt.yticks(fontsize=fontsize)
+# plt.subplots_adjust(0.18, 0.18, 0.94, 0.94)
+# plt.xlabel('x', fontsize=fontsize)
+# plt.ylabel('y', fontsize=fontsize)
+# plt.xticks([0, 0.2, 0.4, 0.6], fontsize=fontsize)
+# plt.yticks([0.2, 0, -0.2, -0.4], fontsize=fontsize)
 # plt.legend()
+# # plt.axis('equal')
+# plt.show()
+
+########################################### Oscillatory death #######################################
+path = '2025-06-02 15.27.39 avg omega10_coup_y'
+t_end = 50
+fontsize=20
+xs, ys, zs, ts = mem.read_integration_data(s.grid_experiments_path + path + '/integration_data.txt')
+t_end_ind = np.searchsorted(ts, t_end)
+plot_colors = mem.make_colors(len(xs))
+plt.figure(figsize=[8,4])
+for agent in range(len(xs)):
+    plt.plot(ts[:t_end_ind], ys[agent][:t_end_ind], color=plot_colors[agent])
+plt.xlabel(r'$t$', fontsize=fontsize)
+plt.ylabel(r'$y$', fontsize=fontsize)
+plt.subplots_adjust(0.15, 0.22, 0.98, 0.96)
 plt.xticks(fontsize=fontsize)
 plt.yticks(fontsize=fontsize)
-plt.subplots_adjust(0.18, 0.18, 0.94, 0.94)
-plt.xlabel('x', fontsize=fontsize)
-plt.ylabel('y', fontsize=fontsize)
-plt.xticks(fontsize=fontsize)
-plt.yticks(fontsize=fontsize)
-# plt.axis('equal')
 plt.show()
 
 ########### posl
@@ -150,13 +216,13 @@ default_path = f"{s.grid_experiments_path}/Неоднородность по п�
 path_name_a = "series_solo_omega_dep_a"
 path_name_c = "series_solo_omega_dep_c"
 
-path = default_path + '/' + path_name_a
-data = pd.read_table(f"{path}/metrix.txt", sep=' ', header=None)
-# c_arr = data[0]
-a_arr = data[0]
-A_arr = data[1]
-omega_arr = data[2]
-size = len(a_arr)
+# path = default_path + '/' + path_name_a
+# data = pd.read_table(f"{path}/metrix.txt", sep=' ', header=None)
+# # c_arr = data[0]
+# a_arr = data[0]
+# A_arr = data[1]
+# omega_arr = data[2]
+# size = len(a_arr)
 
 # # plt.plot(c_arr, omega_arr)
 # plt.plot(c_arr, A_arr)
@@ -172,19 +238,19 @@ size = len(a_arr)
 # plt.subplots_adjust(0.18, 0.18, 0.94, 0.94)
 # plt.show()
 
-plt.plot(a_arr, omega_arr)
-# plt.plot(a_arr, A_arr)
+# plt.plot(a_arr, omega_arr)
+# # plt.plot(a_arr, A_arr)
 
-plt.xlim(a_arr[0], a_arr[size-1])
-plt.xlabel(r'$a$', fontsize=fontsize)
+# plt.xlim(a_arr[0], a_arr[size-1])
+# plt.xlabel(r'$a$', fontsize=fontsize)
 
-plt.ylabel(r'$\omega$', fontsize=fontsize)
-# plt.ylabel(r'$A$', fontsize=fontsize)
+# plt.ylabel(r'$\omega$', fontsize=fontsize)
+# # plt.ylabel(r'$A$', fontsize=fontsize)
 
-plt.xticks([0.16, 0.2, 0.24, 0.28], fontsize=fontsize)
-plt.yticks([2.4, 2.0, 1.6, 1.2], fontsize=fontsize)
-plt.subplots_adjust(0.18, 0.18, 0.94, 0.94)
-plt.show()
+# plt.xticks([0.16, 0.2, 0.24, 0.28], fontsize=fontsize)
+# plt.yticks([2.4, 2.0, 1.6, 1.2], fontsize=fontsize)
+# plt.subplots_adjust(0.18, 0.18, 0.94, 0.94)
+# plt.show()
 
 ################################## последовательное и параллельное движение в зависимости от T
 # T_arr = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7]
@@ -225,4 +291,46 @@ plt.show()
 # plt.ylabel(r'$A_1 - A_2$', fontsize=18)
 # plt.legend()
 # plt.grid()
+# plt.show()
+
+####################################################### График зависимости отношения средних частот к силе связи
+# path = '2025-05-22 11.23.58 series_omega_dep_T_0.0_0.2'
+# fontsize = 20
+
+# # with open(f'{path}/omega_meta.txt')
+# data = pd.read_table(f'{s.grid_experiments_path}{path}/omega_meta.txt', sep=' ', header=None)
+# T_arr = data[0]
+# size = len(T_arr)
+# omega_ratios = data[1]
+
+# plt.figure(figsize=[6, 3])
+# plt.plot(T_arr, omega_ratios)
+# plt.subplots_adjust(0.2, 0.25, 0.97, 0.94)
+# plt.xlabel(r"$d'$", fontsize=fontsize)
+# plt.ylabel(r"$\Omega_2/\Omega_1$", fontsize=fontsize)
+# plt.xticks([0, 0.05, 0.1, 0.15, 0.2], fontsize=fontsize)
+# plt.yticks([1, 1.01, 1.02, 1.03], fontsize=fontsize)
+# plt.show()
+
+###################################################### Зависимость средних частот от времени
+# from couplings import calc_omegas_avg_mean
+# # path = 'data/grid_experiments/Omegas/2025-05-21 15.46.41 avg omega10_coup_y'
+# path = 'data/grid_experiments/2025-05-22 13.45.25 avg omega2_coup_y'
+# _, _, _, ts = mem.read_integration_data(path + '/integration_data.txt')
+# t_max = round(ts[-1], 3)
+# k_elements = 2
+
+# df = pd.read_table(f'./{path}/omegas_data.txt', sep=' ', header=None)
+
+# omegas = [df.iloc[i].to_numpy() for i in range(k_elements)]
+
+# plot_colors = mem.make_colors(k_elements)
+# for i in range(k_elements):
+#     omegas_mean, times_arr = calc_omegas_avg_mean(omegas[i], ts, t_max, time_skip=0)
+#     plt.plot(times_arr, omegas_mean, color=plot_colors[i])
+# plt.subplots_adjust(0.18, 0.18, 0.94, 0.94)
+# plt.ylabel(r'$\omega$', fontsize=fontsize)
+# plt.xlabel(r'$t$', fontsize=fontsize)
+# plt.yticks([1.115, 1.11, 1.105, 1.1], fontsize=fontsize)
+# plt.xticks([0, 10000, 20000, 30000, 40000], fontsize=fontsize)
 # plt.show()

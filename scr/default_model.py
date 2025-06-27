@@ -29,6 +29,8 @@ else:
 
 min_radius = 1.
 
+T_vdp = 0.3
+
 ####################################################### Grid functions ##################################################################
 
 def calc_norm_inf(i, r):
@@ -121,8 +123,6 @@ def func_rossler_3_dim(t, r, w_arr_, a_, tau_ = tau):
 
     return res_arr
 
-####################################################### Posledovatelnoye ##################################################################
-
 # Функция включения связи между двумя агентами
 def d(_T, _radius, x_i, x_j, y_i, y_j, min_radius = 0.):
     dist = (x_i - x_j)**2 + (y_i - y_j)**2
@@ -130,16 +130,6 @@ def d(_T, _radius, x_i, x_j, y_i, y_j, min_radius = 0.):
         return _T
     else:
         return 0
-
-# Функция связи по x. Параллельное движение цепочки агентов
-def f_connect_x_repulsive(i, r, _T, perem = 'x'):
-    summ1, summ2 = 0, 0
-    for j in range(k_elements):   
-        if j != i:
-            summ1 += d(_T, radius, r[j*k], r[i*k], r[j*k+1], r[i*k+1]) * (r[j*k] - r[i*k])
-            summ2 += d(_T, radius, r[j*k], r[i*k], r[j*k+1], r[i*k+1]) / (r[i*k] - r[j*k])
-            
-    return summ1 + summ2
 
 def f_connect_st(i, r, _T, perem = 'y', k=s.k, k_elements=k_elements, radius = radius):
     if perem == 'z':
@@ -152,7 +142,10 @@ def f_connect_st(i, r, _T, perem = 'y', k=s.k, k_elements=k_elements, radius = r
     summ = 0
     for j in range(k_elements):
         if j != i:
-            summ += d(_T, radius, r[j*k], r[i*k], r[j*k+1], r[i*k+1], min_radius=min_radius) * (r[j*k + p_shift] - r[i*k + p_shift])
+            if j == 16:
+                summ += T_vdp * (r[j*k + p_shift] - r[i*k + p_shift])
+            else: 
+                summ += d(_T, radius, r[j*k], r[i*k], r[j*k+1], r[i*k+1], min_radius=min_radius) * (r[j*k + p_shift] - r[i*k + p_shift])
     return summ
 
 def f_connect_rep(i, r, _T, perem = 'y'):
@@ -173,7 +166,6 @@ def f_connect_rep(i, r, _T, perem = 'y'):
     return summ
 
 def func_rossler_2_dim(t, r, w_arr_, a_, tau_ = tau):
-    # print(f'\033[F\033[KCurrent integrate time: {round(t, 1)};', f'last update time: {mem.hms_now()}')
     global k_elements, w_arr, a
     w_arr = w_arr_
     a = a_
@@ -204,6 +196,12 @@ class Rossler_params:
         self.w_arr = w_arr
         self.c = c
         self.b = b
+
+class Vdp_params():
+    def __init__(self, W=1, mu = -0.01):
+        self.W = W
+        self.mu = mu
+        
 
 def func_rossler_2_dim_params_maker(couplings = (False, True, False), 
                                     couplings_rep = (False, False, False), 
@@ -256,6 +254,100 @@ def func_rossler_2_dim_params_maker(couplings = (False, True, False),
 
         return res_arr
     return func_rossler_2_dim_params
+
+def function_rossler_2dim_vdp(couplings = (False, True, False), 
+                                    couplings_rep = (False, False, False), 
+                                    params : Rossler_params = Rossler_params(), vdp_params = Vdp_params()):
+    f_dx_coup = f_connect_st if couplings[0] else default_f
+    f_dy_coup = f_connect_st if couplings[1] else default_f
+    f_dz_coup = f_connect_st if couplings[2] else default_f
+
+    f_dx_coup_rep = f_connect_rep if couplings_rep[0] else default_f
+    f_dy_coup_rep = f_connect_rep if couplings_rep[1] else default_f
+    f_dz_coup_rep = f_connect_rep if couplings_rep[2] else default_f
+
+    global k_elements, w_arr, a, T, tau, radius, c, b
+    k_elements = params.k_elements
+    w_arr = params.w_arr
+    a = params.a
+    T = params.T
+    tau = params.tau
+    radius = params.radius
+    c = params.c
+    b = params.b
+
+    def coup_y_with_new_agent(y_this, y_another, T_):
+        return T_ * (y_another - y_this)
+
+    def func_rossler_2_dim_params(t, r):
+
+        res_arr = []
+        for i in range(k_elements-1):
+            # x_i = r[i*k]
+            # y_i = r[i*k + 1]
+            # z_i = r[i*k + 2]
+
+            dx = func_dx(i, r, f_dx_coup, T, w_arr, connect_f_rep=f_dx_coup_rep)
+            dy = func_dy(i, r, f_dy_coup, T, w_arr, connect_f_rep=f_dy_coup_rep)
+            dz = func_dz(i, r, f_dz_coup, T, connect_f_rep=f_dz_coup_rep)
+
+            res_arr.append(dx)
+            res_arr.append(dy)
+            res_arr.append(dz)
+
+        # vdp
+        # res_arr.append(- r[-2])
+        # res_arr.append(vdp_params.W * r[-3] + vdp_params.mu * (1 - r[-3]**2) * r[-2])
+        # res_arr.append(0)
+
+        # dy = alpha * y
+        res_arr.append(0)
+        res_arr.append(0.1 * r[-2])
+        res_arr.append(0)
+
+        return res_arr
+    return func_rossler_2_dim_params
+
+# def function_vdp_2dim_rossler(couplings = (False, True, False), 
+#                                     params : Rossler_params = Rossler_params(), vdp_params = Vdp_params()):
+#     f_dx_coup = f_connect_st if couplings[0] else default_f
+#     f_dy_coup = f_connect_st if couplings[1] else default_f
+#     f_dz_coup = f_connect_st if couplings[2] else default_f
+
+#     global k_elements, w_arr, a, T, tau, radius, c, b
+#     k_elements = params.k_elements
+#     w_arr = params.w_arr
+#     a = params.a
+#     T = params.T
+#     tau = params.tau
+#     radius = params.radius
+#     c = params.c
+#     b = params.b
+
+#     def func_rossler_2_dim_params(t, r):
+
+#         res_arr = []
+#         for i in range(k_elements-1):
+#             # x_i = r[i*k]
+#             # y_i = r[i*k + 1]
+#             # z_i = r[i*k + 2]
+
+#             dx = tau * func_dx(i, r, f_dx_coup, T, w_arr)
+#             dy = tau * func_dy(i, r, f_dy_coup, T, w_arr)
+#             dz = tau * func_dz(i, r, f_dz_coup, T)
+
+#             res_arr.append(dx)
+#             res_arr.append(dy)
+#             res_arr.append(dz)
+
+#         # vdp
+#         res_arr.append(- r[-2])
+#         res_arr.append(vdp_params.W * r[-3] + vdp_params.mu * (1 - r[-3]**2) * r[-2])
+#         res_arr.append(0)
+
+#         return res_arr
+#     return func_rossler_2_dim_params
+
 
 ############################################################# Lorenz ################################################################
 

@@ -29,8 +29,7 @@ def ressler_default_maker(a=0.22, b=0.1, c=8.5):
         return [dx, dy, dz]
     return rhs
 
-def make_xt_attractors():
-    system = 3
+def make_xt_attractors(system = 3):
     if system == 1 or system == 4:
         ic = lorenz_default_IC = [5, 1, 25] # 50
         lim = lorenz_default_lim = 30

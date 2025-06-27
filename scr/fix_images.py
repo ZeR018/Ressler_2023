@@ -106,21 +106,48 @@ font_name = "./data/temp/times-new-roman-italic.ttf"
 
 ################################# xy graphs ################################
 
+# img_names = ['omega_dep_t_2', 'omega_dep_t_10', 'omegas_dep_T']
+# img_names = ['posl_y_c_10', 'parallel_y_c_10_2', 'grid_c_omega_10 (2)']
 # img_names = ['posl_xy', 'parallel_xy_c']
-# img_names = ['posl_xy_c_10', 'parallel_xy_c_10']
-img_names = ['a_dep_a', 'a_dep_c', 'omega_dep_a', 'omega_dep_c']
-index = 3
-img = Image.open(f'./data/saved_graphs/{img_names[index]}.png')
-# Создаем объект для рисования
-draw = ImageDraw.Draw(img)
+# img_names = ['posl_xy_c_10', 'parallel_xy_c_10', "grid_c_omega_10"]
+# img_names = ['a_dep_a', 'a_dep_c', 'omega_dep_a', 'omega_dep_c']
+# img_names = ['rossler_16_vdp_1', 'rossler_16_vdp_2', 'vdp_amplitudes']
+# img_names = ['vdp_posl', 'vdp_parallel_4']
+# img_names = ['vdp_posl_2', 'vdp_parallel_2']
+# img_names = ['rossler_a016_yx', 'rossler_a022_yx', 'lorenz_default_zx', 'lorenz_default_zu', 'lorenz_intermittent_yx']
+# img_names = ['oscillatory_death_xt', 'oscillatory_death_yt']
+img_names = ['vdp_sync_rossler_xt', 'vdp_sync_rossler_yt']
+symbols = ['a)', 'b)', 'c)', 'd)', 'e)', 'f)']
+# index = 1
+# img = Image.open(f'./data/saved_graphs/{img_names[index]}.png')
+# # Создаем объект для рисования
+# draw = ImageDraw.Draw(img)
 
-# Указываем шрифт и размер (по умолчанию используется стандартный шрифт)
-font = ImageFont.truetype(font_name, size=48)
+# # Указываем шрифт и размер (по умолчанию используется стандартный шрифт)
+# font = ImageFont.truetype(font_name, size=48)
 
-# Добавляем текст на изображение
-draw.text((30, 415), symbols[index], fill="black", font=font)
+# # Добавляем текст на изображение
+# # draw.text((30, 415), symbols[index], fill="black", font=font)
+# draw.text((30, 335), symbols[index], fill="black", font=font)
 
 
-# Сохраняем измененное изображение
-img.show()  # Показываем изображение
-img.save(f'./data/saved_graphs/new/{img_names[index]}_new.png')
+# # Сохраняем измененное изображение
+# img.show()  # Показываем изображение
+# img.save(f'./data/saved_graphs/new/{img_names[index]}_new.png')
+
+for index in range(len(img_names)):
+    img = Image.open(f'./data/saved_graphs/{img_names[index]}.png')
+    # Создаем объект для рисования
+    draw = ImageDraw.Draw(img)
+
+    # Указываем шрифт и размер (по умолчанию используется стандартный шрифт)
+    font = ImageFont.truetype(font_name, size=48)
+
+    # Добавляем текст на изображение
+    # draw.text((30, 415), symbols[index], fill="black", font=font)
+    draw.text((30, 335), symbols[index], fill="black", font=font)
+
+
+    # Сохраняем измененное изображение
+    img.show()  # Показываем изображение
+    img.save(f'./data/saved_graphs/new/{img_names[index]}_new.png')
